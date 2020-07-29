@@ -3,6 +3,7 @@ package com.hy.workflow.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.hy.workflow.util.ProcessUtil;
 import io.swagger.annotations.*;
 import org.apache.commons.lang3.StringUtils;
@@ -170,32 +171,48 @@ public class ModelController {
         String json = paramMap.getFirst("json_xml");
         String modelId = paramMap.getFirst("modelId");
         String modeltype = paramMap.getFirst("modeltype");
+        String description = paramMap.getFirst("description");
+        String name = paramMap.getFirst("name");
 
         ObjectNode editorJsonNode = (ObjectNode)this.objectMapper.readTree(json);
         ObjectNode propertiesNode = (ObjectNode)editorJsonNode.get("properties");
         String key = propertiesNode.get("process_id")==null?null: propertiesNode.get("process_id").asText();
-        String name = propertiesNode.get("name")==null?null: propertiesNode.get("name").asText();
-        String documentation = propertiesNode.get("documentation")==null?null: propertiesNode.get("documentation").asText();
+        //String name = propertiesNode.get("name")==null?null: propertiesNode.get("name").asText();
         String acutor = propertiesNode.get("process_author")==null?null: propertiesNode.get("process_author").asText();
+        //String documentation = propertiesNode.get("documentation")==null?null: propertiesNode.get("documentation").asText();
 
-        if( StringUtils.isEmpty(key) || StringUtils.isEmpty(name) )
-            throw new RuntimeException("流程名称和流程标识不能为空！");
+        if(StringUtils.isEmpty(name))  throw new RuntimeException("流程名称不能为空！");
 
         Model model =  repositoryService.newModel() ;
-        model.setKey(key);
-        model.setName(name);
 
         /*新建模型*/
-        if(StringUtils.isEmpty(modelId)||"undefined".equals(modelId)){
-            Model keyModel = repositoryService.createModelQuery().modelKey(key).singleResult();
-            if(keyModel!=null)
-                throw new RuntimeException("流程标识为："+key+" 的模型已经存在！");
+        if(StringUtils.isEmpty(modelId)||"-1".equals(modelId)){
+            //填写Key时判断后台是否已经存在
+            if(StringUtils.isNotBlank(key)){
+                Model existModel = repositoryService.createModelQuery().modelKey(key).singleResult();
+                if(existModel!=null)  throw new RuntimeException("流程标识为："+key+" 的模型已经存在！");
+            }
+            //未填写Key时自动设置模型ID为Key
             repositoryService.saveModel(model);
+            if(StringUtils.isBlank(key)){
+                key = model.getId();
+                propertiesNode.put("process_id",key);
+            }
         }
         /*修改模型*/
         else{
             model = repositoryService.createModelQuery().modelId(modelId).singleResult();
+            if(StringUtils.isEmpty(key)) throw new RuntimeException("流程标识不能为空！");
+            //key是否有修改
+            if(!key.equals(model.getKey())){
+                Model existModel = repositoryService.createModelQuery().modelKey(key).singleResult();
+                if(existModel!=null)  throw new RuntimeException("流程标识为："+key+" 的模型已经存在！");
+            }
         }
+
+        model.setKey(key);
+        model.setName(name);
+        propertiesNode.put("name",name);
 
         //设置MetaInfo信息
         ObjectNode metaInfoNode =this.objectMapper.createObjectNode();
@@ -208,7 +225,7 @@ public class ModelController {
         propNode.put("name", name);
         propNode.put("model_type", modeltype);
         propNode.put("process_author", acutor);
-        propNode.put("documentation", documentation);
+        propNode.put("description", description);
         //单位部门信息需要更新
         propNode.put("department_id", "1000012");
         propNode.put("unit_id", "1000000");
@@ -273,13 +290,13 @@ public class ModelController {
 
     @ApiOperation(value = "模型编辑器编辑模型",ignoreJsonView = true,hidden = true)
     @GetMapping(value = {"/models/{modelId}/editor/json"},produces = {"application/json"})
-    public ObjectNode getModelJSON(@PathVariable String modelId) {
+    public ObjectNode getModelJSON(@PathVariable String modelId) throws JsonProcessingException {
         Model model = repositoryService.createModelQuery().modelId(modelId).singleResult();
         ObjectNode modelNode = this.objectMapper.createObjectNode();
         modelNode.put("modelId", model.getId());
         modelNode.put("name", model.getName());
         modelNode.put("key", model.getKey());
-        modelNode.put("description", "niyaoa");
+
         modelNode.putPOJO("lastUpdated", model.getCreateTime());
         modelNode.put("lastUpdatedBy", model.getCreateTime().toString());
         ObjectNode editorJsonNode;
@@ -288,6 +305,7 @@ public class ModelController {
                 String source = new String(repositoryService.getModelEditorSource(model.getId()));
                 editorJsonNode = (ObjectNode)this.objectMapper.readTree(source);
                 editorJsonNode.put("modelType", "model");
+                editorJsonNode.put("process_id", model.getKey());
                 modelNode.set("model", editorJsonNode);
             } catch (Exception var6) {
                 throw new InternalServerErrorException("Error reading editor json " );
@@ -301,6 +319,10 @@ public class ModelController {
             editorJsonNode.put("modelType", "model");
             modelNode.set("model", editorJsonNode);
         }
+
+        TextNode description = (TextNode)this.objectMapper.readTree(model.getMetaInfo()).get("properties").get("description");
+        if(description!=null) modelNode.put("description",description.asText());
+
         return modelNode;
     }
 
@@ -309,9 +331,9 @@ public class ModelController {
     @GetMapping(value = {"/models/newModelJson"},produces = {"application/json"})
     public ObjectNode getNewModelJSON() {
         ObjectNode modelNode = this.objectMapper.createObjectNode();
-        modelNode.put("name", "新建模型");
-        modelNode.put("key", "XJMX");
-        modelNode.put("description", "空的哈哈");
+        modelNode.put("modelId","-1");
+        modelNode.put("name", "");
+        modelNode.put("key", "NewModel");
         modelNode.putPOJO("lastUpdated", new Date());
         ObjectNode editorJsonNode;
         editorJsonNode = this.objectMapper.createObjectNode();
@@ -326,8 +348,8 @@ public class ModelController {
         stencil.put("id","BPMNDiagram");
         editorJsonNode.set("stencil",stencil);
         ObjectNode propertiesNode = this.objectMapper.createObjectNode();
-        propertiesNode.put("process_id", "XJMX");
-        propertiesNode.put("name", "新建模型");
+        propertiesNode.put("process_id", "");
+        propertiesNode.put("name", "");
         propertiesNode.put("process_namespace", "http://www.flowable.org/processdef");
         propertiesNode.put("process_author", "赵耀");
         propertiesNode.put("isexecutable", true);

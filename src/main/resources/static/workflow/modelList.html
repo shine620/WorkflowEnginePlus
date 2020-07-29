@@ -62,7 +62,7 @@
 
         <!--列表日期格式化显示-->
 		<script type="text/html" id="model-createTime">
-		    {{layui.util.toDateString(d.lastUpdateTime, 'yyyy-MM-dd HH:mm:ss')}}
+		    {{layui.util.toDateString(d.createTime, 'yyyy-MM-dd HH:mm:ss')}}
 		</script>
         <script type="text/html" id="model-lastUpdateTime">
             {{layui.util.toDateString(d.lastUpdateTime, 'yyyy-MM-dd HH:mm:ss')}}
@@ -82,11 +82,11 @@
 		        let cols = [
 		            [
 		                {type:'checkbox'},
-                        {title: '标识', field: 'key', align:'center'},
-		                {title: '模型名称', field: 'name', align:'center'},
+                        {title: '标识', field: 'key', align:'center',sort:true},
+		                {title: '模型名称', field: 'name', align:'center',sort:true},
 		                {title: '版本号', field: 'version', align:'center'},
 		                {title: '创建人', field: 'createUserName', align:'center',hide:true},
-		                {title: '创建时间', field: 'createTime', align:'center',templet:"#model-createTime"},
+		                {title: '创建时间', field: 'createTime', align:'center',templet:"#model-createTime",sort:true},
 		                {title: '最后修改时间', field: 'lastUpdateTime', align:'center',templet:"#model-lastUpdateTime"},
 		                {title: '操作', toolbar: '#user-bar', align:'center', width:130}
 		            ]
@@ -100,6 +100,10 @@
 		            skin: 'line',
                     limits: [5,10, 20, 30, 40, 50],
 		            toolbar: '#user-toolbar',
+					initSort: {
+						 field: 'createTime' //排序字段，对应 cols 设定的各字段名
+						 ,type: 'desc' //排序方式  asc: 升序、desc: 降序、null: 默认排序
+					},
                     request: {
                         pageName: 'startPage' //页码的参数名称，默认：page
                         ,limitName: 'pageSize' //每页数据量的参数名，默认：limit
@@ -177,8 +181,9 @@
 		                    type:'delete',
 		                    success:function(result){
 		                        layer.close(loading);
+								obj.del();
                                 layer.msg('删除成功',{icon:1,time:1000},function(){
-                                    obj.del();
+                                    //obj.del();
                                 });
 		                    },
                             error:function(XMLHttpRequest){
@@ -209,8 +214,9 @@
 		                    type:'delete',
 		                    success:function(result){
 		                        layer.close(loading);
+								table.reload('user-table');
                                 layer.msg("删除成功",{icon:1,time:1000},function(){
-                                    table.reload('user-table');
+                                    //table.reload('user-table');
                                 });
 		                    },
                             error:function(XMLHttpRequest){

@@ -13,9 +13,6 @@
         		<i ng-switch-when="button" ng-class="item.cssClass" class="toolbar-button" data-toggle="tooltip" title="{{item.title | translate}}"></i>
 	            <div ng-switch-when="separator" ng-class="item.cssClass"></div>
         	</button>
-            <button name="一个测试" onclick="save()">一个1</button>
-            <button name="一个测试" onclick="alert(save)">一个2</button>
-            <button class="btn btn-primary" ng-click="save()" ng-show="!error && !error.isConflict" translate>ACTION.SAVE</button>
         </div>
         </div>
         <div class="btn-group pull-right" ng-show="!secondaryItems.length">

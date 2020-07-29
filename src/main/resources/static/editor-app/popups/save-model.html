@@ -21,24 +21,24 @@
                        ng-model="saveDialog.name"
                        auto-focus />
         	</div>
-        	<div class="form-group">
+        	<!--<div class="form-group">
            		<label for="keyField">{{'MODEL.KEY' | translate}}</label>
         		<input type="text"
                        ng-disabled="status.loading || (error && error.conflictResolveAction == 'saveAs')"
                        id="keyField"
                        class="form-control"
                        ng-model="saveDialog.key" />
-        	</div>
+        	</div>-->
         	<div class="form-group">
            		<label for="docTextArea">{{'MODEL.DESCRIPTION' | translate}}</label>
            		<textarea id="docTextArea" ng-disabled="status.loading" class="form-control" ng-model="saveDialog.description"></textarea>
         	</div>
-        	<div class="checkbox" ng-show="!error && !error.isConflict">
+        	<!--<div class="checkbox" ng-show="!error && !error.isConflict">
            		<label>
            			<input type="checkbox" ng-disabled="status.loading" ng-model="saveDialog.newVersion" >
            				{{'MODEL.SAVE.NEWVERSION' | translate}}
            		</label>
-        	</div>
+        	</div>-->
         	<div class="form-group" ng-if="saveDialog.newVersion">
            		<label for="commentTextArea">{{'MODEL.SAVE.COMMENT' | translate}}</label>
            		<textarea id="commentTextArea" class="form-control" ng-model="saveDialog.comment" ng-disabled="status.loading"></textarea>
@@ -98,7 +98,7 @@
         
         	<div class="pull-right">
             	<button type="button" class="btn" ng-click="close()" ng-disabled="status.loading" translate>ACTION.CANCEL</button>
-            	<button class="btn btn-primary" ng-click="saveAndClose()" ng-disabled="status.loading || saveDialog.name.length == 0 || saveDialog.key.length == 0" ng-show="!error && !error.isConflict" translate>ACTION.SAVE-AND-CLOSE</button>
+            	<!--<button class="btn btn-primary" ng-click="saveAndClose()" ng-disabled="status.loading || saveDialog.name.length == 0 || saveDialog.key.length == 0" ng-show="!error && !error.isConflict" translate>ACTION.SAVE-AND-CLOSE</button>-->
             	<button class="btn btn-primary" ng-click="save()" ng-disabled="status.loading || saveDialog.name.length == 0 || saveDialog.key.length == 0" ng-show="!error && !error.isConflict" translate>ACTION.SAVE</button>
                 <button class="btn btn-primary" ng-click="okClicked()" ng-disabled="isOkButtonDisabled()" ng-show="error && error.isConflict" translate>ACTION.OK</button>
             </div>

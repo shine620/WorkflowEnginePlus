@@ -344,7 +344,6 @@ angular.module('flowableModeler').controller('SaveModelCtrl', [ '$rootScope', '$
 
     $scope.saveAndClose = function () {
         console.info(editor);
-        alert(editor);
     	$scope.save(function() {
             if (editorManager.getStencilData()) {
                 var stencilNameSpace = editorManager.getStencilData().namespace;
@@ -359,8 +358,7 @@ angular.module('flowableModeler').controller('SaveModelCtrl', [ '$rootScope', '$
     
     $scope.save = function (successCallback) {
 
-        console.info(successCallback);
-        alert(successCallback);
+        //console.info(successCallback);
 
         if (!$scope.saveDialog.name || $scope.saveDialog.name.length == 0 ||
         	!$scope.saveDialog.key || $scope.saveDialog.key.length == 0) {
@@ -441,6 +439,16 @@ angular.module('flowableModeler').controller('SaveModelCtrl', [ '$rootScope', '$
                     successCallback();
                 }
 
+                //新建模型时保存后需要刷新页面
+                var position = window.location.href;
+                if(position.substring(position.length-"/editor".length)=="/editor"){
+                    window.location.replace(window.location.href+"/"+data.id);
+                }
+                //修改模型后也刷新页面
+                else{
+                    window.location.reload();
+                }
+
             })
             .error(function (data, status, headers, config) {
                 if (status == 409) {
@@ -454,6 +462,12 @@ angular.module('flowableModeler').controller('SaveModelCtrl', [ '$rootScope', '$
                     $scope.saveDialog.errorMessage = data.message;
                 }
                 $scope.status.loading = false;
+                $scope.$hide();
+                alert("模型保存错误："+data.error);
+                console.info("=====================模型保存错误=================");
+                console.info(data);
+                console.info(config);
+                console.info("==============================================");
             });
     };
 

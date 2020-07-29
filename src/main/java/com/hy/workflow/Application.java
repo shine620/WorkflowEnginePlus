@@ -5,6 +5,7 @@ import com.hy.workflow.config.ApplicationConfiguration;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
+import org.flowable.engine.impl.db.DbIdGenerator;
 import org.flowable.spring.SpringProcessEngineConfiguration;
 import org.flowable.spring.boot.EngineConfigurationConfigurer;
 import org.springframework.boot.CommandLineRunner;
@@ -48,6 +49,7 @@ public class Application {
                 engineConfiguration.setActivityFontName("宋体");
                 engineConfiguration.setLabelFontName("宋体");
                 engineConfiguration.setAnnotationFontName("宋体");
+                engineConfiguration.setIdGenerator(new DbIdGenerator());
             }
         };
     }
