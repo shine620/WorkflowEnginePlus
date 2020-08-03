@@ -10,7 +10,7 @@ import javax.transaction.Transactional;
 import java.util.List;
 
 @Service
-public class MyProcessService {
+public class DemoService {
 
     @Autowired
     private RuntimeService runtimeService;

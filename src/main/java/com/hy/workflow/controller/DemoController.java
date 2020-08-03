@@ -1,7 +1,7 @@
 package com.hy.workflow.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hy.workflow.service.MyProcessService;
+import com.hy.workflow.service.DemoService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -46,7 +46,7 @@ public class DemoController {
     protected ObjectMapper objectMapper;
 
     @Autowired
-    private MyProcessService myProcessService;
+    private DemoService demoService;
 
     @PostMapping(value="/sayHello",produces = "application/json")
     @ApiOperation(value = "创建模型", notes = "创建一个流程模型")
@@ -58,18 +58,18 @@ public class DemoController {
 
     @PostMapping(value="/process")
     public void startProcessInstance(String processKey) {
-        myProcessService.startProcess(processKey);
+        demoService.startProcess(processKey);
     }
 
 
     @GetMapping(value="/startProcess")
     public void startProcess(String processKey) {
-        myProcessService.startProcess(processKey);
+        demoService.startProcess(processKey);
     }
 
     @RequestMapping(value="/tasks", method= RequestMethod.GET, produces= MediaType.APPLICATION_JSON_VALUE)
     public List<TaskRepresentation> getTasks(@RequestParam String assignee) {
-        List<Task> tasks = myProcessService.getTasks(assignee);
+        List<Task> tasks = demoService.getTasks(assignee);
         List<TaskRepresentation> dtos = new ArrayList<TaskRepresentation>();
         for (Task task : tasks) {
             dtos.add(new TaskRepresentation(task.getId(), task.getName()));
@@ -131,11 +131,10 @@ public class DemoController {
         //启动流程实例
         RuntimeService runtimeService = processEngine.getRuntimeService();
         Map<String, Object> variables = new HashMap<String, Object>();
-        variables.put("employee", "张三");
+        variables.put("employee", "白居易");
         variables.put("nrOfHolidays", "3");
-        variables.put("description", "我有事你呢哥哥");
+        variables.put("description", "秋天殊未晓，风雨正苍苍");
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("HTFWSP", variables);
-
 
         TaskService taskService = processEngine.getTaskService();
         List<Task> tasks = taskService.createTaskQuery().list();
@@ -149,11 +148,9 @@ public class DemoController {
         Map<String, Object> processVariables = taskService.getVariables(task.getId());
         System.out.println(processVariables.get("employee") + " wants " +processVariables.get("nrOfHolidays") + " Do you approve this?");
 
-
         HashMap vs = new HashMap<String, Object>();
-        vs.put("approved", "通过3333333！");
+        vs.put("approved", "通过，OK的！");
         taskService.complete(task.getId(), vs);
-
 
     }
 
@@ -167,23 +164,14 @@ public class DemoController {
     }
 
 
-
-
-
-
-
-
-
-
     @GetMapping(value = "/deploy/startProcessKey/{key}")
     public String startProcessKey(@PathVariable("key") String key) {
         Map<String, Object> variables = new HashMap<String, Object>();
-        variables.put("employee", "雄安命");
+        variables.put("employee", "李白");
         variables.put("nrOfHolidays", "1");
-        variables.put("description", "在干嘛呢");
+        variables.put("description", "将进酒");
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(key,variables);
-
-        return "好啊哈哈哈";
+        return "直挂云帆济沧海";
     }
 
     @GetMapping(value = "/process/completeTask")
@@ -200,10 +188,10 @@ public class DemoController {
         System.out.println(processVariables.get("employee") + " wants " +processVariables.get("nrOfHolidays") + " Do you approve this?");
 
         HashMap variables = new HashMap<String, Object>();
-        variables.put("approved", "通过3333333！");
+        variables.put("approved", "通过！");
         taskService.complete(task.getId(), variables);
 
-        return "好啊哈哈哈";
+        return "审批完成";
     }
 
 

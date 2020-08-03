@@ -4,26 +4,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.hy.workflow.util.ProcessUtil;
+import com.hy.workflow.service.ModelService;
+import com.hy.workflow.util.EntityModelUtil;
 import io.swagger.annotations.*;
 import org.apache.commons.lang3.StringUtils;
-import org.flowable.bpmn.converter.BpmnXMLConverter;
-import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.common.engine.api.query.QueryProperty;
 import org.flowable.common.rest.api.DataResponse;
 import org.flowable.common.rest.api.PaginateRequest;
-import org.flowable.editor.language.json.converter.BpmnJsonConverter;
 import org.flowable.engine.RepositoryService;
-import org.flowable.engine.RuntimeService;
-import org.flowable.engine.TaskService;
 import org.flowable.engine.impl.ModelQueryProperty;
-import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.repository.Model;
 import org.flowable.engine.repository.ModelQuery;
 import org.flowable.rest.service.api.repository.ModelResponse;
 import org.flowable.ui.common.service.exception.InternalServerErrorException;
-import org.flowable.ui.modeler.repository.ModelRepository;
-import org.flowable.ui.modeler.serviceapi.ModelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
 import java.util.*;
 
 import static org.flowable.common.rest.api.PaginateListUtil.paginateList;
@@ -43,23 +35,13 @@ import static org.flowable.common.rest.api.PaginateListUtil.paginateList;
 public class ModelController {
 
     @Autowired
-    protected RepositoryService repositoryService;
+    private RepositoryService repositoryService;
 
     @Autowired
-    protected ModelService modelService;
+    private ModelService modelService;
 
     @Autowired
-    protected TaskService taskService;
-
-    @Autowired
-    protected RuntimeService runtimeService;
-
-    @Autowired
-    protected ModelRepository modelRepository;
-
-    @Autowired
-    protected ObjectMapper objectMapper;
-
+    private ObjectMapper objectMapper;
 
     private static Map<String, QueryProperty> allowedSortProperties = new HashMap<>();
 
@@ -159,7 +141,7 @@ public class ModelController {
         paginateRequest.setStart( (startPage-1)*pageSize );
         paginateRequest.setSize(Integer.valueOf(params.get("pageSize")));
 
-        return paginateList(params, paginateRequest, modelQuery,"id", allowedSortProperties, ProcessUtil::toModelResponseList);
+        return paginateList(params, paginateRequest, modelQuery,"id", allowedSortProperties, EntityModelUtil::toModelResponseList);
 
     }
 
@@ -239,24 +221,17 @@ public class ModelController {
         //模型记录信息
         //模型ID、Key、名称、版本、创建人、创建部门、创建单位、创建时间、修改时间
 
-        return ProcessUtil.toModelResponse(model);
+        return EntityModelUtil.toModelResponse(model);
     }
 
 
     @ApiOperation(value = "Deploy a model", notes="部署一个模型", tags = { "Models" })
-    @GetMapping(value = "/deploy/{modelId}")
-    public void deploy(@ApiParam(name = "modelId",value = "模型ID") @PathVariable("modelId") String modelId,HttpServletResponse response) throws IOException {
-
+    @PutMapping(value = "/deploy/{modelId}")
+    public void deploy(@ApiParam(name = "modelId",value = "模型ID") @PathVariable("modelId") String modelId, HttpServletResponse response) {
         Model model = repositoryService.getModel(modelId);
-        ObjectNode modelNode = (ObjectNode) new ObjectMapper().readTree(repositoryService.getModelEditorSource(model.getId()));
-
-        BpmnModel bpmnModel = new BpmnJsonConverter().convertToBpmnModel(modelNode);
-        byte[] bpmnBytes = new BpmnXMLConverter().convertToXML(bpmnModel);
-
-        String processName = model.getName() + ".bpmn20.xml";
-        Deployment deployment = repositoryService.createDeployment().name(model.getName()).addString(processName, new String(bpmnBytes)).deploy();
-
+        modelService.deploy(model);
         response.setStatus(HttpStatus.OK.value());
+        //return  new ResponseEntity<>( "OK",HttpStatus.OK);
     }
 
 
@@ -264,7 +239,7 @@ public class ModelController {
     @GetMapping(value = "/models/{modelId}", produces = "application/json")
     public ModelResponse getModel(@ApiParam(name = "modelId",value = "模型ID") @PathVariable String modelId, HttpServletRequest request) {
         Model model = repositoryService.createModelQuery().modelId(modelId).singleResult();
-        return ProcessUtil.toModelResponse(model);
+        return EntityModelUtil.toModelResponse(model);
     }
 
 
@@ -280,7 +255,7 @@ public class ModelController {
 
     @ApiOperation(value = "Batch Delete model", notes="删除多个模型",tags = { "Models" })
     @DeleteMapping("/models/batchDeleteModel")
-    public void batchDeleteModel(@ApiParam(name = "modelId",value = "模型ID") @RequestParam String[] modelIds, HttpServletResponse response) {
+    public void batchDeleteModel(@ApiParam(name = "modelIds",value = "模型ID") @RequestParam String[] modelIds, HttpServletResponse response) {
         for(String modelId : modelIds){
             repositoryService.deleteModel(modelId);
         }
@@ -366,10 +341,11 @@ public class ModelController {
         List<Model> allModels = modelQuery.list();
         DataResponse<ModelResponse> dataResponse = new DataResponse();
         dataResponse.setSize(allModels.size());
-        dataResponse.setData(ProcessUtil.toModelResponseList(allModels));
+        dataResponse.setData(EntityModelUtil.toModelResponseList(allModels));
         dataResponse.setTotal(allModels.size());
         return dataResponse;
     }
+
 
 
 }

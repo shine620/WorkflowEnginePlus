@@ -10,15 +10,15 @@
 		<body class="pear-container">
 		    <div class="layui-card">
 		        <div class="layui-card-body">
-		            <form class="layui-form" action="/ModelController/models" method="get">
+		            <form class="layui-form" action="/ProcessDefinitionController/process-definitions" method="get">
 		                <div class="layui-form-item">
-                            <label class="layui-form-label">模型名称</label>
+                            <label class="layui-form-label">流程名称</label>
                             <div class="layui-input-inline">
                                 <input type="text" name="name" placeholder="" class="layui-input">
                             </div>
-		                    <label class="layui-form-label">模型标识</label>
+		                    <label class="layui-form-label" style="width: 90px !important;">流程定义编号</label>
 		                    <div class="layui-input-inline">
-		                        <input type="text" name="key" placeholder="" class="layui-input">
+		                        <input type="text" name="id" placeholder="" class="layui-input">
 		                    </div>
 		                    <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="user-query">
 		                        <i class="layui-icon layui-icon-search"></i>
@@ -40,9 +40,9 @@
 		</body>
 
 		<script type="text/html" id="user-toolbar">
-            <a href="/flowable.html#/editor" target="_blank" class="pear-btn pear-btn-primary pear-btn-md">
+            <!--<a href="/flowable.html#/editor" target="_blank" class="pear-btn pear-btn-primary pear-btn-md">
                 <i class="layui-icon layui-icon-add-1"></i>新建模型
-            </a>
+            </a> -->
             <!--当前tab页打开-->
             <!--<a href="http://www.layui.com" class="layui-btn">新建模型</a>-->
             <!--新页签打开-->
@@ -56,18 +56,24 @@
 
         <!--编辑和删除按钮-->
 		<script type="text/html" id="user-bar">
-		    <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit" title="编辑"><i class="layui-icon layui-icon-edit"></i></button>
+		    <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="setting" title="配置"><i class="layui-icon layui-icon-set-fill"></i></button>
 		    <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i></button>
-			<button class="pear-btn pear-btn-success pear-btn-sm" lay-event="deploy" title="部署"><i class="layui-icon layui-icon-release" ></i></button>
+			<!--<button class="pear-btn pear-btn-warming pear-btn-sm" lay-event="deploy" title="挂起"><i class="layui-icon layui-icon-pause" ></i></button>-->
+			<button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="viewXml" title="查看资源文件"><i class="layui-icon layui-icon-fonts-code" ></i></button>
 		</script>
 
+		<script type="text/html" id="procDef-suspended">
+			<input type="checkbox" name="suspended" value="{{d.id}}" lay-skin="switch" lay-text="激活|挂起" lay-filter="procDef-suspended" {{ d.suspended == false ? 'checked' : '' }}  >
+		</script>
+
+
         <!--列表日期格式化显示-->
-		<script type="text/html" id="model-createTime">
+		<!--<script type="text/html" id="model-createTime">
 		    {{layui.util.toDateString(d.createTime, 'yyyy-MM-dd HH:mm:ss')}}
 		</script>
         <script type="text/html" id="model-lastUpdateTime">
             {{layui.util.toDateString(d.lastUpdateTime, 'yyyy-MM-dd HH:mm:ss')}}
-        </script>
+        </script>-->
 		
 		<script src="../component/layui/layui.js"></script>
 		<script>
@@ -78,17 +84,19 @@
 		        let $ = layui.jquery;
 		        let pearTab = layui.pearTab;
 
-		        let MODULE_PATH = "/ModelController/models/";
+		        let MODULE_PATH = "/ProcessDefinitionController/process-definitions/";
 		
 		        let cols = [
 		            [
 		                {type:'checkbox'},
-		                {title: '模型名称', field: 'name', align:'left',sort:true},
-		                {title: '版本号', field: 'version', align:'center'},
-		                {title: '创建人', field: 'createUserName', align:'left',hide:true},
-		                {title: '创建时间', field: 'createTime', align:'left',templet:"#model-createTime",sort:true},
-		                {title: '最后修改时间', field: 'lastUpdateTime', align:'left',templet:"#model-lastUpdateTime"},
-		                {title: '操作', toolbar: '#user-bar', align:'center', width:150}
+		                {title: '流程名称', field: 'name', align:'left',sort:true},
+						{title: '流程定义编号', field: 'id', align:'left',sort:true},
+						{title: '版本号', field: 'version', align:'center'},
+						{title: '状态', field: 'suspended', align:'center',templet:'#procDef-suspended'},
+						{title: '流程部署编号', field: 'deploymentId'},
+		                /*{title: '创建时间', field: 'createTime', align:'left',templet:"#model-createTime",sort:true},
+		                {title: '最后修改时间', field: 'lastUpdateTime', align:'left',templet:"#model-lastUpdateTime"},*/
+		                {title: '操作', toolbar: '#user-bar', align:'center',width:150}
 		            ]
 		        ]
 
@@ -101,7 +109,7 @@
                     limits: [5,10, 20, 30, 40, 50],
 		            toolbar: '#user-toolbar',
 					initSort: {
-						 field: 'createTime' //排序字段，对应 cols 设定的各字段名
+						 field: 'deploymentId' //排序字段，对应 cols 设定的各字段名
 						 ,type: 'desc' //排序方式  asc: 升序、desc: 降序、null: 默认排序
 					},
                     request: {
@@ -137,8 +145,8 @@
 		        table.on('tool(user-table)', function(obj){
 		            if(obj.event === 'remove'){
 		                window.remove(obj);
-		            } else if(obj.event === 'edit'){
-		                window .edit(obj);
+		            } else if(obj.event === 'viewXml'){
+		                window .viewXml(obj);
 		            }else if(obj.event === 'deploy'){
 						window .deploy(obj);
 					}
@@ -160,33 +168,45 @@
 		            table.reload('user-table',{where: data.field});
                     return false;
 		        });
+
+				/*挂起流程定义*/
+				form.on('switch(procDef-suspended)', function(obj){
+					console.info(obj);
+					//layer.tips(this.value + ' ' + this.name + '：'+ obj.elem.checked, obj.othis);
+					let loading = layer.load();
+					$.ajax({
+						url: MODULE_PATH+"suspend/"+this.value,
+						type:'put',
+						success:function(result){
+							layer.msg('操作成功',{icon:1,time:1000});
+							layer.close(loading);
+						},
+						error:function(XMLHttpRequest){
+							layer.msg("操作失败",{icon:2,time:1000});
+							layer.close(loading);
+							console.info(XMLHttpRequest.responseText);
+						}
+					})
+
+				});
 		
-		        window.edit = function(obj){
-		            let modelId = obj.data['id'];
-                    window.open('/flowable.html#/editor/'+modelId,'_blank');
-		            /*layer.open({
-		                type: 3,
-		                title: '修改',
-		                shade: 0.1,
-		                area: ['500px', '400px'],
-		                content: MODULE_PATH + 'edit?userId='+obj.data['userId']
-		            });*/
+		        window.viewXml = function(obj){
+		            let processDefinitionId = obj.data['id'];
+                    window.open(MODULE_PATH+'xml/'+processDefinitionId,'_blank');
 		        }
 		
 		        window.remove = function(obj){
-		            layer.confirm('确定要删除该模型吗？', {icon: 3, title:'提示'}, function(index){
+		            layer.confirm('确定要删除该流程定义吗？', {icon: 3, title:'提示'}, function(index){
 		                layer.close(index);
 		                let loading = layer.load();
 		                $.ajax({
-		                    url: MODULE_PATH+obj.data['id'],
+		                    url: MODULE_PATH+obj.data['deploymentId'],
 		                    dataType:'json',
 		                    type:'delete',
 		                    success:function(result){
 		                        layer.close(loading);
-								obj.del();
-                                layer.msg('删除成功',{icon:1,time:1000},function(){
-                                    //obj.del();
-                                });
+								table.reload('user-table');
+                                layer.msg('删除成功',{icon:1,time:1000});
 		                    },
                             error:function(XMLHttpRequest){
                                 layer.msg("删除失败",{icon:2,time:1000});
@@ -197,7 +217,7 @@
 		            });
 		        }
 
-				window.deploy = function(obj){
+				window.deployww = function(obj){
 					let loading = layer.load();
 					$.ajax({
 						url: '/ModelController/deploy/'+obj.data['id'],
@@ -213,7 +233,6 @@
 							console.info(XMLHttpRequest.responseText);
 						}
 					})
-
 				}
 		
 		        window.batchRemove = function(obj){
@@ -222,23 +241,21 @@
 		                layer.msg("未选中数据",{icon:3,time:1000});
 		                return false;
 		            }
-		            let modelIds=[];
+		            let deploymentIds=[];
 		            for(let i = 0;i<data.length;i++){
-		                modelIds[i] = data[i].id;
+						deploymentIds[i] = data[i].deploymentId;
 		            }
-		            layer.confirm('确定要删除这些模型吗？', {icon: 3, title:'提示'}, function(index){
+		            layer.confirm('确定要删除这些流程定义吗？', {icon: 3, title:'提示'}, function(index){
 		                layer.close(index);
 		                let loading = layer.load();
 		                $.ajax({
-		                    url: MODULE_PATH+"batchDeleteModel?modelIds="+modelIds,
+		                    url: MODULE_PATH+"batchProcessDefinitions?deploymentIds="+deploymentIds,
 		                    dataType:'json',
 		                    type:'delete',
 		                    success:function(result){
 		                        layer.close(loading);
 								table.reload('user-table');
-                                layer.msg("删除成功",{icon:1,time:1000},function(){
-                                    //table.reload('user-table');
-                                });
+                                layer.msg("删除成功",{icon:1,time:1000});
 		                    },
                             error:function(XMLHttpRequest){
                                 layer.msg("删除失败",{icon:2,time:1000});
