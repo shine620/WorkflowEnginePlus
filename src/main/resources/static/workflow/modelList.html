@@ -200,7 +200,7 @@
 				window.deploy = function(obj){
 					let loading = layer.load();
 					$.ajax({
-						url: '/ModelController/deploy/'+obj.data['id'],
+						url: MODULE_PATH+obj.data['id'],
 						//dataType:'json',
 						type:'put',
 						success:function(result){

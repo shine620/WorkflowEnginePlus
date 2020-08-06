@@ -1,6 +1,8 @@
 package com.hy.workflow.util;
 
 
+import com.hy.workflow.entity.ProcessDefinitionConfig;
+import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import org.flowable.common.rest.util.RestUrlBuilder;
 import org.flowable.engine.repository.Model;
 import org.flowable.engine.repository.ProcessDefinition;
@@ -8,6 +10,7 @@ import org.flowable.rest.service.api.RestUrls;
 import org.flowable.rest.service.api.repository.ModelResponse;
 import org.flowable.rest.service.api.repository.ProcessDefinitionResource;
 import org.flowable.rest.service.api.repository.ProcessDefinitionResponse;
+import org.springframework.beans.BeanUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +18,7 @@ import java.util.List;
 public class EntityModelUtil {
 
     public static List<ModelResponse> toModelResponseList(List<Model> models){
+        if(models==null) return null;
         List<ModelResponse> list = new ArrayList<ModelResponse>();
         for(Model model : models){
             list.add(toModelResponse(model));
@@ -23,6 +27,7 @@ public class EntityModelUtil {
     }
 
     public static List<ProcessDefinitionResponse> toProcessDefinitionResponseList(List<ProcessDefinition> definitions){
+        if(definitions==null) return null;
         List<ProcessDefinitionResponse> list = new ArrayList<ProcessDefinitionResponse>();
         for(ProcessDefinition d : definitions){
             list.add(toProcessDefinitionResponse(d));
@@ -31,6 +36,7 @@ public class EntityModelUtil {
     }
 
     public static ModelResponse toModelResponse(Model model){
+        if(model==null) return null;
         ModelResponse modelResponse = new ModelResponse();
         modelResponse.setCategory(model.getCategory());
         modelResponse.setCreateTime(model.getCreateTime());
@@ -46,7 +52,7 @@ public class EntityModelUtil {
     }
 
     public static ProcessDefinitionResponse toProcessDefinitionResponse(ProcessDefinition pd){
-        //RestUrlBuilder urlBuilder = RestUrlBuilder.fromCurrentRequest();
+        if(pd==null) return null;
         ProcessDefinitionResponse pdResponse = new ProcessDefinitionResponse();
         pdResponse.setId(pd.getId());
         pdResponse.setName(pd.getName());
@@ -59,13 +65,17 @@ public class EntityModelUtil {
         pdResponse.setSuspended(pd.isSuspended());
         pdResponse.setStartFormDefined(pd.hasStartFormKey());
         pdResponse.setGraphicalNotationDefined(pd.hasGraphicalNotation());
-        /*pdResponse.setUrl(urlBuilder.buildUrl(RestUrls.URL_PROCESS_DEFINITION, pd.getId()));
-        pdResponse.setDeploymentUrl(urlBuilder.buildUrl(RestUrls.URL_DEPLOYMENT, pd.getDeploymentId()));
-        pdResponse.setResource(urlBuilder.buildUrl(RestUrls.URL_DEPLOYMENT_RESOURCE, pd.getDeploymentId(), pd.getResourceName()));
-        if (pd.getDiagramResourceName() != null) {
-            pdResponse.setDiagramResource(urlBuilder.buildUrl(RestUrls.URL_DEPLOYMENT_RESOURCE, pd.getDeploymentId(), pd.getDiagramResourceName()));
-        }*/
         return pdResponse;
     }
+
+    public static ProcessDefinitionConfigModel toProcessDefinitionConfigModel(ProcessDefinitionConfig pdConfig) {
+        if(pdConfig!=null){
+            ProcessDefinitionConfigModel pdConfigModel = new ProcessDefinitionConfigModel();
+            BeanUtils.copyProperties(pdConfig,pdConfigModel);
+            return  pdConfigModel;
+        }
+        return null;
+    }
+
 
 }

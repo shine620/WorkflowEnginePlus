@@ -67,6 +67,7 @@ public class ModelService {
         pdConfig.setVersion(processDefinition.getVersion());
         pdConfig.setCreateTime(new Date());
         pdConfig.setUpdateTime(new Date());
+        pdConfig.setDeploymentId(processDefinition.getDeploymentId());
         processDefinitionConfigRepository.save(pdConfig);
 
     }

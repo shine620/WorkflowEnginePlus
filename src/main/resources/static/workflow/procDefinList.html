@@ -16,7 +16,7 @@
                             <div class="layui-input-inline">
                                 <input type="text" name="name" placeholder="" class="layui-input">
                             </div>
-		                    <label class="layui-form-label" style="width: 90px !important;">流程定义编号</label>
+		                    <label class="layui-form-label">流程定义编号</label>
 		                    <div class="layui-input-inline">
 		                        <input type="text" name="id" placeholder="" class="layui-input">
 		                    </div>
@@ -41,14 +41,8 @@
 
 		<script type="text/html" id="user-toolbar">
             <!--<a href="/flowable.html#/editor" target="_blank" class="pear-btn pear-btn-primary pear-btn-md">
-                <i class="layui-icon layui-icon-add-1"></i>新建模型
+                <i class="layui-icon layui-icon-add-1"></i>导入模型
             </a> -->
-            <!--当前tab页打开-->
-            <!--<a href="http://www.layui.com" class="layui-btn">新建模型</a>-->
-            <!--新页签打开-->
-            <!--<button class="pear-btn pear-btn-primary pear-btn-md" data-id="addModelTab" data-title="新建模型" data-url="/flowable.html#/editor">
-                <i class="layui-icon layui-icon-add-1"></i>新建模型
-            </button>-->
 		    <button class="pear-btn pear-btn-danger pear-btn-md" lay-event="batchRemove">
 		        <i class="layui-icon layui-icon-delete"></i>批量删除
 		    </button>
@@ -56,9 +50,11 @@
 
         <!--编辑和删除按钮-->
 		<script type="text/html" id="user-bar">
-		    <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="setting" title="配置"><i class="layui-icon layui-icon-set-fill"></i></button>
+            <!-- <a class="pear-btn pear-btn-primary pear-btn-sm" href="processSets.html?processDefinitionId={{d.id}}" title="配置"><i class="layui-icon layui-icon-set-fill"></i></a> -->        <!-- 当前标签页打开 -->
+            <button class="pear-btn pear-btn-success pear-btn-sm" title="配置" data-id="processSetsTab" data-title="流程配置" data-url="workflow/processSets.html?processDefinitionId={{d.id}}&"+new Date();>
+                <i class="layui-icon layui-icon-set-fill"></i>
+            </button>
 		    <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i></button>
-			<!--<button class="pear-btn pear-btn-warming pear-btn-sm" lay-event="deploy" title="挂起"><i class="layui-icon layui-icon-pause" ></i></button>-->
 			<button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="viewXml" title="查看资源文件"><i class="layui-icon layui-icon-fonts-code" ></i></button>
 		</script>
 
@@ -131,7 +127,30 @@
 		            }, 'filter', 'print', 'exports']
 		        });
 
-		        //data-url属性的元素单击后打开新标签页
+
+		        /*绑定列表删除、查看和配置事件*/
+		        table.on('tool(user-table)', function(obj){
+		            if(obj.event === 'remove'){
+		                window.remove(obj);
+		            } else if(obj.event === 'viewXml'){
+		                window .viewXml(obj);
+		            }else if(obj.event === 'setting'){
+						window .setting(obj);
+					}
+		        });
+
+		        /*刷新和批量删除按钮事件*/
+		        table.on('toolbar(user-table)', function(obj){
+		            /*if(obj.event === 'add'){
+		                window.add();
+		            } else*/ if(obj.event === 'refresh'){
+		                window.refresh();
+		            } else if(obj.event === 'batchRemove'){
+		                window.batchRemove(obj);
+		            }
+		        });
+
+                //具有data-url属性的元素单击后打开新标签页
                 $("body").on("click", "[data-url]", function() {
                     parent.layui.pearTab.addTabOnlyByElem("content", {
                         id: $(this).attr("data-id"),
@@ -139,29 +158,7 @@
                         url: $(this).attr("data-url"),
                         close: true
                     })
-                })
-
-		        /*绑定列表编辑和删除事件*/
-		        table.on('tool(user-table)', function(obj){
-		            if(obj.event === 'remove'){
-		                window.remove(obj);
-		            } else if(obj.event === 'viewXml'){
-		                window .viewXml(obj);
-		            }else if(obj.event === 'deploy'){
-						window .deploy(obj);
-					}
-		        });
-
-		        /*绑定新增模型和批量删除按钮事件*/
-		        table.on('toolbar(user-table)', function(obj){
-		            if(obj.event === 'add'){
-		                window.add();
-		            } else if(obj.event === 'refresh'){
-		                window.refresh();
-		            } else if(obj.event === 'batchRemove'){
-		                window.batchRemove(obj);
-		            }
-		        });
+                });
 
                 /*搜索框提交事件*/
 		        form.on('submit(user-query)', function(data){
@@ -200,7 +197,7 @@
 		                layer.close(index);
 		                let loading = layer.load();
 		                $.ajax({
-		                    url: MODULE_PATH+obj.data['deploymentId'],
+		                    url: "/ProcessDefinitionController/deployments/"+obj.data['deploymentId'],
 		                    dataType:'json',
 		                    type:'delete',
 		                    success:function(result){
@@ -216,24 +213,6 @@
 		                })
 		            });
 		        }
-
-				window.deployww = function(obj){
-					let loading = layer.load();
-					$.ajax({
-						url: '/ModelController/deploy/'+obj.data['id'],
-						//dataType:'json',
-						type:'put',
-						success:function(result){
-							layer.msg('部署成功',{icon:1,time:1000});
-							layer.close(loading);
-						},
-						error:function(XMLHttpRequest){
-							layer.msg("部署失败",{icon:2,time:1000});
-							layer.close(loading);
-							console.info(XMLHttpRequest.responseText);
-						}
-					})
-				}
 		
 		        window.batchRemove = function(obj){
 		            let data = table.checkStatus(obj.config.id).data;
@@ -249,7 +228,7 @@
 		                layer.close(index);
 		                let loading = layer.load();
 		                $.ajax({
-		                    url: MODULE_PATH+"batchProcessDefinitions?deploymentIds="+deploymentIds,
+		                    url: "/ProcessDefinitionController/deployments/batchDeleteDeployments?deploymentIds="+deploymentIds,
 		                    dataType:'json',
 		                    type:'delete',
 		                    success:function(result){

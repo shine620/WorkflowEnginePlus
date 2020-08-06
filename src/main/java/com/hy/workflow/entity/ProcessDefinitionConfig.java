@@ -1,6 +1,8 @@
 package com.hy.workflow.entity;
 
 
+import com.hy.workflow.model.ProcessDefinitionConfigModel;
+
 import javax.persistence.*;
 import java.util.Date;
 
@@ -9,9 +11,6 @@ import java.util.Date;
 public class ProcessDefinitionConfig {
 
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
-    private Long id;
-
     private String processDefinitionId;
 
     private String processDefinitionKey;
@@ -20,6 +19,7 @@ public class ProcessDefinitionConfig {
 
     private Integer version;
 
+    @Column(length = 2000)
     private String description;
 
     private String suspensionState;
@@ -40,21 +40,32 @@ public class ProcessDefinitionConfig {
 
     private String unitId;
 
-    @Column(length = 2000)
-    private String documentation;
+    private String deploymentId;
 
     private Boolean callable;
 
-    private Boolean isDefault;
+    private Boolean defaultProcess;
 
+    public ProcessDefinitionConfig(){ };
 
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
+    public ProcessDefinitionConfig(ProcessDefinitionConfigModel pdcModel) {
+        this.processDefinitionId = pdcModel.getProcessDefinitionId();
+        this.processDefinitionKey = pdcModel.getProcessDefinitionKey();
+        this.processDefinitionName = pdcModel.getProcessDefinitionName();
+        this.version = pdcModel.getVersion();
+        this.description = pdcModel.getDescription();
+        this.suspensionState = pdcModel.getSuspensionState();
+        this.createUserId = pdcModel.getCreateUserId();
+        this.createDeptId = pdcModel.getCreateDeptId();
+        this.createUnitId = pdcModel.getCreateUnitId();
+        this.createTime = pdcModel.getCreateTime();
+        this.updateTime = pdcModel.getUpdateTime();
+        this.businessType = pdcModel.getBusinessType();
+        this.departmentId = pdcModel.getDepartmentId();
+        this.unitId = pdcModel.getUnitId();
+        this.deploymentId = pdcModel.getDeploymentId();
+        this.callable = pdcModel.getCallable();
+        this.defaultProcess = pdcModel.getDefaultProcess();
     }
 
     public String getProcessDefinitionId() {
@@ -169,12 +180,12 @@ public class ProcessDefinitionConfig {
         this.unitId = unitId;
     }
 
-    public String getDocumentation() {
-        return documentation;
+    public String getDeploymentId() {
+        return deploymentId;
     }
 
-    public void setDocumentation(String documentation) {
-        this.documentation = documentation;
+    public void setDeploymentId(String deploymentId) {
+        this.deploymentId = deploymentId;
     }
 
     public Boolean getCallable() {
@@ -185,12 +196,13 @@ public class ProcessDefinitionConfig {
         this.callable = callable;
     }
 
-    public Boolean getDefault() {
-        return isDefault;
+    public Boolean getDefaultProcess() {
+        return defaultProcess;
     }
 
-    public void setDefault(Boolean aDefault) {
-        isDefault = aDefault;
+    public void setDefaultProcess(Boolean defaultProcess) {
+        this.defaultProcess = defaultProcess;
     }
+
 
 }

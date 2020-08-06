@@ -4,8 +4,6 @@ import java.util.Date;
 
 public class ProcessDefinitionConfigModel {
 
-    private Long id;
-
     private String processDefinitionId;
 
     private String processDefinitionKey;
@@ -34,20 +32,11 @@ public class ProcessDefinitionConfigModel {
 
     private String unitId;
 
-    private String documentation;
+    private String deploymentId;
 
     private Boolean callable;
 
-    private Boolean isDefault;
-
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
+    private Boolean defaultProcess;
 
     public String getProcessDefinitionId() {
         return processDefinitionId;
@@ -161,12 +150,12 @@ public class ProcessDefinitionConfigModel {
         this.unitId = unitId;
     }
 
-    public String getDocumentation() {
-        return documentation;
+    public String getDeploymentId() {
+        return deploymentId;
     }
 
-    public void setDocumentation(String documentation) {
-        this.documentation = documentation;
+    public void setDeploymentId(String deploymentId) {
+        this.deploymentId = deploymentId;
     }
 
     public Boolean getCallable() {
@@ -177,13 +166,15 @@ public class ProcessDefinitionConfigModel {
         this.callable = callable;
     }
 
-    public Boolean getDefault() {
-        return isDefault;
+    public Boolean getDefaultProcess() {
+        return defaultProcess;
     }
 
-    public void setDefault(Boolean aDefault) {
-        isDefault = aDefault;
+    public void setDefaultProcess(Boolean defaultProcess) {
+        this.defaultProcess = defaultProcess;
     }
+
+
 
 
 }

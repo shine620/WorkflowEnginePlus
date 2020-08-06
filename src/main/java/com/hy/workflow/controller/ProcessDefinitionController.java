@@ -1,5 +1,7 @@
 package com.hy.workflow.controller;
 
+import com.hy.workflow.model.ProcessDefinitionConfigModel;
+import com.hy.workflow.service.ProcessDefinitionService;
 import com.hy.workflow.util.EntityModelUtil;
 import io.swagger.annotations.*;
 import org.apache.commons.io.IOUtils;
@@ -19,6 +21,7 @@ import org.flowable.engine.repository.ProcessDefinitionQuery;
 import org.flowable.rest.service.api.repository.ProcessDefinitionResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +45,9 @@ public class ProcessDefinitionController {
 
     @Autowired
     protected ContentTypeResolver contentTypeResolver;
+
+    @Autowired
+    protected ProcessDefinitionService processDefinitionService;
 
     private static final Map<String, QueryProperty> properties = new HashMap<>();
 
@@ -152,23 +158,22 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Delete a Process Definitions", notes="删除一个流程定义",tags = { "Process Definitions" })
-    @DeleteMapping("/process-definitions/{deploymentId}")
-    public void deleteModel(@ApiParam(name = "deploymentId",value = "部署ID") @PathVariable String deploymentId, HttpServletResponse response) {
-        //不带级联的删除，只能删除没有启动的流程，如果流程启动，就会抛出异常
-        repositoryService.deleteDeployment(deploymentId);
-        //能级联的删除，能删除启动的流程，会删除和当前规则相关的所有信息，正在执行的信息，也包括历史信息
-        //repositoryService.deleteDeployment(deploymentId,true);
+    @ApiOperation(value = "Delete a deployment", notes="删除一个流程部署",tags = { "Process Definitions" })
+    @DeleteMapping("/deployments/{deploymentId}")
+    public void deleteDeployment( HttpServletResponse response,
+            @ApiParam(name = "deploymentId",value = "部署ID") @PathVariable String deploymentId,
+            @ApiParam(name="cascade",value = "是否级联删除流程信息") @RequestParam(defaultValue = "false") Boolean cascade) {
+        processDefinitionService.deleteDeployment(deploymentId,cascade);
         response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 
 
-    @ApiOperation(value = "Batch Delete Process Definitions", notes="删除多个流程定义",tags = { "Process Definitions" })
-    @DeleteMapping("/process-definitions/batchProcessDefinitions")
-    public void batchDeleteModel(@ApiParam(name = "deploymentIds",value = "部署ID") @RequestParam String[] deploymentIds, HttpServletResponse response) {
-        for(String deploymentId : deploymentIds){
-            repositoryService.deleteDeployment(deploymentId);
-        }
+    @ApiOperation(value = "Batch Delete Deployments", notes="删除多个流程部署",tags = { "Process Definitions" })
+    @DeleteMapping("/deployments/batchDeleteDeployments")
+    public void batchDeleteDeployment(HttpServletResponse response,
+            @ApiParam(name = "deploymentIds",value = "多个部署ID") @RequestParam String[] deploymentIds,
+            @ApiParam(name="cascade",value = "是否级联删除流程信息") @RequestParam(defaultValue = "false") Boolean cascade) {
+        processDefinitionService.deleteDeployments(deploymentIds,cascade);
         response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 
@@ -237,6 +242,21 @@ public class ProcessDefinitionController {
     }
 
 
+    @ApiOperation(value = "Get a process definition config", notes="查询一个流程配置",tags = { "Process Definitions" })
+    @GetMapping(value = "/process-definitions/getProcessConfig/{processDefinitionId}", produces = "application/json")
+    public ProcessDefinitionConfigModel getProcessConfig(@ApiParam(name = "processDefinitionId",value = "流程定义ID") @PathVariable String processDefinitionId) {
+        ProcessDefinitionConfigModel pdcModel = processDefinitionService.getProcessConfig(processDefinitionId);
+        return pdcModel;
+    }
+
+
+    @ApiOperation(value = "Save a process definition config", notes="保存一个流程配置",tags = { "Process Definitions" } )
+    @PostMapping(value = "/process-definitions/saveProcessConfig", produces = "application/json")
+    @ResponseBody
+    public ProcessDefinitionConfigModel saveProcessConfig(@RequestBody ProcessDefinitionConfigModel pdConfigModel) {
+        ProcessDefinitionConfigModel pdcModel = processDefinitionService.saveProcessConfig(pdConfigModel);
+        return pdcModel;
+    }
 
 
 }

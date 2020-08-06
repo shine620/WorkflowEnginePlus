@@ -226,7 +226,7 @@ public class ModelController {
 
 
     @ApiOperation(value = "Deploy a model", notes="部署一个模型", tags = { "Models" })
-    @PutMapping(value = "/deploy/{modelId}")
+    @PutMapping(value = "/models/{modelId}")
     public void deploy(@ApiParam(name = "modelId",value = "模型ID") @PathVariable("modelId") String modelId, HttpServletResponse response) {
         Model model = repositoryService.getModel(modelId);
         modelService.deploy(model);

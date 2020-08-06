@@ -12,7 +12,7 @@
 	border-radius: 3px !important;
 }
 .layui-form-label {
-	width: 60px !important;
+	width: 90px !important;
 	padding-left: 0px !important;
 }
 .layui-table-tool-panel {
@@ -77,6 +77,16 @@
 
 .layui-elem-quote {
 	border-left: 5px solid #5FB878 !important;
+}
+
+.layui-form-radio > i {
+	font-size: 18px;
+	margin-right: 5px;
+}
+
+.layui-form-label.layui-required:before{
+	content:"* ";
+	color:red;
 }
 
 body::-webkit-scrollbar {
