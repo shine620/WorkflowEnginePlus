@@ -1,7 +1,10 @@
 package com.hy.workflow.service;
 
+import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
+import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
+import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.repository.ProcessDefinitionConfigRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +26,9 @@ public class ProcessDefinitionService {
 
     @Autowired
     private ProcessDefinitionConfigRepository processDefinitionConfigRepository;
+
+    @Autowired
+    private FlowElementConfigRepository flowElementConfigRepository;
 
 
     /**
@@ -65,8 +71,8 @@ public class ProcessDefinitionService {
      * @return ProcessDefinitionConfigModel 流程配置包装对象
      */
     public ProcessDefinitionConfigModel getProcessConfig(String processDefinitionId) {
-        ProcessDefinitionConfig pdModel = processDefinitionConfigRepository.findByProcessDefinitionId(processDefinitionId);
-        return EntityModelUtil.toProcessDefinitionConfigModel(pdModel);
+        ProcessDefinitionConfig pdConfig = processDefinitionConfigRepository.findByProcessDefinitionId(processDefinitionId);
+        return EntityModelUtil.toProcessDefinitionConfigModel(pdConfig);
     }
 
     /**
@@ -97,6 +103,44 @@ public class ProcessDefinitionService {
             processDefinitionConfigRepository.save(sourceConfig);
             return  EntityModelUtil.toProcessDefinitionConfigModel(sourceConfig);
         }
+    }
+
+
+    public FlowElementConfigModel saveElementConfig(FlowElementConfigModel model) {
+        if(model==null||StringUtils.isBlank(model.getProcessDefinitionId())||StringUtils.isBlank(model.getFlowElementId()))
+            throw new RuntimeException("流程定义ID和任务节点ID不能为空！");
+        FlowElementConfig flowElementConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(model.getProcessDefinitionId(),model.getFlowElementId());
+        //新增
+        if(flowElementConfig==null){
+            FlowElementConfig feConfig = flowElementConfigRepository.save(new FlowElementConfig(model));
+            return  EntityModelUtil.toFlowElementConfigMode(feConfig);
+        }
+        //修改
+        else{
+            flowElementConfig.setMultiInstanceType(model.getMultiInstanceType());
+            flowElementConfig.setAssigneeSelectOption(model.getAssigneeSelectOption());
+            flowElementConfig.setAssigneeSelectScope(model.getAssigneeSelectScope());
+            flowElementConfig.setCandidateGroups(model.getCandidateGroups());
+            flowElementConfig.setCandidateUsers(model.getCandidateUsers());
+            flowElementConfig.setCandidateJob(model.getCandidateJob());
+            flowElementConfig.setCandidateRoles(model.getCandidateRoles());
+            flowElementConfig.setFormField(model.getFormField());
+            flowElementConfig.setTip(model.getTip());
+            flowElementConfig.setEditForm(model.getEditForm());
+            flowElementConfig.setAttachEditable(model.getAttachEditable());
+            flowElementConfig.setRequireOpinion(model.getRequireOpinion());
+            flowElementConfig.setShowApproveRecord(model.getShowApproveRecord());
+            flowElementConfig.setRejectable(model.getRejectable());
+            flowElementConfig.setSendCopy(model.getSendCopy());
+            flowElementConfigRepository.save(flowElementConfig);
+            return EntityModelUtil.toFlowElementConfigMode(flowElementConfig);
+        }
+    }
+
+
+    public FlowElementConfigModel getFlowElementConfig(String processDefinitionId,String flowElementId) {
+        FlowElementConfig feConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinitionId,flowElementId);
+        return EntityModelUtil.toFlowElementConfigMode(feConfig);
     }
 
 

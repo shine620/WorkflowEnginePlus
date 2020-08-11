@@ -49,6 +49,7 @@ public class ProcessDefinitionConfig {
     public ProcessDefinitionConfig(){ };
 
     public ProcessDefinitionConfig(ProcessDefinitionConfigModel pdcModel) {
+        if(pdcModel==null) return;
         this.processDefinitionId = pdcModel.getProcessDefinitionId();
         this.processDefinitionKey = pdcModel.getProcessDefinitionKey();
         this.processDefinitionName = pdcModel.getProcessDefinitionName();

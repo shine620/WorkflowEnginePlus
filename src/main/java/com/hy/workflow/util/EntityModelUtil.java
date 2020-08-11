@@ -1,7 +1,9 @@
 package com.hy.workflow.util;
 
 
+import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
+import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import org.flowable.common.rest.util.RestUrlBuilder;
 import org.flowable.engine.repository.Model;
@@ -73,6 +75,15 @@ public class EntityModelUtil {
             ProcessDefinitionConfigModel pdConfigModel = new ProcessDefinitionConfigModel();
             BeanUtils.copyProperties(pdConfig,pdConfigModel);
             return  pdConfigModel;
+        }
+        return null;
+    }
+
+    public static FlowElementConfigModel toFlowElementConfigMode(FlowElementConfig feConfig) {
+        if(feConfig!=null){
+            FlowElementConfigModel model = new FlowElementConfigModel();
+            BeanUtils.copyProperties(feConfig,model);
+            return  model;
         }
         return null;
     }

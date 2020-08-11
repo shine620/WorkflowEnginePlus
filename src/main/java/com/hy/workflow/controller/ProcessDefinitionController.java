@@ -1,5 +1,7 @@
 package com.hy.workflow.controller;
 
+import com.hy.workflow.entity.FlowElementConfig;
+import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import com.hy.workflow.service.ProcessDefinitionService;
 import com.hy.workflow.util.EntityModelUtil;
@@ -242,7 +244,7 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Get a process definition config", notes="查询一个流程配置",tags = { "Process Definitions" })
+    @ApiOperation(value = "Get a process definition config", notes="获取一个流程配置",tags = { "Process Definitions" })
     @GetMapping(value = "/process-definitions/getProcessConfig/{processDefinitionId}", produces = "application/json")
     public ProcessDefinitionConfigModel getProcessConfig(@ApiParam(name = "processDefinitionId",value = "流程定义ID") @PathVariable String processDefinitionId) {
         ProcessDefinitionConfigModel pdcModel = processDefinitionService.getProcessConfig(processDefinitionId);
@@ -257,6 +259,26 @@ public class ProcessDefinitionController {
         ProcessDefinitionConfigModel pdcModel = processDefinitionService.saveProcessConfig(pdConfigModel);
         return pdcModel;
     }
+
+
+    @ApiOperation(value = "Save a flow element config", notes="保存一个节点配置",tags = { "Process Definitions" } )
+    @PostMapping(value = "/process-definitions/saveElementConfig", produces = "application/json")
+    @ResponseBody
+    public FlowElementConfigModel saveElementConfig(@RequestBody FlowElementConfigModel model) {
+        FlowElementConfigModel eleModel = processDefinitionService.saveElementConfig(model);;
+        return eleModel;
+    }
+
+
+    @ApiOperation(value = "Get a flow element config", notes="获取一个节点配置",tags = { "Process Definitions" })
+    @GetMapping(value = "/process-definitions/getElementConfig", produces = "application/json")
+    public FlowElementConfigModel getElementConfig(
+            @ApiParam(name = "processDefinitionId",value = "流程定义ID") @RequestParam String processDefinitionId,
+            @ApiParam(name = "flowElementId",value = "任务节点ID") @RequestParam String flowElementId) {
+        FlowElementConfigModel eleModel = processDefinitionService.getFlowElementConfig(processDefinitionId,flowElementId);
+        return eleModel;
+    }
+
 
 
 }

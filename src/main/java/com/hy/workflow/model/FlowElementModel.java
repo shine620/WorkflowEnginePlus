@@ -9,6 +9,8 @@ public class FlowElementModel {
 
     private String flowElementType;
 
+    private String pId;
+
 
     public String getId() {
         return id;
@@ -34,4 +36,11 @@ public class FlowElementModel {
         this.flowElementType = flowElementType;
     }
 
+    public String getpId() {
+        return pId;
+    }
+
+    public void setpId(String pId) {
+        this.pId = pId;
+    }
 }

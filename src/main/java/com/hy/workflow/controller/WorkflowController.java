@@ -42,33 +42,51 @@ public class WorkflowController {
 
     @ApiOperation(value = "Get FlowElement", tags = { "Workflows" })
     @GetMapping(value = "/workflows/{processDefinitionId}", produces = "application/json")
-    public List<FlowElementModel> getFlowElement(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
-        List<FlowElementModel> flowElementList = new ArrayList<>();
+    public Map<String,Object> getFlowElement(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
+        List<FlowElementModel> flowElements = new ArrayList<>();
         BpmnModel model = repositoryService.getBpmnModel(processDefinitionId);
         if(model != null) {
-            Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
-            for(FlowElement e : flowElements) {
-                FlowElementModel flowElement = new FlowElementModel();
-                if (e instanceof StartEvent) {
-                    flowElement.setFlowElementType(FlowElementType.START_EVENT);
-                }else if(e instanceof UserTask){
-                    flowElement.setFlowElementType(FlowElementType.SERVICE_TASK);
-                }else if(e instanceof ServiceTask){
-                    flowElement.setFlowElementType(FlowElementType.USER_TASK);
-                }else if(e instanceof CallActivity){
-                    flowElement.setFlowElementType(FlowElementType.CALL_ACTIVITY);
-                }else if(e instanceof SubProcess){
-                    flowElement.setFlowElementType(FlowElementType.SUB_PROCESS);
-                }else if(e instanceof EndEvent){
-                    flowElement.setFlowElementType(FlowElementType.END_EVENT);
-                }
-                if(flowElement.getFlowElementType()!=null){
-                    flowElement.setId(e.getId());
-                    flowElement.setName(e.getName());
-                    flowElementList.add(flowElement);
-                }
-                System.out.println("flowelement id:" + e.getId() + "  name:" + e.getName() + "   class:" + e.getClass().toString());
+            Collection<FlowElement> listFlowElement = model.getMainProcess().getFlowElements();
+            listFlowElement(listFlowElement,flowElements);
+        }
+        Map map = new HashMap();
+        map.put("msg","OK");
+        map.put("code","200");
+        map.put("count",flowElements.size());
+        map.put("data",flowElements);
+        return map;
+    }
+
+    public List<FlowElementModel> listFlowElement( Collection<FlowElement> flowElements,List<FlowElementModel> flowElementList  ) {
+
+        for(FlowElement e : flowElements) {
+            FlowElementModel flowElement = new FlowElementModel();
+            if (e instanceof StartEvent) {
+                flowElement.setFlowElementType(FlowElementType.START_EVENT);
+            }else if(e instanceof UserTask){
+                flowElement.setFlowElementType(FlowElementType.SERVICE_TASK);
+            }else if(e instanceof ServiceTask){
+                flowElement.setFlowElementType(FlowElementType.USER_TASK);
+            }else if(e instanceof CallActivity){
+                flowElement.setFlowElementType(FlowElementType.CALL_ACTIVITY);
+            }else if(e instanceof SubProcess){
+                flowElement.setFlowElementType(FlowElementType.SUB_PROCESS);
+                Collection<FlowElement> sub =((SubProcess) e).getFlowElements();
+                listFlowElement(sub,flowElementList);
+            }else if(e instanceof EndEvent){
+                flowElement.setFlowElementType(FlowElementType.END_EVENT);
             }
+            if(flowElement.getFlowElementType()!=null){
+                flowElement.setId(e.getId());
+                flowElement.setName(e.getName());
+                if(e.getParentContainer() instanceof SubProcess){
+                    flowElement.setpId(((SubProcess) e.getParentContainer()).getId());
+                }else{
+                    flowElement.setpId("0");
+                }
+                flowElementList.add(flowElement);
+            }
+            //System.out.println("flowelement id:" + e.getId() + "  name:" + e.getName() + "   class:" + e.getClass().toString());
         }
         return flowElementList;
     }

@@ -28,15 +28,16 @@
 
 		<script>
 
-			let processDefinitionId = layui.url().search.processDefinitionId;
+			let processDefinitionId = decodeURIComponent(layui.url().search.processDefinitionId);
 			console.info(layui.url());
+			console.info(decodeURIComponent(layui.url().search.processDefinitionId));
 
-			//通用设置表单
+			//配置表单
 			layui.use(['form','jquery'], function(){
 				let form = layui.form;
 				let $ = layui.jquery;
 
-				//数据回显
+				//通用设置表单数据回显
 				$.ajax({
 					url:"/ProcessDefinitionController/process-definitions/getProcessConfig/"+processDefinitionId,
 					type:"GET",
@@ -71,20 +72,50 @@
                     });
 					return false;
 				});
+
 				//监听任务配置表单提交
 				form.on('submit(taskConfigSubmit)', function(data){
-
+					let formData = JSON.stringify(data.field);
+					console.info(formData);
+					let loading = layer.load();
+					$.ajax({
+						url:"/ProcessDefinitionController/process-definitions/saveElementConfig",
+						type:"POST",
+						contentType:"application/json",
+						dataType:'json',
+						data: formData,
+						success:function(data){
+							console.info(data);
+							layer.close(loading);
+							layer.msg('保存成功',{icon:1,time:1000});
+						},
+						error:function(XMLHttpRequest){
+							layer.close(loading);
+							layer.msg("保存失败",{icon:2,time:1000});
+						}
+					});
 					return false;
 				});
 
+				//编辑任务节点取消按钮事件
+				window.cancel = function(obj){
+					$("#taskList").show();
+					$("#taskConfigFrom").hide();
+					$("#taskConfigFrom input[name='flowElementId']").val("");
+				}
+
 			});
 
-			layui.use(['table','jquery','element'], function(){
 
-				let table = layui.table;
+			//任务节点列表
+			layui.use(['table','jquery','element','treetable','form'], function(){
+
 				let $ = layui.jquery;
+				let table = layui.table;
+				let treetable = layui.treetable;
+				let form = layui.form;
 
-				$("#taskFrom").hide();
+				$("#taskConfigFrom").hide();
 
 				let cols = [
 					[
@@ -93,30 +124,63 @@
 						{title: '操作', toolbar: '#task-bar', align:'center',width:80}
 					]
 				];
-
-				table.render({
+				treetable.render({
 					elem: '#task-table',
 					url: "/WorkflowController/workflows/"+processDefinitionId,
 					cols: cols ,
 					skin: 'line',
 					page: false,
-					parseData: function(res){
-						return {"code": 0,"msg": "","count": 0,"data": res};
-					}
+					treeColIndex: 0,
+					treeSpid: '0',
+					treeIdName: 'id',
+					treePidName: 'pId',
+					treeDefaultClose: true
 				});
 
 				window.edit = function(obj){
-					let processDefinitionId = obj.data['id'];
-					layer.msg(processDefinitionId);
+					let flowElementId = obj.data['id'];
 					$("#taskList").hide();
-					$("#taskFrom").show();
-				}
+					$("#taskConfigFrom").show();
+					$("#taskConfigFrom input[name='processDefinitionId']").val(processDefinitionId);
+					$("#taskConfigFrom input[name='flowElementId']").val(flowElementId);
+					//通用设置表单数据回显
+					$.ajax({
+						url:"/ProcessDefinitionController/process-definitions/getElementConfig?processDefinitionId="+processDefinitionId+"&flowElementId="+flowElementId,
+						type:"GET",
+						contentType:"application/json",
+						success:function(data){
+							console.info(data);
+							if(data==null||data==""){
+								//无配置时设置默认值
+								data={
+									multiInstanceType:"NONE",
+									assigneeSelectOption:"NONE",
+									assigneeSelectScope:"USER_SCOPE",
+									candidateUsers:"",
+									candidateGroups:"",
+									candidateRoles:"",
+									candidateJob:"",
+									formField:"",
+									tip:"",
+									editForm:"false",
+									attachEditable:"false",
+									requireOpinion:"false",
+									showApproveRecord:"false",
+									rejectable:"false",
+									sendCopy:"false"
+								};
+							}else{
+								data.editForm==true ? data.editForm="true" : data.editForm="false";
+								data.attachEditable==true ? data.attachEditable="true" : data.attachEditable="false";
+								data.requireOpinion==true ? data.requireOpinion="true" : data.requireOpinion="false";
+								data.showApproveRecord==true ? data.showApproveRecord="true" : data.showApproveRecord="false";
+								data.rejectable==true ? data.rejectable="true" : data.rejectable="false";
+								data.sendCopy==true ? data.sendCopy="true" : data.sendCopy="false";
+							}
+							form.val("taskConfigFrom",data);
+						}
+					});
 
-				window.cancel = function(obj){
-					let processDefinitionId = obj.data['id'];
-					layer.msg(processDefinitionId);
-					$("#taskList").show();
-					$("#taskFrom").hide();
 				}
 
 				//任务节点列表绑定编辑事件
@@ -191,7 +255,7 @@
 						<i class="layui-icon layui-icon-close" style="position:relative;line-height:44px;margin-left:-20px;cursor:pointer;" onclick="alert('点我干嘛')"></i>
 					</div>
 					<div class="layui-row">
-						<div class="layui-col-md2">
+						<div class="layui-col-md3">
 							<div class="layui-form-item">
 								<label class="layui-form-label">默认流程</label>
 								<div class="layui-input-block">
@@ -200,7 +264,7 @@
 								</div>
 							</div>
 						</div>
-						<div class="layui-col-md2">
+						<div class="layui-col-md3">
 							<div class="layui-form-item">
 								<label class="layui-form-label">是否子流程</label>
 								<div class="layui-input-block">
@@ -243,13 +307,15 @@
 				</div>
 
 				<!---------------任务节点配置------------->
-				<form class="layui-form" action="" id="taskFrom">
+				<form class="layui-form" action="" id="taskConfigFrom"  lay-filter="taskConfigFrom" >
 					<div class="layui-tab layui-tab-brief">
 						<ul class="layui-tab-title">
 							<li class="layui-this">基本设置</li>
 							<li>审批设置</li>
 						</ul>
 						<div class="layui-tab-content">
+							<input type="hidden" name="processDefinitionId">
+							<input type="hidden" name="flowElementId">
 							<!--基本设置-->
 							<div class="layui-tab-item layui-show">
 								<div class="layui-row">
@@ -257,9 +323,9 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label">会签</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="无" checked>
-												<input type="radio" name="sex" value="NO" title="并行会签">
-												<input type="radio" name="sex" value="NO" title="串行会签">
+												<input type="radio" name="multiInstanceType" value="NONE" title="无" checked>
+												<input type="radio" name="multiInstanceType" value="PARALLEL" title="并行会签">
+												<input type="radio" name="multiInstanceType" value="SEQUENTIAL" title="串行会签">
 											</div>
 										</div>
 									</div>
@@ -269,14 +335,14 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label">处理方式</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="不指定" checked>
-												<input type="radio" name="sex" value="NO" title="默认一人">
-												<input type="radio" name="sex" value="NO" title="默认多人">
-												<input type="radio" name="sex" value="NO" title="固定一人">
-												<input type="radio" name="sex" value="NO" title="固定多人">
-												<input type="radio" name="sex" value="NO" title="默认部门">
-												<input type="radio" name="sex" value="NO" title="固定部门">
-												<input type="radio" name="sex" value="NO" title="从表单获取">
+												<input type="radio" name="assigneeSelectOption" value="NONE" title="不指定" checked>
+												<input type="radio" name="assigneeSelectOption" value="DEFAULT_ONE" title="默认一人">
+												<input type="radio" name="assigneeSelectOption" value="DEFAULT_MULTI" title="默认多人">
+												<input type="radio" name="assigneeSelectOption" value="FIXED_ONE" title="固定一人">
+												<input type="radio" name="assigneeSelectOption" value="FIXED_MULTI" title="固定多人">
+												<input type="radio" name="assigneeSelectOption" value="DEFAULT_MULTI_DEPT" title="默认部门">
+												<input type="radio" name="assigneeSelectOption" value="FIXED_MULTI_DEPT" title="固定部门">
+												<input type="radio" name="assigneeSelectOption" value="GET_FORM" title="从表单获取">
 											</div>
 										</div>
 									</div>
@@ -286,9 +352,9 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label">候选范围</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="人员" checked>
-												<input type="radio" name="sex" value="NO" title="角色">
-												<input type="radio" name="sex" value="NO" title="机构">
+												<input type="radio" name="assigneeSelectScope" value="USER_SCOPE" title="人员" checked>
+												<input type="radio" name="assigneeSelectScope" value="ROLE_SCOPE" title="角色">
+												<input type="radio" name="assigneeSelectScope" value="GROUP_SCOPE" title="机构">
 											</div>
 										</div>
 									</div>
@@ -296,9 +362,9 @@
 								<div class="layui-row">
 									<div class="layui-col-md11">
 										<div class="layui-form-item">
-											<label class="layui-form-label layui-required">候选角色</label>
+											<label class="layui-form-label layui-required">候选人员</label>
 											<div class="layui-input-block">
-												<input type="text" name="title"  lay-verify="required" placeholder="请选择角色" autocomplete="off" class="layui-input">
+												<input type="text" name="candidateUsers"  lay-verify="required" placeholder="请选择人员" autocomplete="off" class="layui-input">
 											</div>
 										</div>
 									</div>
@@ -306,9 +372,9 @@
 								<div class="layui-row">
 									<div class="layui-col-md11">
 										<div class="layui-form-item">
-											<label class="layui-form-label">候选人员</label>
+											<label class="layui-form-label">候选角色</label>
 											<div class="layui-input-block">
-												<input type="text" name="title"  lay-verify="required" placeholder="请选择人员" autocomplete="off" class="layui-input">
+												<input type="text" name="candidateRoles" placeholder="请选择角色" autocomplete="off" class="layui-input">
 											</div>
 										</div>
 									</div>
@@ -318,18 +384,17 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label">候选机构</label>
 											<div class="layui-input-block">
-												<input type="text" name="title"  lay-verify="required" placeholder="请选择机构" autocomplete="off" class="layui-input">
+												<input type="text" name="candidateGroups" placeholder="请选择机构" autocomplete="off" class="layui-input">
 											</div>
 										</div>
 									</div>
 								</div>
-
 								<div class="layui-row">
 									<div class="layui-col-md11">
 										<div class="layui-form-item">
 											<label class="layui-form-label">部门职位</label>
 											<div class="layui-input-block">
-												<input type="text" name="title"  lay-verify="required" placeholder="请部门职位" autocomplete="off" class="layui-input">
+												<input type="text" name="candidateJob" placeholder="请部门职位" autocomplete="off" class="layui-input">
 											</div>
 										</div>
 									</div>
@@ -339,7 +404,17 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label">表单字段</label>
 											<div class="layui-input-block">
-												<input type="text" name="title"  lay-verify="required" autocomplete="off" class="layui-input">
+												<input type="text" name="formField" autocomplete="off" class="layui-input">
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="layui-row">
+									<div class="layui-col-md11">
+										<div class="layui-form-item">
+											<label class="layui-form-label">审批提示</label>
+											<div class="layui-input-block">
+												<textarea name="tip" placeholder="流程审批时提示信息" class="layui-textarea" style="margin-bottom:10px;min-height:50px!important;"></textarea>
 											</div>
 										</div>
 									</div>
@@ -352,8 +427,8 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label" style="width: 120px !important;">允许编辑表单</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="是" checked>
-												<input type="radio" name="sex" value="NO" title="否">
+												<input type="radio" name="editForm" value="true" title="是" checked>
+												<input type="radio" name="editForm" value="false" title="否">
 											</div>
 										</div>
 									</div>
@@ -363,8 +438,8 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label" style="width: 120px !important;">允许编辑正文</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="是" checked>
-												<input type="radio" name="sex" value="NO" title="否">
+												<input type="radio" name="attachEditable" value="true" title="是" checked>
+												<input type="radio" name="attachEditable" value="false" title="否">
 											</div>
 										</div>
 									</div>
@@ -374,8 +449,8 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label" style="width: 120px !important;">审批意见必填</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="是" checked>
-												<input type="radio" name="sex" value="NO" title="否">
+												<input type="radio" name="requireOpinion" value="true" title="是" checked>
+												<input type="radio" name="requireOpinion" value="false" title="否">
 											</div>
 										</div>
 									</div>
@@ -385,8 +460,8 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label" style="width: 120px !important;">显示审批记录</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="是" checked>
-												<input type="radio" name="sex" value="NO" title="否">
+												<input type="radio" name="showApproveRecord" value="true" title="是" checked>
+												<input type="radio" name="showApproveRecord" value="false" title="否">
 											</div>
 										</div>
 									</div>
@@ -396,8 +471,8 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label" style="width: 120px !important;">审批允许驳回</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="是" checked>
-												<input type="radio" name="sex" value="NO" title="否">
+												<input type="radio" name="rejectable" value="true" title="是" checked>
+												<input type="radio" name="rejectable" value="false" title="否">
 											</div>
 										</div>
 									</div>
@@ -407,8 +482,8 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label" style="width: 120px !important;">审批允许抄送</label>
 											<div class="layui-input-block">
-												<input type="radio" name="sex" value="YES" title="是" checked>
-												<input type="radio" name="sex" value="NO" title="否">
+												<input type="radio" name="sendCopy" value="true" title="是" checked>
+												<input type="radio" name="sendCopy" value="false" title="否">
 											</div>
 										</div>
 									</div>
@@ -419,7 +494,7 @@
 					<div class="layui-form-item">
 						<div class="layui-input-block">
 							<button class="layui-btn layui-btn-sm" lay-submit lay-filter="taskConfigSubmit" style="padding: 0 20px;">保 存</button>
-							<button class="layui-btn layui-btn-sm" style="padding: 0 20px;" onclick="return false;">取 消</button>
+							<a class="layui-btn layui-btn-sm" href="javascript:;" style="padding: 0 20px;" onclick="cancel()">取 消</a>
 						</div>
 					</div>
 				</form>
