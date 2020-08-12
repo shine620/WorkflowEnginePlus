@@ -65,6 +65,7 @@ public class ProcessDefinitionController {
 
     @ApiOperation(value = "List of process definitions", tags = { "Process Definitions" }, nickname = "listProcessDefinitions")
     @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", dataType = "string", paramType = "query"),
             @ApiImplicitParam(name = "version", dataType = "integer",paramType = "query"),
             @ApiImplicitParam(name = "name", dataType = "string", paramType = "query"),
             @ApiImplicitParam(name = "nameLike", dataType = "string",  paramType = "query"),
@@ -88,7 +89,9 @@ public class ProcessDefinitionController {
             @ApiParam(hidden = true) @RequestParam Map<String, String> params) {
 
         ProcessDefinitionQuery processDefinitionQuery = repositoryService.createProcessDefinitionQuery();
-
+        if (params.containsKey("id") && StringUtils.isNotBlank(params.get("id")) ) {
+            processDefinitionQuery.processDefinitionId(params.get("id"));
+        }
         if (params.containsKey("category") && StringUtils.isNotBlank(params.get("category")) ) {
             processDefinitionQuery.processDefinitionCategory(params.get("category"));
         }
@@ -197,6 +200,7 @@ public class ProcessDefinitionController {
     @GetMapping(value = "/process-definitions/xml/{processDefinitionId}")
     public void getProcessDefinitionResource(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId, HttpServletResponse response) throws IOException {
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
+        if(processDefinition==null) throw new RuntimeException("资源文件查看-流程实例不存在："+processDefinitionId);
         byte[] resourceData= getDeploymentResourceData(processDefinition.getDeploymentId(), processDefinition.getResourceName(), response);
         response.getOutputStream().write(resourceData);
     }
@@ -206,6 +210,7 @@ public class ProcessDefinitionController {
     @GetMapping(value = "/process-definitions/png/{processDefinitionId}")
     public void getDiagramResource(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId, HttpServletResponse response) throws IOException {
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
+        if(processDefinition==null) throw new RuntimeException("流程图片查看-流程实例不存在："+processDefinitionId);
         byte[] resourceData= getDeploymentResourceData(processDefinition.getDeploymentId(), processDefinition.getDiagramResourceName(), response);
         response.getOutputStream().write(resourceData);
     }

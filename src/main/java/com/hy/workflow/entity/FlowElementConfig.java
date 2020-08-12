@@ -5,6 +5,7 @@ import org.hibernate.annotations.GenericGenerator;
 import org.springframework.beans.BeanUtils;
 
 import javax.persistence.*;
+import java.util.Date;
 
 @Entity
 @Table
@@ -13,7 +14,6 @@ public class FlowElementConfig {
     @Id
     @GenericGenerator(name="idGenerator", strategy="uuid") //这个是hibernate的注解/生成32位UUID
     @GeneratedValue(generator="idGenerator")
-
     private String id;
 
     //节点ID
@@ -75,6 +75,12 @@ public class FlowElementConfig {
 
     //是否允许抄送
     private String tip;
+
+    //创建时间
+    private Date createTime;
+
+    //修改时间
+    private Date updateTime;
 
 
     public FlowElementConfig(){}
@@ -251,5 +257,22 @@ public class FlowElementConfig {
     public void setTip(String tip) {
         this.tip = tip;
     }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
+
 
 }

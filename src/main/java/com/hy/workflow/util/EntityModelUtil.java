@@ -8,10 +8,12 @@ import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import org.flowable.common.rest.util.RestUrlBuilder;
 import org.flowable.engine.repository.Model;
 import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.rest.service.api.RestUrls;
 import org.flowable.rest.service.api.repository.ModelResponse;
 import org.flowable.rest.service.api.repository.ProcessDefinitionResource;
 import org.flowable.rest.service.api.repository.ProcessDefinitionResponse;
+import org.flowable.rest.service.api.runtime.process.ProcessInstanceResponse;
 import org.springframework.beans.BeanUtils;
 
 import java.util.ArrayList;
@@ -86,6 +88,29 @@ public class EntityModelUtil {
             return  model;
         }
         return null;
+    }
+
+    public static List<ProcessInstanceResponse> toProcessInstanceResponseList(List<ProcessInstance> reqs) {
+        if(reqs==null) return null;
+        List<ProcessInstanceResponse> list = new ArrayList<ProcessInstanceResponse>();
+        for(ProcessInstance instance : reqs){
+            list.add(toProcessInstanceResponse(instance));
+        }
+        return list;
+    }
+
+    public static ProcessInstanceResponse toProcessInstanceResponse(ProcessInstance instance){
+        if(instance==null) return null;
+        ProcessInstanceResponse instanceResponse = new ProcessInstanceResponse();
+        instanceResponse.setBusinessKey(instance.getBusinessKey());
+        instanceResponse.setId(instance.getId());
+        instanceResponse.setName(instance.getName());
+        instanceResponse.setProcessDefinitionId(instance.getProcessDefinitionId());
+        instanceResponse.setProcessDefinitionName(instance.getProcessDefinitionName());
+        instanceResponse.setStartTime(instance.getStartTime());
+        instanceResponse.setStartUserId(instance.getStartUserId());
+        instanceResponse.setSuspended(instance.isSuspended());
+        return instanceResponse;
     }
 
 

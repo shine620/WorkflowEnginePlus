@@ -46,8 +46,10 @@ public class ProcessDefinitionService {
         if(processDefinition!=null){
             repositoryService.deleteDeployment(deploymentId,cascade);
             processDefinitionConfigRepository.deleteByProcessDefinitionId(processDefinition.getId());
+            flowElementConfigRepository.deleteByProcessDefinitionId(processDefinition.getId());
         }
     }
+
 
     /**
      * 删除多个流程部署`
@@ -63,6 +65,7 @@ public class ProcessDefinitionService {
         }
     }
 
+
     /**
      * 获取流程配置
      *
@@ -74,6 +77,7 @@ public class ProcessDefinitionService {
         ProcessDefinitionConfig pdConfig = processDefinitionConfigRepository.findByProcessDefinitionId(processDefinitionId);
         return EntityModelUtil.toProcessDefinitionConfigModel(pdConfig);
     }
+
 
     /**
      * 保存流程配置
@@ -106,12 +110,20 @@ public class ProcessDefinitionService {
     }
 
 
+    /**
+     * 保存任务节点配置
+     *
+     * @author  zhaoyao
+     * @param  model 任务节点配置封装对象
+     * @return FlowElementConfigModel 任务节点配置包装对象
+     */
     public FlowElementConfigModel saveElementConfig(FlowElementConfigModel model) {
         if(model==null||StringUtils.isBlank(model.getProcessDefinitionId())||StringUtils.isBlank(model.getFlowElementId()))
             throw new RuntimeException("流程定义ID和任务节点ID不能为空！");
         FlowElementConfig flowElementConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(model.getProcessDefinitionId(),model.getFlowElementId());
         //新增
         if(flowElementConfig==null){
+            model.setCreateTime(new Date());
             FlowElementConfig feConfig = flowElementConfigRepository.save(new FlowElementConfig(model));
             return  EntityModelUtil.toFlowElementConfigMode(feConfig);
         }
@@ -132,16 +144,27 @@ public class ProcessDefinitionService {
             flowElementConfig.setShowApproveRecord(model.getShowApproveRecord());
             flowElementConfig.setRejectable(model.getRejectable());
             flowElementConfig.setSendCopy(model.getSendCopy());
+            flowElementConfig.setUpdateTime(new Date());
             flowElementConfigRepository.save(flowElementConfig);
             return EntityModelUtil.toFlowElementConfigMode(flowElementConfig);
         }
     }
 
 
+    /**
+     * 获取任务节点配置
+     *
+     * @author  zhaoyao
+     * @param  processDefinitionId 流程定义ID
+     * @param  flowElementId 任务节点ID
+     * @return FlowElementConfigModel 任务节点配置包装对象
+     */
     public FlowElementConfigModel getFlowElementConfig(String processDefinitionId,String flowElementId) {
         FlowElementConfig feConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinitionId,flowElementId);
         return EntityModelUtil.toFlowElementConfigMode(feConfig);
     }
+
+
 
 
 }

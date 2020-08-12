@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<link href="../component/layui/css/layui.css" rel="stylesheet" />
+		<link href="../admin/css/pearCommon.css" rel="stylesheet" />
+	</head>
+	<body>
+		<body class="pear-container">
+		    <div class="layui-card">
+		        <div class="layui-card-body">
+		            <form class="layui-form" action="/ProcessInstanceController/process-instances" method="get">
+		                <div class="layui-form-item">
+                            <label class="layui-form-label">业务ID</label>
+                            <div class="layui-input-inline">
+                                <input type="text" name="businessId" placeholder="" class="layui-input">
+                            </div>
+		                    <label class="layui-form-label">业务名称</label>
+		                    <div class="layui-input-inline">
+		                        <input type="text" name="businessName" placeholder="" class="layui-input">
+		                    </div>
+							<label class="layui-form-label">流程实例ID</label>
+							<div class="layui-input-inline">
+								<input type="text" name="processInstanceId" placeholder="" class="layui-input">
+							</div>
+							<label class="layui-form-label">流程实例名称</label>
+							<div class="layui-input-inline">
+								<input type="text" name="processInstanceName" placeholder="" class="layui-input">
+							</div>
+		                    <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="user-query">
+		                        <i class="layui-icon layui-icon-search"></i>
+		                        查询
+		                    </button>
+		                    <button type="reset" class="pear-btn pear-btn-md">
+		                        <i class="layui-icon layui-icon-refresh"></i>
+		                        重置
+		                    </button>
+		                </div>
+		            </form>
+		        </div>
+		    </div>
+		    <div class="layui-card">
+		        <div class="layui-card-body">
+		            <table id="instances-table" lay-filter="instances-table"></table>
+		        </div>
+		    </div>
+		</body>
+
+
+        <!--挂起、删除和查看按钮-->
+		<script type="text/html" id="user-bar">
+		    <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit" title="挂起"><i class="layui-icon layui-icon-edit"></i></button>
+		    <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i></button>
+			<button class="pear-btn pear-btn-success pear-btn-sm" lay-event="deploy" title="查看"><i class="layui-icon layui-icon-note" ></i></button>
+		</script>
+
+        <!--列表日期格式化显示-->
+		<script type="text/html" id="model-createTime">
+		    {{layui.util.toDateString(d.createTime, 'yyyy-MM-dd HH:mm:ss')}}
+		</script>
+        <script type="text/html" id="model-lastUpdateTime">
+            {{layui.util.toDateString(d.lastUpdateTime, 'yyyy-MM-dd HH:mm:ss')}}
+        </script>
+		
+		<script src="../component/layui/layui.js"></script>
+		<script>
+		    layui.use(['table','form','jquery','pearTab'],function () {
+
+		        let table = layui.table;
+		        let form = layui.form;
+		        let $ = layui.jquery;
+		        let pearTab = layui.pearTab;
+
+		        //let MODULE_PATH = "/ProcessInstanceController/process-instances/";
+				let MODULE_PATH = "/ModelController/models/";
+		
+		        let cols = [
+		            [
+		                {type:'checkbox'},
+		                {title: '模型名称', field: 'name', align:'left',sort:true},
+		                {title: '版本号', field: 'version', align:'center'},
+		                {title: '创建人', field: 'createUserName', align:'left',hide:true},
+		                {title: '创建时间', field: 'createTime', align:'left',templet:"#model-createTime",sort:true},
+		                {title: '最后修改时间', field: 'lastUpdateTime', align:'left',templet:"#model-lastUpdateTime"},
+		                {title: '操作', toolbar: '#user-bar', align:'center', width:150}
+		            ]
+		        ]
+
+                 table.render({
+		            elem: '#instances-table',
+		            url: MODULE_PATH,
+		            page: true ,
+		            cols: cols ,
+		            skin: 'line',
+                    limits: [5,10, 20, 30, 40, 50],
+					initSort: {
+						 field: 'createTime'
+						 ,type: 'desc'
+					},
+                    request: {
+                        pageName: 'startPage'
+                        ,limitName: 'pageSize'
+                    },
+                    parseData: function(res){
+                        return {"code": 0,"msg": "", "count": res.total,"data": res.data};
+                    }
+		        });
+
+		        //data-url属性的元素单击后打开新标签页
+                /*$("body").on("click", "[data-url]", function() {
+                    parent.layui.pearTab.addTabOnlyByElem("content", {
+                        id: $(this).attr("data-id"),
+                        title: $(this).attr("data-title"),
+                        url: $(this).attr("data-url"),
+                        close: true
+                    })
+                })
+
+		        //绑定列表编辑和删除事件
+		        table.on('tool(instances-table)', function(obj){
+		            if(obj.event === 'remove'){
+		                window.remove(obj);
+		            } else if(obj.event === 'edit'){
+		                window .edit(obj);
+		            }
+		        });*/
+
+                //搜索框提交事件
+		        form.on('submit(user-query)', function(data){
+		            table.reload('instances-table',{where: data.field});
+                    return false;
+		        });
+		
+		        window.edit = function(obj){
+		            let modelId = obj.data['id'];
+                    window.open('/flowable.html#/editor/'+modelId,'_blank');
+		        }
+		
+		        window.remove = function(obj){
+		            layer.confirm('确定要删除该模型吗？', {icon: 3, title:'提示'}, function(index){
+		                layer.close(index);
+		                let loading = layer.load();
+		                $.ajax({
+		                    url: MODULE_PATH+obj.data['id'],
+		                    dataType:'json',
+		                    type:'delete',
+		                    success:function(result){
+		                        layer.close(loading);
+								obj.del();
+                                layer.msg('删除成功',{icon:1,time:1000},function(){
+                                    //obj.del();
+                                });
+		                    },
+                            error:function(XMLHttpRequest){
+                                layer.msg("删除失败",{icon:2,time:1000});
+                                layer.close(loading);
+                                console.info(XMLHttpRequest.responseText);
+                            }
+		                })
+		            });
+		        }
+
+		
+		        window.refresh = function(param){
+		            table.reload('instances-table');
+		        }
+
+		    })
+		</script>
+	</body>
+</html>

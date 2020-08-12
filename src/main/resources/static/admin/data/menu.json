@@ -43,12 +43,20 @@
 		"type": 0,
 		"href": "",
 		"children": [{
-              "id": 44,
-              "title": "实例列表",
-              "icon": "layui-icon layui-icon-username",
+              "id": 4934,
+              "title": "流转实例",
+              "icon": "layui-icon layui-icon-face-smile",
               "type": 1,
               "openType": "_iframe",
-              "href": "view/system/organization.html"
+              "href": "workflow/todoInstanceList.html"
+			},
+			{
+				"id": 4984,
+				"title": "结束实例",
+				"icon": "layui-icon layui-icon-face-smile",
+				"type": 1,
+				"openType": "_iframe",
+				"href": "workflow/doneInstanceList.html"
 			}
 		]
 	},
@@ -58,7 +66,7 @@
 
 
 	{
-		"id": 4,
+		"id": 86,
 		"title": "常用页面",
 		"icon": "layui-icon layui-icon-component",
 		"type": 0,

@@ -1,5 +1,7 @@
 package com.hy.workflow.model;
 
+import java.util.Date;
+
 public class FlowElementConfigModel {
 
 
@@ -64,6 +66,13 @@ public class FlowElementConfigModel {
 
     //是否允许抄送
     private String tip;
+
+    //创建时间
+    private Date createTime;
+
+    //修改时间
+    private Date updateTime;
+
 
     public String getId() {
         return id;
@@ -233,5 +242,20 @@ public class FlowElementConfigModel {
         this.tip = tip;
     }
 
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
 
 }
