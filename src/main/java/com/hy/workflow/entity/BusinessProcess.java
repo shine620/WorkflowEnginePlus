@@ -9,10 +9,13 @@ import java.util.Date;
 @Table
 public class BusinessProcess{
 
-    @Id
+    /*@Id
     @GenericGenerator(name="idGenerator", strategy="uuid")
     @GeneratedValue(generator="idGenerator")
-    private String id;
+    private String id;*/
+
+    @Id
+    private String processInstanceId;
 
     private String businessId;
 
@@ -20,7 +23,8 @@ public class BusinessProcess{
 
     private String businessName;
 
-    private String processInstanceId;
+    //businessType+businessId
+    private String businessKey;
 
     private String processInstanceName;
 
@@ -28,28 +32,36 @@ public class BusinessProcess{
 
     private String processDefinitionName;
 
+    private String processDefinitionKey;
+
     private String deploymentId;
 
-    private Boolean overed;
+    private Boolean ended;
 
-    private String userId;
+    private Boolean suspended;
+
+    private String startUserId;
 
     private String deptId;
 
     private String unitId;
 
-    private Date createTime;
+    private Date startTime;
+
+    private Date endTime;
 
     private String businessUrl;
 
+    private String parentId;
 
-    public String getId() {
+
+    /*public String getId() {
         return id;
     }
 
     public void setId(String id) {
         this.id = id;
-    }
+    }*/
 
     public String getBusinessId() {
         return businessId;
@@ -73,6 +85,14 @@ public class BusinessProcess{
 
     public void setBusinessName(String businessName) {
         this.businessName = businessName;
+    }
+
+    public String getBusinessKey() {
+        return businessKey;
+    }
+
+    public void setBusinessKey(String businessKey) {
+        this.businessKey = businessKey;
     }
 
     public String getProcessInstanceId() {
@@ -107,6 +127,14 @@ public class BusinessProcess{
         this.processDefinitionName = processDefinitionName;
     }
 
+    public String getProcessDefinitionKey() {
+        return processDefinitionKey;
+    }
+
+    public void setProcessDefinitionKey(String processDefinitionKey) {
+        this.processDefinitionKey = processDefinitionKey;
+    }
+
     public String getDeploymentId() {
         return deploymentId;
     }
@@ -115,20 +143,28 @@ public class BusinessProcess{
         this.deploymentId = deploymentId;
     }
 
-    public Boolean getOvered() {
-        return overed;
+    public Boolean getEnded() {
+        return ended;
     }
 
-    public void setOvered(Boolean overed) {
-        this.overed = overed;
+    public void setEnded(Boolean ended) {
+        this.ended = ended;
     }
 
-    public String getUserId() {
-        return userId;
+    public Boolean getSuspended() {
+        return suspended;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setSuspended(Boolean suspended) {
+        this.suspended = suspended;
+    }
+
+    public String getStartUserId() {
+        return startUserId;
+    }
+
+    public void setStartUserId(String startUserId) {
+        this.startUserId = startUserId;
     }
 
     public String getDeptId() {
@@ -147,12 +183,20 @@ public class BusinessProcess{
         this.unitId = unitId;
     }
 
-    public Date getCreateTime() {
-        return createTime;
+    public Date getStartTime() {
+        return startTime;
     }
 
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
+    public void setStartTime(Date startTime) {
+        this.startTime = startTime;
+    }
+
+    public Date getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(Date endTime) {
+        this.endTime = endTime;
     }
 
     public String getBusinessUrl() {
@@ -163,7 +207,13 @@ public class BusinessProcess{
         this.businessUrl = businessUrl;
     }
 
+    public String getParentId() {
+        return parentId;
+    }
 
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
+    }
 }
 
 

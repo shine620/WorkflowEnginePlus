@@ -1,10 +1,12 @@
 package com.hy.workflow.util;
 
 
+import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
 import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
+import com.hy.workflow.model.ProcessInstanceModel;
 import org.flowable.common.rest.util.RestUrlBuilder;
 import org.flowable.engine.repository.Model;
 import org.flowable.engine.repository.ProcessDefinition;
@@ -111,6 +113,30 @@ public class EntityModelUtil {
         instanceResponse.setStartUserId(instance.getStartUserId());
         instanceResponse.setSuspended(instance.isSuspended());
         return instanceResponse;
+    }
+
+    public static ProcessInstanceModel toProcessInstanceModel(ProcessInstanceModel model, ProcessInstance instance){
+        if(instance!=null) {
+            model.setProcessInstanceId(instance.getId());
+            model.setProcessInstanceName(instance.getName());
+            model.setBusinessKey(instance.getBusinessKey());
+            model.setProcessDefinitionId(instance.getProcessDefinitionId());
+            model.setProcessDefinitionName(instance.getProcessDefinitionName());
+            model.setProcessDefinitionKey(instance.getProcessDefinitionKey());
+            model.setEnded(false);
+            model.setSuspended(instance.isSuspended());
+            model.setStartTime(instance.getStartTime());
+            model.setStartUserId(instance.getStartUserId());
+            model.setDeploymentId(instance.getDeploymentId());
+        }
+        return model;
+    }
+
+    public static ProcessInstanceModel toProcessInstanceModel(BusinessProcess bp){
+        if(bp==null) return null;
+        ProcessInstanceModel model = new ProcessInstanceModel();
+        BeanUtils.copyProperties(bp,model);
+        return model;
     }
 
 

@@ -52,7 +52,7 @@
 			},
 			{
 				"id": 4984,
-				"title": "结束实例",
+				"title": "历史实例",
 				"icon": "layui-icon layui-icon-face-smile",
 				"type": 1,
 				"openType": "_iframe",
