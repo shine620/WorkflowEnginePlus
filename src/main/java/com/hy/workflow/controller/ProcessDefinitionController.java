@@ -51,17 +51,6 @@ public class ProcessDefinitionController {
     @Autowired
     protected ProcessDefinitionService processDefinitionService;
 
-    private static final Map<String, QueryProperty> properties = new HashMap<>();
-
-    static {
-        properties.put("id", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_ID);
-        properties.put("key", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_KEY);
-        properties.put("category", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_CATEGORY);
-        properties.put("name", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_NAME);
-        properties.put("version", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_VERSION);
-        properties.put("deploymentId", ProcessDefinitionQueryProperty.DEPLOYMENT_ID);
-        properties.put("tenantId", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_TENANT_ID);
-    }
 
     @ApiOperation(value = "List of process definitions", tags = { "Process Definitions" }, nickname = "listProcessDefinitions")
     @ApiImplicitParams({
@@ -80,7 +69,7 @@ public class ProcessDefinitionController {
             @ApiImplicitParam(name = "startableByUser", dataType = "string", paramType = "query"),
             @ApiImplicitParam(name = "latest", dataType = "boolean", paramType = "query"),
             @ApiImplicitParam(name = "suspended", dataType = "boolean", paramType = "query"),
-            @ApiImplicitParam(name = "sort", dataType = "string", allowableValues = "name,id,key,category,deploymentId,version", paramType = "query"),
+            @ApiImplicitParam(name = "sort", dataType = "string", allowableValues = "deploymentId,name,id,key,category,deploymentId,version", paramType = "query"),
     })
     @GetMapping(value = "/process-definitions", produces = "application/json")
     public DataResponse<ProcessDefinitionResponse> getProcessDefinitions(HttpServletRequest request,
@@ -132,15 +121,12 @@ public class ProcessDefinitionController {
                 }
             }
         }
-        //默认查询最新版本流程定义
-        /*if(!params.containsKey("latest") || StringUtils.isBlank(params.get("latest"))  ){
-            processDefinitionQuery.latestVersion();
-        } else{
+        if(params.containsKey("latest")){
             Boolean latest = Boolean.valueOf(params.get("latest"));
             if (latest != null && latest) {
                 processDefinitionQuery.latestVersion();
             }
-        }*/
+        }
         if (params.containsKey("deploymentId") && StringUtils.isNotBlank(params.get("deploymentId"))) {
             processDefinitionQuery.deploymentId(params.get("deploymentId"));
         }
@@ -157,6 +143,15 @@ public class ProcessDefinitionController {
         PaginateRequest paginateRequest = new PaginateRequest();
         paginateRequest.setStart( (startPage-1)*pageSize );
         paginateRequest.setSize(Integer.valueOf(params.get("pageSize")));
+
+        Map<String, QueryProperty> properties = new HashMap<>();
+        properties.put("id", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_ID);
+        properties.put("key", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_KEY);
+        properties.put("category", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_CATEGORY);
+        properties.put("name", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_NAME);
+        properties.put("version", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_VERSION);
+        properties.put("deploymentId", ProcessDefinitionQueryProperty.DEPLOYMENT_ID);
+        properties.put("tenantId", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_TENANT_ID);
 
         return paginateList(params, paginateRequest, processDefinitionQuery,"id", properties, EntityModelUtil::toProcessDefinitionResponseList);
 
