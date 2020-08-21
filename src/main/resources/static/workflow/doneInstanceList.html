@@ -50,23 +50,18 @@
 
         <!--挂起、删除和查看按钮-->
 		<script type="text/html" id="instance-bar">
-			<button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="suspend" title=" {{ d.suspended == true ? '激活' : '挂起' }} ">
-				<i class="layui-icon {{ d.suspended == true ? 'layui-icon-pause' : 'layui-icon-play' }} "></i>
-			</button>
-		    <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i></button>
 			<button class="pear-btn pear-btn-success pear-btn-sm" lay-event="view" title="详情"><i class="layui-icon layui-icon-senior" ></i></button>
+			<button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i></button>
 		</script>
 
         <!--列表日期格式化显示-->
 		<script type="text/html" id="instance-startTime">
 		    {{layui.util.toDateString(d.startTime, 'yyyy-MM-dd HH:mm:ss')}}
 		</script>
-		<script type="text/html" id="instance-suspended">
-			{{ d.suspended == true ? '是' : '否' }}
+		<script type="text/html" id="instance-endTime">
+			{{ d.endTime!=null? layui.util.toDateString(d.endTime, 'yyyy-MM-dd HH:mm:ss') : "" }}
 		</script>
-
-
-
+		
 		<script src="../component/layui/layui.js"></script>
 		<script>
 		    layui.use(['table','form','jquery','pearTab'],function () {
@@ -84,11 +79,11 @@
 		                {title: '名称', field: 'processInstanceName', align:'left'},
 		                {title: '发起人', field: 'startUserId', align:'left',sort:true,width:100},
 		                {title: '发起时间', field: 'startTime', align:'left',templet:"#instance-startTime",sort:true},
+						{title: '结束时间', field: 'endTime', align:'left',templet:"#instance-endTime",sort:true},
 						{title: '流程实例KEY', field: 'businessKey', align:'left',sort:true},
 						{title: '流程定义ID', field: 'processDefinitionId', align:'left',sort:true},
-						{title: '挂起状态', field: 'suspended', align:'left',templet:"#instance-suspended",width:85},
 						{title: '业务名称', field: 'businessName', align:'left'},
-		                {title: '操作', toolbar: '#instance-bar', align:'center', width:150}
+		                {title: '操作', toolbar: '#instance-bar', align:'center', width:100}
 		            ]
 		        ]
 
@@ -98,15 +93,19 @@
 		            page: true ,
 		            cols: cols ,
 		            skin: 'line',
-					where:{ended: false},
+					where:{ended: true},
                     limits: [5,10, 20, 30, 40, 50],
 					method:'post',
 					contentType: 'application/json',
+					////排序会导致没有数据时不显示无数据的空行
+					//initSort: {field: 'endTime',type: 'desc'},
                     request: {
                         pageName: 'startPage'
                         ,limitName: 'pageSize'
                     },
                     parseData: function(res){
+						//解决不显示无数据的空行问题，但此方式会在最后留一片空白，暂不用此方式
+						//if(res.totalCount ==0){ return{'code':'200','msg':'无数据'}; };
                         return {"code": 0,"msg": "", "count": res.totalCount,"data": res.data};
                     }
 		        });
@@ -116,10 +115,8 @@
 		            if(obj.event === 'remove'){
 		                window.remove(obj);
 		            } else if(obj.event === 'view'){
-		                window.view(obj);
-		            }else if(obj.event === 'suspend'){
-						window.suspend(obj);
-					}
+		                window .view(obj);
+		            }
 		        });
 
                 //搜索框提交事件
@@ -141,39 +138,6 @@
 
 				window.view = function(obj){
 
-				}
-
-				window.suspend = function(obj){
-					var suspendStatus = obj.data["suspended"];
-					var confirmTip = "";
-					var status;
-					if(suspendStatus){ //挂起时激活
-						confirmTip = "确定要激活该实例吗？";
-						status = false;
-					}else{ //挂起时挂起
-						confirmTip = "确定要挂起该实例吗？";
-						status = true;
-					}
-					layer.confirm(confirmTip, {icon: 3, title:'提示'}, function(index){
-						layer.close(index);
-						let loading = layer.load();
-						$.ajax({
-							url: MODULE_PATH+"suspendProcessInstance?processInstanceId=" +obj.data['processInstanceId']+"&suspend="+status,
-							dataType:'json',
-							type:'get',
-							success:function(result){
-								layer.close(loading);
-								layer.msg('挂起成功',{icon:1,time:1000},function(){
-									table.reload('instance-table');
-								});
-							},
-							error:function(XMLHttpRequest){
-								layer.msg("挂起失败",{icon:2,time:1000});
-								layer.close(loading);
-								console.info(XMLHttpRequest.responseText);
-							}
-						})
-					});
 				}
 		
 		        window.remove = function(obj){

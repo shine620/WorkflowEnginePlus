@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.service.ModelService;
 import com.hy.workflow.util.EntityModelUtil;
 import io.swagger.annotations.*;
@@ -163,7 +164,7 @@ public class ModelController {
         String acutor = propertiesNode.get("process_author")==null?null: propertiesNode.get("process_author").asText();
         //String documentation = propertiesNode.get("documentation")==null?null: propertiesNode.get("documentation").asText();
 
-        if(StringUtils.isEmpty(name))  throw new RuntimeException("流程名称不能为空！");
+        if(StringUtils.isEmpty(name))  throw new WorkflowException("流程名称不能为空！");
 
         Model model =  repositoryService.newModel() ;
 
@@ -172,23 +173,23 @@ public class ModelController {
             //填写Key时判断后台是否已经存在
             if(StringUtils.isNotBlank(key)){
                 Model existModel = repositoryService.createModelQuery().modelKey(key).singleResult();
-                if(existModel!=null)  throw new RuntimeException("流程标识为："+key+" 的模型已经存在！");
+                if(existModel!=null)  throw new WorkflowException("流程标识为："+key+" 的模型已经存在！");
             }
             //未填写Key时自动设置模型ID为Key
             repositoryService.saveModel(model);
             if(StringUtils.isBlank(key)){
-                key = model.getId();
+                key = "Model"+ model.getId();
                 propertiesNode.put("process_id",key);
             }
         }
         /*修改模型*/
         else{
             model = repositoryService.createModelQuery().modelId(modelId).singleResult();
-            if(StringUtils.isEmpty(key)) throw new RuntimeException("流程标识不能为空！");
+            if(StringUtils.isEmpty(key)) throw new WorkflowException("流程标识不能为空！");
             //key是否有修改
             if(!key.equals(model.getKey())){
                 Model existModel = repositoryService.createModelQuery().modelKey(key).singleResult();
-                if(existModel!=null)  throw new RuntimeException("流程标识为："+key+" 的模型已经存在！");
+                if(existModel!=null)  throw new WorkflowException("流程标识为："+key+" 的模型已经存在！");
             }
         }
 

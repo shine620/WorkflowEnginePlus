@@ -1,5 +1,7 @@
 package com.hy.workflow.model;
 
+import com.hy.workflow.enums.MultiInstanceType;
+
 import java.util.Date;
 
 public class TaskModel {
@@ -9,11 +11,15 @@ public class TaskModel {
 
     private String taskName;
 
+    private String processInstanceId;
+
     private String assignee;
 
     private String taskDefinitionKey;
 
     private Date createTime;
+
+    private MultiInstanceType multiInstanceType;
 
 
     public String getTaskId() {
@@ -30,6 +36,14 @@ public class TaskModel {
 
     public void setTaskName(String taskName) {
         this.taskName = taskName;
+    }
+
+    public String getProcessInstanceId() {
+        return processInstanceId;
+    }
+
+    public void setProcessInstanceId(String processInstanceId) {
+        this.processInstanceId = processInstanceId;
     }
 
     public String getAssignee() {
@@ -55,4 +69,14 @@ public class TaskModel {
     public void setCreateTime(Date createTime) {
         this.createTime = createTime;
     }
+
+    public MultiInstanceType getMultiInstanceType() {
+        return multiInstanceType;
+    }
+
+    public void setMultiInstanceType(MultiInstanceType multiInstanceType) {
+        this.multiInstanceType = multiInstanceType;
+    }
+
+
 }

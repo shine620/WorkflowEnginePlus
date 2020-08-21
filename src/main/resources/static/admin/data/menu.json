@@ -6,14 +6,21 @@
 		"icon": "layui-icon layui-icon-console",
 		"href": "",
 		"children": [{
-          "id": 0,
+          "id": 11,
           "title": "模型列表",
           "icon": "layui-icon layui-icon-face-smile",
           "type": 1,
           "openType": "_iframe",
           "href": "workflow/modelList.html"
         },{
-          "id": 1289,
+			"id": 12,
+			"title": "流程定义",
+			"icon": "layui-icon layui-icon-face-smile",
+			"type": 1,
+			"openType": "_iframe",
+			"href": "workflow/procDefinList.html"
+		},{
+          "id": 13,
           "title": "流程接口",
           "icon": "layui-icon layui-icon-face-smile",
           "type": 1,
@@ -21,29 +28,14 @@
           "href": "swagger-ui.html"
         }]
 	},
-    {
-        "id": 2,
-        "title": "流程定义",
-        "icon": "layui-icon layui-icon-face-cry",
-        "type": 0,
-        "href": "",
-        "children": [{
-            "id": 301,
-            "title": "定义列表",
-            "icon": "layui-icon layui-icon-face-smile",
-            "type": 1,
-            "openType": "_iframe",
-            "href": "workflow/procDefinList.html"
-        }]
-    },
 	{
-		"id": 3,
+		"id": 2,
 		"title": "流程实例",
 		"icon": "layui-icon layui-icon-set-fill",
 		"type": 0,
 		"href": "",
 		"children": [{
-              "id": 4934,
+              "id": 21,
               "title": "流转实例",
               "icon": "layui-icon layui-icon-face-smile",
               "type": 1,
@@ -51,7 +43,7 @@
               "href": "workflow/todoInstanceList.html"
 			},
 			{
-				"id": 4984,
+				"id": 22,
 				"title": "历史实例",
 				"icon": "layui-icon layui-icon-face-smile",
 				"type": 1,
@@ -73,7 +65,7 @@
 		"href": "",
 		"children": [
             {
-              "id": 13,
+              "id": 1333,
               "title": "数据分析",
               "icon": "layui-icon layui-icon-console",
               "type": 1,
@@ -121,7 +113,7 @@
               "href": "view/system/power.html"
             },
 			{
-				"id": 21,
+				"id": 2321,
 				"title": "常用组件",
 				"icon": "layui-icon layui-icon-face-smile",
 				"type": 0,
@@ -184,7 +176,7 @@
 				]
 			},
 			{
-				"id": 22,
+				"id": 23232,
 				"title": "进阶组件",
 				"icon": "layui-icon layui-icon-face-smile",
 				"type": 0,

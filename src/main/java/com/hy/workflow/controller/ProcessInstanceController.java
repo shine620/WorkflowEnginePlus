@@ -1,6 +1,7 @@
 package com.hy.workflow.controller;
 
 import com.hy.workflow.base.PageBean;
+import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.service.ProcessInstanceService;
 import com.hy.workflow.util.EntityModelUtil;
@@ -166,15 +167,16 @@ public class ProcessInstanceController {
     @PostMapping(value = "/process-instances/startProcessInstance", produces = "application/json")
     public ProcessInstanceModel startProcessInstance(
             @ApiParam(name = "processDefinitionId",value = "流程定义ID") @RequestParam String processDefinitionId,
+            @ApiParam(name = "startUserId",value = "发起人ID") @RequestParam String startUserId,
             @ApiParam(name = "businessId",value = "业务ID") @RequestParam String businessId,
             @ApiParam(name = "businessType",value = "业务类型") @RequestParam  String businessType,
             @ApiParam(name = "businessName",value = "业务名称") @RequestParam(required = false) String businessName,
-            @ApiParam(name = "businessUrl",value = "业务名称") @RequestParam(required = false) String businessUrl,
+            @ApiParam(name = "businessUrl",value = "业务地址") @RequestParam(required = false) String businessUrl,
             @ApiParam(name = "variables",value = "流程变量") @RequestBody Map<String,Object> variables) {
 
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
-        if(processDefinition==null) throw new RuntimeException("流程发起-流程定义不存在："+processDefinitionId);
-        return processInstanceService.startProcess(processDefinition,businessId,businessType,businessName,businessUrl,variables);
+        if(processDefinition==null) throw new WorkflowException("流程发起-流程定义不存在："+processDefinitionId);
+        return processInstanceService.startProcess(processDefinition,startUserId,businessId,businessType,businessName,businessUrl,variables);
     }
 
 
@@ -187,6 +189,15 @@ public class ProcessInstanceController {
         response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 
+
+    @ApiOperation(value = "Suspend a process instance", notes = "挂起流程实例", tags = { "Process Instances" })
+    @GetMapping(value = "/process-instances/suspendProcessInstance")
+    public void suspendProcessInstance( HttpServletResponse response,
+          @ApiParam(name = "processInstanceId",value = "流程实例ID") @RequestParam String processInstanceId,
+          @ApiParam(name = "suspend",value = "流程实例ID") @RequestParam Boolean suspend) {
+        processInstanceService.suspendProcessInstance(processInstanceId,suspend);
+        response.setStatus(HttpStatus.NO_CONTENT.value());
+    }
 
 
 

@@ -1,7 +1,10 @@
 package com.hy.workflow.controller;
 
+import com.hy.workflow.base.PageBean;
+import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.model.ApproveRequest;
 import com.hy.workflow.model.TaskModel;
+import com.hy.workflow.service.FlowableTaskService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -31,12 +34,14 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
+    @Autowired
+    private FlowableTaskService flowableTaskService;
 
-    @ApiOperation(value = "Get todo task list", notes="查询待办列表",tags = { "Tasks" })
-    @GetMapping(value = "/tasks/getTodoTaskList", produces = "application/json")
-    public Map<String,Object> getTodoTaskList(
-         @ApiParam(name = "userId",value = "用户ID") @RequestParam String userId,@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,
-         @ApiParam @RequestParam(defaultValue = "1") Integer startPage,@ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
+    @ApiOperation(value = "Query todo task list", notes="查询待办列表",tags = { "Tasks" })
+    @GetMapping(value = "/tasks/todoTaskList", produces = "application/json")
+    public PageBean<TaskModel> getTodoTaskList(
+         @ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,@ApiParam(name = "userId",value = "用户ID") @RequestParam String userId,
+         @ApiParam @RequestParam(defaultValue = "1") Integer pageNum,@ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
 
         ArrayList taskList =  new ArrayList();
         TaskQuery taskQuery  = taskService.createTaskQuery()
@@ -49,7 +54,7 @@ public class TaskController {
         if(loadAll==true){
             todoTaskList = taskQuery.list();
         }else{
-            int startIndex = (startPage-1)*20;
+            int startIndex = (pageNum-1)*20;
             todoTaskList = taskQuery.listPage(startIndex,pageSize);
         }
 
@@ -60,13 +65,14 @@ public class TaskController {
             taskModel.setTaskDefinitionKey(task.getTaskDefinitionKey());
             taskModel.setCreateTime(task.getCreateTime());
             taskModel.setAssignee(task.getAssignee());
+            taskModel.setProcessInstanceId(task.getProcessInstanceId());
             taskList.add(taskModel);
         });
 
-        Map result = new HashMap();
-        result.put("totalCount",totalCount);
-        result.put("datas",taskList);
-        return result;
+        PageBean taskPage = new PageBean(pageNum,pageSize,totalCount);
+        taskPage.setData(taskList);
+        return taskPage;
+
     }
 
 
@@ -75,7 +81,7 @@ public class TaskController {
     public void claimTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId,
                           @ApiParam(name = "userId",value = "签收人ID") @RequestParam String userId) {
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-        if(task==null) throw new RuntimeException("签收失败，该任务不存在："+taskId);
+        if(task==null) throw new WorkflowException("签收失败，该任务不存在："+taskId);
         taskService.claim(taskId, userId);
     }
 
@@ -98,7 +104,7 @@ public class TaskController {
         if (flag) {
             taskService.claim(taskId, null);
         } else {
-            throw  new RuntimeException("没有候选人或候选组,不能进行反签收操作");
+            throw  new WorkflowException("没有候选人或候选组,不能进行反签收操作");
         }
     }
 
@@ -108,7 +114,7 @@ public class TaskController {
     public void setAssignee(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId,
                           @ApiParam(name = "userId",value = "处理人ID") @RequestParam String userId) {
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-        if(task==null) throw new RuntimeException("设置处理人失败，该任务不存在："+taskId);
+        if(task==null) throw new WorkflowException("设置处理人失败，该任务不存在："+taskId);
         taskService.setAssignee(taskId,userId);
     }
 
@@ -117,14 +123,9 @@ public class TaskController {
     @PostMapping(value = "/tasks/approvedTask", produces = "application/json")
     public void approvedTask(@RequestBody ApproveRequest approveRequest) {
         Task task = taskService.createTaskQuery().taskId(approveRequest.getTaskId()).singleResult();
-        if(task==null) throw new RuntimeException("审批失败，该任务不存在："+approveRequest.getTaskId());
-        //taskService.addComment(task.getId(), approveRequest.getProcessInstanceId(), approveRequest.getOpinion());
-        taskService.complete(task.getId(),approveRequest.getVariables());
+        if(task==null) throw new WorkflowException("审批失败，该任务不存在："+approveRequest.getTaskId());
+        flowableTaskService.completeTask(approveRequest);
     }
-
-
-
-
 
 
 

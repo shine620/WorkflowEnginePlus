@@ -1,5 +1,6 @@
 package com.hy.workflow.service;
 
+import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
 import com.hy.workflow.model.FlowElementConfigModel;
@@ -87,7 +88,7 @@ public class ProcessDefinitionService {
      * @return ProcessDefinitionConfigModel 流程配置包装对象
      */
     public ProcessDefinitionConfigModel saveProcessConfig(ProcessDefinitionConfigModel pdConfigModel) {
-        if(pdConfigModel==null||StringUtils.isBlank(pdConfigModel.getProcessDefinitionId())) throw new RuntimeException("流程定义ID不能为空！");
+        if(pdConfigModel==null||StringUtils.isBlank(pdConfigModel.getProcessDefinitionId())) throw new WorkflowException("流程定义ID不能为空！");
         Optional<ProcessDefinitionConfig>  sourceConfigOptional = processDefinitionConfigRepository.findById(pdConfigModel.getProcessDefinitionId());
         //新增
         if(!sourceConfigOptional.isPresent()){
@@ -119,7 +120,7 @@ public class ProcessDefinitionService {
      */
     public FlowElementConfigModel saveElementConfig(FlowElementConfigModel model) {
         if(model==null||StringUtils.isBlank(model.getProcessDefinitionId())||StringUtils.isBlank(model.getFlowElementId()))
-            throw new RuntimeException("流程定义ID和任务节点ID不能为空！");
+            throw new WorkflowException("流程定义ID和任务节点ID不能为空！");
         FlowElementConfig flowElementConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(model.getProcessDefinitionId(),model.getFlowElementId());
         //新增
         if(flowElementConfig==null){

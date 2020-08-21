@@ -1,6 +1,6 @@
 package com.hy.workflow.controller;
 
-import com.hy.workflow.entity.FlowElementConfig;
+import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import com.hy.workflow.service.ProcessDefinitionService;
@@ -8,7 +8,6 @@ import com.hy.workflow.util.EntityModelUtil;
 import io.swagger.annotations.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.flowable.common.engine.api.FlowableException;
 import org.flowable.common.engine.api.FlowableIllegalArgumentException;
 import org.flowable.common.engine.api.FlowableObjectNotFoundException;
 import org.flowable.common.engine.api.query.QueryProperty;
@@ -23,7 +22,6 @@ import org.flowable.engine.repository.ProcessDefinitionQuery;
 import org.flowable.rest.service.api.repository.ProcessDefinitionResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -195,7 +193,7 @@ public class ProcessDefinitionController {
     @GetMapping(value = "/process-definitions/xml/{processDefinitionId}")
     public void getProcessDefinitionResource(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId, HttpServletResponse response) throws IOException {
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
-        if(processDefinition==null) throw new RuntimeException("资源文件查看-流程实例不存在："+processDefinitionId);
+        if(processDefinition==null) throw new WorkflowException("资源文件查看-流程实例不存在："+processDefinitionId);
         byte[] resourceData= getDeploymentResourceData(processDefinition.getDeploymentId(), processDefinition.getResourceName(), response);
         response.getOutputStream().write(resourceData);
     }
@@ -205,7 +203,7 @@ public class ProcessDefinitionController {
     @GetMapping(value = "/process-definitions/png/{processDefinitionId}")
     public void getDiagramResource(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId, HttpServletResponse response) throws IOException {
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
-        if(processDefinition==null) throw new RuntimeException("流程图片查看-流程实例不存在："+processDefinitionId);
+        if(processDefinition==null) throw new WorkflowException("流程图片查看-流程实例不存在："+processDefinitionId);
         byte[] resourceData= getDeploymentResourceData(processDefinition.getDeploymentId(), processDefinition.getDiagramResourceName(), response);
         response.getOutputStream().write(resourceData);
     }
@@ -235,7 +233,7 @@ public class ProcessDefinitionController {
             try {
                 return IOUtils.toByteArray(resourceStream);
             } catch (Exception e) {
-                throw new FlowableException("Error converting resource stream", e);
+                throw new RuntimeException("Error converting resource stream", e);
             }
         } else {
             throw new FlowableObjectNotFoundException("Could not find a resource with name '" + resourceName + "' in deployment '" + deploymentId + "'.", String.class);

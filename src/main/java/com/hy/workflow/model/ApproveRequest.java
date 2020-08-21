@@ -1,5 +1,7 @@
 package com.hy.workflow.model;
 
+import com.hy.workflow.enums.ApproveType;
+
 import java.util.Map;
 
 public class ApproveRequest {
@@ -13,6 +15,12 @@ public class ApproveRequest {
     private String opinion;
 
     private Map<String,Object> variables;
+
+    private ApproveType approveType;
+
+    private String rejectActivityId;
+
+    private String turnUserId;
 
 
     public String getTaskId() {
@@ -55,6 +63,29 @@ public class ApproveRequest {
         this.variables = variables;
     }
 
+    public ApproveType getApproveType() {
+        return approveType;
+    }
+
+    public void setApproveType(ApproveType approveType) {
+        this.approveType = approveType;
+    }
+
+    public String getRejectActivityId() {
+        return rejectActivityId;
+    }
+
+    public void setRejectActivityId(String rejectActivityId) {
+        this.rejectActivityId = rejectActivityId;
+    }
+
+    public String getTurnUserId() {
+        return turnUserId;
+    }
+
+    public void setTurnUserId(String turnUserId) {
+        this.turnUserId = turnUserId;
+    }
 
 
 }

@@ -1,6 +1,7 @@
 package com.hy.workflow.service;
 
 import com.hy.workflow.base.PageBean;
+import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.repository.BusinessProcessRepository;
@@ -60,9 +61,8 @@ public class ProcessInstanceService {
      * @param  variables 流程变量
      * @return ProcessInstanceModel 流程实例封装对象
      */
-    public ProcessInstanceModel startProcess(ProcessDefinition processDefinition, String businessId, String businessType, String businessName,String businessUrl,Map<String,Object> variables) {
-        //TODO 发起用户，暂时写死
-        Authentication.setAuthenticatedUserId("zhaoyao");
+    public ProcessInstanceModel startProcess(ProcessDefinition processDefinition, String startUserId, String businessId, String businessType, String businessName,String businessUrl,Map<String,Object> variables) {
+        Authentication.setAuthenticatedUserId(startUserId);
         ProcessInstanceBuilder processInstanceBuilder = runtimeService.createProcessInstanceBuilder()
                 .processDefinitionId(processDefinition.getId())
                 .businessKey(businessType+";"+businessId)
@@ -114,8 +114,9 @@ public class ProcessInstanceService {
             historyCount = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).count();
             if(historyCount>0) historyService.deleteHistoricProcessInstance(processInstanceId);
         }
+        if( count==0 && historyCount==0 ) throw new WorkflowException("流程实例删除失败，该实例不存在："+processInstanceId);
         //必须同步删除BusinessProcess数据
-        if( count>0 || historyCount>0 ) businessProcessRepository.deleteById(processInstanceId);
+        businessProcessRepository.deleteById(processInstanceId);
     }
 
 
@@ -135,6 +136,28 @@ public class ProcessInstanceService {
         Optional<BusinessProcess> op = businessProcessRepository.findById(processInstanceId);
         BusinessProcess bp = op.isPresent()?op.get():null;
         return EntityModelUtil.toProcessInstanceModel(bp);
+    }
+
+
+    /**
+     * 挂起/激活流程实例
+     *
+     * @author  zhaoyao
+     * @param  processInstanceId 流程实例ID
+     * @return void
+     */
+    public void suspendProcessInstance(String processInstanceId, Boolean suspend) {
+        Optional<BusinessProcess> op = businessProcessRepository.findById(processInstanceId);
+        BusinessProcess bp = op.isPresent()?op.get():null;
+        if(bp==null) throw new WorkflowException("挂起或激活失败，该流程实例不存在："+processInstanceId);
+        if(suspend){
+            runtimeService.suspendProcessInstanceById(processInstanceId);
+            bp.setSuspended(true);
+        }else{
+            runtimeService.activateProcessInstanceById(processInstanceId);
+            bp.setSuspended(false);
+        }
+        businessProcessRepository.save(bp);
     }
 
 
@@ -245,6 +268,7 @@ public class ProcessInstanceService {
         }
         return predicatesList.toArray(new Predicate[predicatesList.size()]);
     }
+
 
 
 
