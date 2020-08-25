@@ -8,12 +8,15 @@ import com.hy.workflow.entity.ProcessDefinitionConfig;
 import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import com.hy.workflow.model.ProcessInstanceModel;
+import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.repository.ProcessDefinitionConfigRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.ValidateUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
+import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -40,6 +43,11 @@ public class ProcessDefinitionService {
     @Autowired
     private FlowElementConfigRepository flowElementConfigRepository;
 
+    @Autowired
+    private HistoryService historyService;
+
+    @Autowired
+    private BusinessProcessRepository businessProcessRepository;
 
     /**
      * 删除流程部署
@@ -54,6 +62,17 @@ public class ProcessDefinitionService {
     public void deleteDeployment(String deploymentId, Boolean cascade) {
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().deploymentId(deploymentId).singleResult();
         if(processDefinition!=null){
+            if(cascade) {
+                //查询该流程定义产生的流程实例
+                List<HistoricProcessInstance> instanceList = historyService.createHistoricProcessInstanceQuery().processDefinitionId(processDefinition.getId()).list();
+                List<String> instanceIdList = new ArrayList<>();
+                instanceList.forEach(historicProcessInstance -> {
+                    instanceIdList.add(historicProcessInstance.getId());
+                });
+                //删除对应的BusinessProcess数据
+                List<BusinessProcess> bpList = businessProcessRepository.findAllById(instanceIdList);
+                businessProcessRepository.deleteInBatch(bpList);
+            }
             repositoryService.deleteDeployment(deploymentId,cascade);
             processDefinitionConfigRepository.deleteByProcessDefinitionId(processDefinition.getId());
             flowElementConfigRepository.deleteByProcessDefinitionId(processDefinition.getId());

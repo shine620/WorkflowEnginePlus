@@ -110,6 +110,7 @@ public class ProcessInstanceService {
         long historyCount = 0;
         if(count>0){
             runtimeService.deleteProcessInstance(processInstanceId,deleteReason);
+            historyService.deleteHistoricProcessInstance(processInstanceId);
         }else{
             historyCount = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).count();
             if(historyCount>0) historyService.deleteHistoricProcessInstance(processInstanceId);
