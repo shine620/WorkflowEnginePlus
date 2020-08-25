@@ -2,6 +2,7 @@ package com.hy.workflow.controller;
 
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.FlowElementModel;
+import com.hy.workflow.service.WorkflowService;
 import io.swagger.annotations.*;
 import org.flowable.bpmn.model.*;
 import org.flowable.common.engine.api.FlowableException;
@@ -32,15 +33,19 @@ public class WorkflowController {
     protected ProcessEngine engine;
 
     @Autowired
+    protected WorkflowService workflowService;
+
+    @Autowired
     private RepositoryService repositoryService;
 
-    @ApiOperation(value = "List engine properties", tags = { "Workflows" })
+    @ApiOperation(value = "流程引擎属性列表", tags = { "Workflows" })
     @GetMapping(value = "/management/properties", produces = "application/json")
     public Map<String, String> getProperties() {
         return managementService.getProperties();
     }
 
-    @ApiOperation(value = "Get FlowElement", tags = { "Workflows" })
+
+    @ApiOperation(value = "获取流程定义的节点列表", tags = { "Workflows" })
     @GetMapping(value = "/workflows/{processDefinitionId}", produces = "application/json")
     public Map<String,Object> getFlowElement(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
         List<FlowElementModel> flowElements = new ArrayList<>();
@@ -57,8 +62,16 @@ public class WorkflowController {
         return map;
     }
 
-    public List<FlowElementModel> listFlowElement( Collection<FlowElement> flowElements,List<FlowElementModel> flowElementList  ) {
 
+    @ApiOperation(value = "获取第一个审批节点", tags = { "Workflows" })
+    @GetMapping(value = "/workflows/getFirstNode/{processDefinitionId}", produces = "application/json")
+    public List<FlowElementModel> getFirstNode(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
+        List<FlowElementModel> firstFlowList = workflowService.getFirstNode(processDefinitionId);
+        return firstFlowList;
+    }
+
+
+    private List<FlowElementModel> listFlowElement( Collection<FlowElement> flowElements,List<FlowElementModel> flowElementList  ) {
         for(FlowElement e : flowElements) {
             FlowElementModel flowElement = new FlowElementModel();
             if (e instanceof StartEvent) {
@@ -86,7 +99,6 @@ public class WorkflowController {
                 }
                 flowElementList.add(flowElement);
             }
-            //System.out.println("flowelement id:" + e.getId() + "  name:" + e.getName() + "   class:" + e.getClass().toString());
         }
         return flowElementList;
     }

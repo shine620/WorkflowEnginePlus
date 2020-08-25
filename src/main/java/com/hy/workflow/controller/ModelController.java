@@ -60,7 +60,7 @@ public class ModelController {
 
 
     @GetMapping(value = "/models", produces = "application/json")
-    @ApiOperation(value = "List models", notes = "获取流程模型列表", tags = { "Models" })
+    @ApiOperation(value = "获取流程模型列表",  tags = { "Models" })
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id", dataType = "string", paramType = "query"),
             @ApiImplicitParam(name = "category", dataType = "string" ,paramType = "query"),
@@ -147,7 +147,7 @@ public class ModelController {
     }
 
 
-    @ApiOperation(value = "Create or Update a model",notes = "创建或修改模型",tags = {"Models" })
+    @ApiOperation(value = "创建或修改模型", tags = {"Models" })
     @PostMapping(value = "/models",consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE )
     public ModelResponse saveModel(@RequestBody MultiValueMap<String, String> paramMap) throws JsonProcessingException {
 
@@ -226,7 +226,7 @@ public class ModelController {
     }
 
 
-    @ApiOperation(value = "Deploy a model", notes="部署一个模型", tags = { "Models" })
+    @ApiOperation(value = "部署模型", tags = { "Models" })
     @PutMapping(value = "/models/{modelId}")
     public void deploy(@ApiParam(name = "modelId",value = "模型ID") @PathVariable("modelId") String modelId, HttpServletResponse response) {
         Model model = repositoryService.getModel(modelId);
@@ -236,7 +236,7 @@ public class ModelController {
     }
 
 
-    @ApiOperation(value = "Get a model", notes="查询一个模型",tags = { "Models" })
+    @ApiOperation(value = "根据模型ID查找模型", tags = { "Models" })
     @GetMapping(value = "/models/{modelId}", produces = "application/json")
     public ModelResponse getModel(@ApiParam(name = "modelId",value = "模型ID") @PathVariable String modelId, HttpServletRequest request) {
         Model model = repositoryService.createModelQuery().modelId(modelId).singleResult();
@@ -244,7 +244,7 @@ public class ModelController {
     }
 
 
-    @ApiOperation(value = "Delete a model", notes="删除一个模型",tags = { "Models" })
+    @ApiOperation(value = "删除一个模型", tags = { "Models" })
     @DeleteMapping("/models/{modelId}")
     public void deleteModel(@ApiParam(name = "modelId",value = "模型ID") @PathVariable String modelId, HttpServletResponse response) {
         Model model = repositoryService.createModelQuery().modelId(modelId).singleResult();
@@ -254,7 +254,7 @@ public class ModelController {
     }
 
 
-    @ApiOperation(value = "Batch Delete model", notes="删除多个模型",tags = { "Models" })
+    @ApiOperation(value = "删除多个模型", tags = { "Models" })
     @DeleteMapping("/models/batchDeleteModel")
     public void batchDeleteModel(@ApiParam(name = "modelIds",value = "模型ID") @RequestParam String[] modelIds, HttpServletResponse response) {
         for(String modelId : modelIds){

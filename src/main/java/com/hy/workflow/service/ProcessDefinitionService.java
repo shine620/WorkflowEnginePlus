@@ -1,22 +1,31 @@
 package com.hy.workflow.service;
 
+import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
+import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
 import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
+import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.repository.ProcessDefinitionConfigRepository;
 import com.hy.workflow.util.EntityModelUtil;
+import com.hy.workflow.util.ValidateUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import javax.transaction.Transactional;
-import java.util.Date;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Transactional
@@ -53,7 +62,7 @@ public class ProcessDefinitionService {
 
 
     /**
-     * 删除多个流程部署`
+     * 删除多个流程部署
      *
      * @author  zhaoyao
      * @param  deploymentIds 部署ID集合
@@ -111,6 +120,22 @@ public class ProcessDefinitionService {
     }
 
 
+    public void suspendProcessDefinitionById(String processDefinitionId, Boolean suspend) {
+        //ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
+        if(suspend){
+            repositoryService.suspendProcessDefinitionById(processDefinitionId);
+        }else{
+            repositoryService.activateProcessDefinitionById(processDefinitionId);
+        }
+        Optional<ProcessDefinitionConfig>  sourceConfigOptional = processDefinitionConfigRepository.findById(processDefinitionId);
+        if(!sourceConfigOptional.isPresent()){
+            ProcessDefinitionConfig sourceConfig = sourceConfigOptional.get();
+            sourceConfig.setSuspended(suspend);
+        }
+
+    }
+
+
     /**
      * 保存任务节点配置
      *
@@ -163,6 +188,64 @@ public class ProcessDefinitionService {
     public FlowElementConfigModel getFlowElementConfig(String processDefinitionId,String flowElementId) {
         FlowElementConfig feConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinitionId,flowElementId);
         return EntityModelUtil.toFlowElementConfigMode(feConfig);
+    }
+
+
+    public PageBean<ProcessDefinitionConfigModel> findProcessDefinitionConfigList(ProcessDefinitionConfigModel model, PageRequest pageRequest) {
+        ValidateUtil.checkPageNum(pageRequest);
+        List<ProcessDefinitionConfigModel> configList = new ArrayList<>();
+        Page<ProcessDefinitionConfig> definitionConfigs = findByConditions(model,pageRequest);
+        definitionConfigs.forEach(bp->{
+            configList.add(EntityModelUtil.toProcessDefinitionConfigModel(bp));
+        });
+        PageBean page = new PageBean(definitionConfigs);
+        page.setData(configList);
+        return page;
+    }
+
+
+    //动态查询方法(分页)
+    private Page<ProcessDefinitionConfig> findByConditions(ProcessDefinitionConfigModel model, PageRequest pageRequest ) {
+        Specification<ProcessDefinitionConfig> specification = (Specification<ProcessDefinitionConfig>) (root, criteriaQuery, criteriaBuilder) -> {
+            //设置查询条件
+            Predicate[] predicates= generatePredicates(model,root,criteriaBuilder);
+            Predicate predicate = criteriaBuilder.and( predicates );
+            return predicate;
+        };
+        return processDefinitionConfigRepository.findAll(specification, pageRequest);
+    }
+
+
+    //动态查询条件
+    private Predicate[] generatePredicates(ProcessDefinitionConfigModel model, Root<ProcessDefinitionConfig> root, CriteriaBuilder criteriaBuilder){
+        List<Predicate> predicatesList = new ArrayList<>();
+        if (model.getProcessDefinitionName()  != null) {
+            Predicate predicate = criteriaBuilder.and( criteriaBuilder.like( root.get("processDefinitionName"), "%" + model.getProcessDefinitionName() + "%"));
+            predicatesList.add(predicate);
+        }
+        if (model.getDeploymentId()  != null) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("deploymentId"),  model.getDeploymentId()) )  );
+        }
+        if (model.getBusinessType()  != null) {
+            Predicate predicate = criteriaBuilder.and( criteriaBuilder.like( root.get("businessType"), "%" + model.getBusinessType()+"," + "%"));
+            predicatesList.add(predicate);
+        }
+        if (model.getUnitId()  != null) {
+            Predicate predicate = criteriaBuilder.and( criteriaBuilder.like( root.get("unitId"), "%" + model.getUnitId()+"," + "%"));
+            predicatesList.add(predicate);
+        }
+        if (model.getCreateUnitId() != null) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("createUnitId"),  model.getCreateUnitId()) )  );
+        }
+        if (model.getCreateTime() != null) {
+            Predicate endTime =  criteriaBuilder.greaterThanOrEqualTo(root.get("createTime").as(Date.class), model.getCreateTime());
+            predicatesList.add(endTime);
+        }
+        if (model.getSuspended() != null) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("suspended"),  model.getSuspended()) )  );
+        }
+
+        return predicatesList.toArray(new Predicate[predicatesList.size()]);
     }
 
 

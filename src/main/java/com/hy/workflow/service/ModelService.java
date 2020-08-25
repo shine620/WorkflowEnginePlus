@@ -68,6 +68,7 @@ public class ModelService {
         pdConfig.setCreateTime(new Date());
         pdConfig.setUpdateTime(new Date());
         pdConfig.setDeploymentId(processDefinition.getDeploymentId());
+        pdConfig.setSuspended(processDefinition.isSuspended());
         processDefinitionConfigRepository.save(pdConfig);
 
     }

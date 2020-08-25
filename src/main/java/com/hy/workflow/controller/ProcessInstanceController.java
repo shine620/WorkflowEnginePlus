@@ -47,7 +47,7 @@ public class ProcessInstanceController {
     private ProcessInstanceService processInstanceService;
 
 
-    @ApiOperation(value = "Query process instances", notes = "查询流程实例列表", tags = {"Process Instances"})
+    @ApiOperation(value = "查询流程实例列表", notes = "流程原始数据", tags = {"Process Instances"})
     @PostMapping(value = "/process-instances", produces = "application/json")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id", dataType = "string", paramType = "query"),
@@ -140,7 +140,7 @@ public class ProcessInstanceController {
     }
 
 
-    @ApiOperation(value = "Query pagination process instances", notes="获取流程实例列表分页接口",tags = { "Process Instances" })
+    @ApiOperation(value = "获取流程实例列表分页接口", notes="内部查询BusinessProcess数据", tags = { "Process Instances" })
     @PostMapping(value = "/process-instances/instancePageList", produces = "application/json")
     public PageBean<ProcessInstanceModel> instanceList(@RequestBody ProcessInstanceModel model,
             @ApiParam @RequestParam(defaultValue = "1") Integer startPage, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
@@ -149,21 +149,21 @@ public class ProcessInstanceController {
     }
 
 
-    @ApiOperation(value = "Query process instances", notes="获取流程实例列表",tags = { "Process Instances" })
+    @ApiOperation(value = "获取流程实例列表", notes="内部查询BusinessProcess数据", tags = { "Process Instances" })
     @PostMapping(value = "/process-instances/instanceList", produces = "application/json")
     public List<ProcessInstanceModel> instanceList(@RequestBody ProcessInstanceModel model) {
         return processInstanceService.findInstanceList(model);
     }
 
 
-    @ApiOperation(value = "Get a process instance", notes="获取一个流程实例",tags = { "Process Instances" })
+    @ApiOperation(value = "获取一个流程实例", notes="内部查询BusinessProcess数据", tags = { "Process Instances" })
     @GetMapping(value = "/process-instances/getProcessInstance", produces = "application/json")
     public ProcessInstanceModel getProcessInstance(@ApiParam(name = "processInstanceId",value = "流程实例ID") @RequestParam String processInstanceId) {
         return processInstanceService.getProcessInstance(processInstanceId);
     }
 
 
-    @ApiOperation(value = "Start process instance", notes="发起一个流程",tags = { "Process Instances" })
+    @ApiOperation(value = "发起流程", tags = { "Process Instances" })
     @PostMapping(value = "/process-instances/startProcessInstance", produces = "application/json")
     public ProcessInstanceModel startProcessInstance(
             @ApiParam(name = "processDefinitionId",value = "流程定义ID") @RequestParam String processDefinitionId,
@@ -180,7 +180,7 @@ public class ProcessInstanceController {
     }
 
 
-    @ApiOperation(value = "Delete a process instance", notes = "删除流程实例", tags = { "Process Instances" })
+    @ApiOperation(value = "删除流程实例", tags = { "Process Instances" })
     @DeleteMapping(value = "/process-instances/{processInstanceId}")
     public void deleteProcessInstance( HttpServletResponse response,
             @ApiParam(name = "processInstanceId") @PathVariable String processInstanceId,
@@ -190,11 +190,11 @@ public class ProcessInstanceController {
     }
 
 
-    @ApiOperation(value = "Suspend a process instance", notes = "挂起流程实例", tags = { "Process Instances" })
+    @ApiOperation(value = "挂起流程实例", tags = { "Process Instances" })
     @GetMapping(value = "/process-instances/suspendProcessInstance")
     public void suspendProcessInstance( HttpServletResponse response,
           @ApiParam(name = "processInstanceId",value = "流程实例ID") @RequestParam String processInstanceId,
-          @ApiParam(name = "suspend",value = "流程实例ID") @RequestParam Boolean suspend) {
+          @ApiParam(name = "suspend",value = "是否挂起") @RequestParam Boolean suspend) {
         processInstanceService.suspendProcessInstance(processInstanceId,suspend);
         response.setStatus(HttpStatus.NO_CONTENT.value());
     }

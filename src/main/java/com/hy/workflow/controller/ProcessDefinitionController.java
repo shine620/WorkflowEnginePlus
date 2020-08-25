@@ -1,11 +1,13 @@
 package com.hy.workflow.controller;
 
+import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import com.hy.workflow.service.ProcessDefinitionService;
 import com.hy.workflow.util.EntityModelUtil;
 import io.swagger.annotations.*;
+import liquibase.pro.packaged.O;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.common.engine.api.FlowableIllegalArgumentException;
@@ -21,6 +23,8 @@ import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.repository.ProcessDefinitionQuery;
 import org.flowable.rest.service.api.repository.ProcessDefinitionResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,7 +54,7 @@ public class ProcessDefinitionController {
     protected ProcessDefinitionService processDefinitionService;
 
 
-    @ApiOperation(value = "List of process definitions", tags = { "Process Definitions" }, nickname = "listProcessDefinitions")
+    @ApiOperation(value = "查询流程定义列表",  nickname = "listProcessDefinitions")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id", dataType = "string", paramType = "query"),
             @ApiImplicitParam(name = "version", dataType = "integer",paramType = "query"),
@@ -141,6 +145,7 @@ public class ProcessDefinitionController {
         PaginateRequest paginateRequest = new PaginateRequest();
         paginateRequest.setStart( (startPage-1)*pageSize );
         paginateRequest.setSize(Integer.valueOf(params.get("pageSize")));
+        paginateRequest.setOrder("desc");
 
         Map<String, QueryProperty> properties = new HashMap<>();
         properties.put("id", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_ID);
@@ -151,12 +156,21 @@ public class ProcessDefinitionController {
         properties.put("deploymentId", ProcessDefinitionQueryProperty.DEPLOYMENT_ID);
         properties.put("tenantId", ProcessDefinitionQueryProperty.PROCESS_DEFINITION_TENANT_ID);
 
-        return paginateList(params, paginateRequest, processDefinitionQuery,"id", properties, EntityModelUtil::toProcessDefinitionResponseList);
+        return paginateList(params, paginateRequest, processDefinitionQuery,"deploymentId", properties, EntityModelUtil::toProcessDefinitionResponseList);
 
     }
 
 
-    @ApiOperation(value = "Delete a deployment", notes="删除一个流程部署",tags = { "Process Definitions" })
+    @ApiOperation(value = "流程定义配置列表多条件查询", tags = { "Process Definitions" })
+    @PostMapping("/process-definitions/listProcessDefinitionConfig")
+    public PageBean<ProcessDefinitionConfigModel> listProcessDefinitionConfig(@RequestBody ProcessDefinitionConfigModel model,
+            @ApiParam @RequestParam(defaultValue = "1") Integer startPage, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
+        PageRequest pageRequest = PageRequest.of(startPage-1, pageSize, Sort.by(Sort.Order.desc("createTime")));
+        return processDefinitionService.findProcessDefinitionConfigList(model,pageRequest);
+    }
+
+
+    @ApiOperation(value = "删除一个流程部署", tags = { "Process Definitions" })
     @DeleteMapping("/deployments/{deploymentId}")
     public void deleteDeployment( HttpServletResponse response,
             @ApiParam(name = "deploymentId",value = "部署ID") @PathVariable String deploymentId,
@@ -166,7 +180,7 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Batch Delete Deployments", notes="删除多个流程部署",tags = { "Process Definitions" })
+    @ApiOperation(value = "删除多个流程部署", tags = { "Process Definitions" })
     @DeleteMapping("/deployments/batchDeleteDeployments")
     public void batchDeleteDeployment(HttpServletResponse response,
             @ApiParam(name = "deploymentIds",value = "多个部署ID") @RequestParam String[] deploymentIds,
@@ -176,20 +190,17 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Suspend Process Definitions", notes="挂起一个流程定义",tags = { "Process Definitions" })
+    @ApiOperation(value = "挂起流程定义", tags = { "Process Definitions" })
     @PutMapping("/process-definitions/suspend/{processDefinitionId}")
-    public void suspendProcessDefinition(@ApiParam(name = "processDefinitionId",value = "流程定义ID") @PathVariable String processDefinitionId, HttpServletResponse response) {
-        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
-        if(processDefinition.isSuspended()){
-            repositoryService.activateProcessDefinitionById(processDefinitionId);
-        }else{
-            repositoryService.suspendProcessDefinitionById(processDefinitionId);
-        }
+    public void suspendProcessDefinition(HttpServletResponse response,
+            @ApiParam(name = "processDefinitionId",value = "流程定义ID") @PathVariable String processDefinitionId,
+            @ApiParam(name = "suspend",value = "是否挂起") @RequestParam Boolean suspend) {
+        processDefinitionService.suspendProcessDefinitionById(processDefinitionId,suspend);
         response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 
 
-    @ApiOperation(value = "Get a process definition resource content",notes="查看流程定义资源文件", tags = { "Process Definitions" })
+    @ApiOperation(value = "查看流程定义资源文件", tags = { "Process Definitions" })
     @GetMapping(value = "/process-definitions/xml/{processDefinitionId}")
     public void getProcessDefinitionResource(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId, HttpServletResponse response) throws IOException {
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
@@ -199,7 +210,7 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Get a diagram resource content",notes="查看系统生成的流程图片", tags = { "Process Definitions" })
+    @ApiOperation(value = "查看系统生成的流程图片", tags = { "Process Definitions" })
     @GetMapping(value = "/process-definitions/png/{processDefinitionId}")
     public void getDiagramResource(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId, HttpServletResponse response) throws IOException {
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
@@ -242,7 +253,7 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Get a process definition config", notes="获取一个流程配置",tags = { "Process Definitions" })
+    @ApiOperation(value = "查询流程配置", tags = { "Process Definitions" })
     @GetMapping(value = "/process-definitions/getProcessConfig/{processDefinitionId}", produces = "application/json")
     public ProcessDefinitionConfigModel getProcessConfig(@ApiParam(name = "processDefinitionId",value = "流程定义ID") @PathVariable String processDefinitionId) {
         ProcessDefinitionConfigModel pdcModel = processDefinitionService.getProcessConfig(processDefinitionId);
@@ -250,7 +261,7 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Save a process definition config", notes="保存一个流程配置",tags = { "Process Definitions" } )
+    @ApiOperation(value = "保存流程配置", tags = { "Process Definitions" } )
     @PostMapping(value = "/process-definitions/saveProcessConfig", produces = "application/json")
     @ResponseBody
     public ProcessDefinitionConfigModel saveProcessConfig(@RequestBody ProcessDefinitionConfigModel pdConfigModel) {
@@ -259,7 +270,7 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Save a flow element config", notes="保存一个节点配置",tags = { "Process Definitions" } )
+    @ApiOperation(value = "保存节点配置", tags = { "Process Definitions" } )
     @PostMapping(value = "/process-definitions/saveElementConfig", produces = "application/json")
     @ResponseBody
     public FlowElementConfigModel saveElementConfig(@RequestBody FlowElementConfigModel model) {
@@ -268,7 +279,7 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "Get a flow element config", notes="获取一个节点配置",tags = { "Process Definitions" })
+    @ApiOperation(value = "查询节点配置", tags = { "Process Definitions" })
     @GetMapping(value = "/process-definitions/getElementConfig", produces = "application/json")
     public FlowElementConfigModel getElementConfig(
             @ApiParam(name = "processDefinitionId",value = "流程定义ID") @RequestParam String processDefinitionId,

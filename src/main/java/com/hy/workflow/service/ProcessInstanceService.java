@@ -185,10 +185,10 @@ public class ProcessInstanceService {
      * @param  model 流程实例请求参数对象
      * @return PageBean<ProcessInstanceModel> 流程实例分页数据
      */
-    public PageBean<ProcessInstanceModel> findInstanceList(ProcessInstanceModel model, PageRequest pageRequestl) {
-        ValidateUtil.checkPageNum(pageRequestl);
+    public PageBean<ProcessInstanceModel> findInstanceList(ProcessInstanceModel model, PageRequest pageRequest) {
+        ValidateUtil.checkPageNum(pageRequest);
         List<ProcessInstanceModel> instances = new ArrayList<>();
-        Page<BusinessProcess> pageInstances = findByConditions(model,pageRequestl);
+        Page<BusinessProcess> pageInstances = findByConditions(model,pageRequest);
         pageInstances.forEach(bp->{
             instances.add(EntityModelUtil.toProcessInstanceModel(bp));
         });

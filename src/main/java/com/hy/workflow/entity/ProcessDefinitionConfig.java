@@ -22,7 +22,7 @@ public class ProcessDefinitionConfig {
     @Column(length = 2000)
     private String description;
 
-    private String suspensionState;
+    private Boolean suspended;
 
     private String createUserId;
 
@@ -55,7 +55,7 @@ public class ProcessDefinitionConfig {
         this.processDefinitionName = pdcModel.getProcessDefinitionName();
         this.version = pdcModel.getVersion();
         this.description = pdcModel.getDescription();
-        this.suspensionState = pdcModel.getSuspensionState();
+        this.suspended = pdcModel.getSuspended();
         this.createUserId = pdcModel.getCreateUserId();
         this.createDeptId = pdcModel.getCreateDeptId();
         this.createUnitId = pdcModel.getCreateUnitId();
@@ -109,12 +109,12 @@ public class ProcessDefinitionConfig {
         this.description = description;
     }
 
-    public String getSuspensionState() {
-        return suspensionState;
+    public Boolean getSuspended() {
+        return suspended;
     }
 
-    public void setSuspensionState(String suspensionState) {
-        this.suspensionState = suspensionState;
+    public void setSuspended(Boolean suspended) {
+        this.suspended = suspended;
     }
 
     public String getCreateUserId() {

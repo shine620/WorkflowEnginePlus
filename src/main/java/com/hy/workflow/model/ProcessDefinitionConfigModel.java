@@ -14,7 +14,7 @@ public class ProcessDefinitionConfigModel {
 
     private String description;
 
-    private String suspensionState;
+    private Boolean suspended;
 
     private String createUserId;
 
@@ -78,12 +78,12 @@ public class ProcessDefinitionConfigModel {
         this.description = description;
     }
 
-    public String getSuspensionState() {
-        return suspensionState;
+    public Boolean getSuspended() {
+        return suspended;
     }
 
-    public void setSuspensionState(String suspensionState) {
-        this.suspensionState = suspensionState;
+    public void setSuspended(Boolean suspended) {
+        this.suspended = suspended;
     }
 
     public String getCreateUserId() {

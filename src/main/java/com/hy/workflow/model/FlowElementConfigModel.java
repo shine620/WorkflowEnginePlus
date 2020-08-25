@@ -10,7 +10,7 @@ public class FlowElementConfigModel {
     //节点ID
     private String flowElementId;
 
-    //任务名称
+    //节点名称
     private String flowElementName;
 
     //流程定义ID

@@ -3,6 +3,7 @@ package com.hy.workflow.controller;
 import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.model.ApproveRequest;
+import com.hy.workflow.model.FlowElementModel;
 import com.hy.workflow.model.TaskModel;
 import com.hy.workflow.service.FlowableTaskService;
 import io.swagger.annotations.Api;
@@ -37,7 +38,7 @@ public class TaskController {
     @Autowired
     private FlowableTaskService flowableTaskService;
 
-    @ApiOperation(value = "Query todo task list", notes="查询待办列表",tags = { "Tasks" })
+    @ApiOperation(value = "查询待办列表", tags = { "Tasks" })
     @GetMapping(value = "/tasks/todoTaskList", produces = "application/json")
     public PageBean<TaskModel> getTodoTaskList(
          @ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,@ApiParam(name = "userId",value = "用户ID") @RequestParam String userId,
@@ -76,7 +77,7 @@ public class TaskController {
     }
 
 
-    @ApiOperation(value = "Claim Task", notes="签收任务",tags = { "Tasks" })
+    @ApiOperation(value = "签收任务", tags = { "Tasks" })
     @GetMapping(value = "/tasks/claimTask", produces = "application/json")
     public void claimTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId,
                           @ApiParam(name = "userId",value = "签收人ID") @RequestParam String userId) {
@@ -86,7 +87,7 @@ public class TaskController {
     }
 
 
-    @ApiOperation(value = "Cancel Claim Task", notes="反签收任务",tags = { "Tasks" })
+    @ApiOperation(value = "反签收任务", tags = { "Tasks" })
     @GetMapping(value = "/tasks/unClaimTask", produces = "application/json")
     public void unClaimTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId) {
         //检查候选人和候选组
@@ -109,7 +110,7 @@ public class TaskController {
     }
 
 
-    @ApiOperation(value = "Set Assignee", notes="设置处理人",tags = { "Tasks" })
+    @ApiOperation(value = "设置处理人", tags = { "Tasks" })
     @GetMapping(value = "/tasks/setAssignee", produces = "application/json")
     public void setAssignee(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId,
                           @ApiParam(name = "userId",value = "处理人ID") @RequestParam String userId) {
@@ -119,7 +120,7 @@ public class TaskController {
     }
 
 
-    @ApiOperation(value = "Approved task", notes="任务审批",tags = { "Tasks" })
+    @ApiOperation(value = "审批任务", tags = { "Tasks" })
     @PostMapping(value = "/tasks/approvedTask", produces = "application/json")
     public void approvedTask(@RequestBody ApproveRequest approveRequest) {
         Task task = taskService.createTaskQuery().taskId(approveRequest.getTaskId()).singleResult();
@@ -127,6 +128,12 @@ public class TaskController {
         flowableTaskService.completeTask(approveRequest);
     }
 
+    @ApiOperation(value = "根据当前任务获取下一审批节点",tags = { "Tasks" })
+    @GetMapping(value = "/tasks/getNextUserTask", produces = "application/json")
+    public List<FlowElementModel>  getNextUserTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId) {
+        List<FlowElementModel>  flowList =  flowableTaskService.getNextUserTask(taskId);
+        return flowList;
+    }
 
 
 }
