@@ -5,6 +5,7 @@ import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
 import com.hy.workflow.model.FlowElementConfigModel;
+import com.hy.workflow.model.FlowElementModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import com.hy.workflow.model.ProcessInstanceModel;
 import org.flowable.common.rest.util.RestUrlBuilder;
@@ -19,7 +20,9 @@ import org.flowable.rest.service.api.runtime.process.ProcessInstanceResponse;
 import org.springframework.beans.BeanUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class EntityModelUtil {
 
@@ -115,21 +118,22 @@ public class EntityModelUtil {
         return instanceResponse;
     }
 
-    public static ProcessInstanceModel toProcessInstanceModel(ProcessInstanceModel model, ProcessInstance instance){
-        if(instance!=null) {
-            model.setProcessInstanceId(instance.getId());
-            model.setProcessInstanceName(instance.getName());
-            model.setBusinessKey(instance.getBusinessKey());
-            model.setProcessDefinitionId(instance.getProcessDefinitionId());
-            model.setProcessDefinitionName(instance.getProcessDefinitionName());
-            model.setProcessDefinitionKey(instance.getProcessDefinitionKey());
-            model.setEnded(false);
-            model.setSuspended(instance.isSuspended());
-            model.setStartTime(instance.getStartTime());
-            model.setStartUserId(instance.getStartUserId());
-            model.setDeploymentId(instance.getDeploymentId());
+    public static BusinessProcess fillBusinessProcess(BusinessProcess bp, ProcessInstance instance){
+        if(bp!=null&&instance!=null) {
+            bp.setProcessInstanceId(instance.getId());
+            bp.setProcessInstanceName(instance.getName());
+            bp.setBusinessKey(instance.getBusinessKey());
+            bp.setProcessDefinitionId(instance.getProcessDefinitionId());
+            bp.setProcessDefinitionName(instance.getProcessDefinitionName());
+            bp.setProcessDefinitionKey(instance.getProcessDefinitionKey());
+            bp.setStartTime(instance.getStartTime());
+            bp.setStartUserId(instance.getStartUserId());
+            bp.setDeploymentId(instance.getDeploymentId());
+            bp.setEnded(instance.isEnded());
+            bp.setSuspended(instance.isSuspended());
+            bp.setParentId(instance.getParentId());
         }
-        return model;
+        return bp;
     }
 
     public static ProcessInstanceModel toProcessInstanceModel(BusinessProcess bp){
@@ -137,6 +141,17 @@ public class EntityModelUtil {
         ProcessInstanceModel model = new ProcessInstanceModel();
         BeanUtils.copyProperties(bp,model);
         return model;
+    }
+
+    public static void fillFlowElementConfig(List<FlowElementModel> flowList ,List<FlowElementConfig> configs){
+        Map<String, FlowElementConfigModel> configMap = new HashMap<>();
+        configs.forEach(flowElementConfig -> {
+            configMap.put( flowElementConfig.getFlowElementId(), EntityModelUtil.toFlowElementConfigMode(flowElementConfig) );
+        });
+        //填充节点配置信息
+        flowList.forEach(flowElementModel -> {
+            flowElementModel.setConfig( configMap.get(flowElementModel.getId()) );
+        });
     }
 
 

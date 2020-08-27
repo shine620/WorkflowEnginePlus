@@ -62,15 +62,6 @@ public class WorkflowController {
         return map;
     }
 
-
-    @ApiOperation(value = "获取第一个审批节点", tags = { "Workflows" })
-    @GetMapping(value = "/workflows/getFirstNode/{processDefinitionId}", produces = "application/json")
-    public List<FlowElementModel> getFirstNode(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
-        List<FlowElementModel> firstFlowList = workflowService.getFirstNode(processDefinitionId);
-        return firstFlowList;
-    }
-
-
     private List<FlowElementModel> listFlowElement( Collection<FlowElement> flowElements,List<FlowElementModel> flowElementList  ) {
         for(FlowElement e : flowElements) {
             FlowElementModel flowElement = new FlowElementModel();
@@ -93,15 +84,24 @@ public class WorkflowController {
                 flowElement.setId(e.getId());
                 flowElement.setName(e.getName());
                 if(e.getParentContainer() instanceof SubProcess){
-                    flowElement.setpId(((SubProcess) e.getParentContainer()).getId());
+                    flowElement.setParentId(((SubProcess) e.getParentContainer()).getId());
                 }else{
-                    flowElement.setpId("0");
+                    flowElement.setParentId("0");
                 }
                 flowElementList.add(flowElement);
             }
         }
         return flowElementList;
     }
+
+
+    @ApiOperation(value = "获取第一个审批节点", tags = { "Workflows" })
+    @GetMapping(value = "/workflows/getFirstNode/{processDefinitionId}", produces = "application/json")
+    public List<FlowElementModel> getFirstNode(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
+        List<FlowElementModel> firstFlowList = workflowService.getFirstNode(processDefinitionId);
+        return firstFlowList;
+    }
+
 
 
 }

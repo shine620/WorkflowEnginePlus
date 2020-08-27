@@ -11,9 +11,11 @@ import org.flowable.common.engine.impl.identity.Authentication;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
+import org.flowable.engine.TaskService;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.engine.runtime.ProcessInstanceBuilder;
+import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -35,6 +37,9 @@ public class ProcessInstanceService {
 
     @Autowired
     private RepositoryService repositoryService;
+
+    @Autowired
+    private TaskService taskService;
 
     @Autowired
     private BusinessProcessRepository businessProcessRepository;
@@ -62,6 +67,7 @@ public class ProcessInstanceService {
      * @return ProcessInstanceModel 流程实例封装对象
      */
     public ProcessInstanceModel startProcess(ProcessDefinition processDefinition, String startUserId, String businessId, String businessType, String businessName,String businessUrl,Map<String,Object> variables) {
+
         Authentication.setAuthenticatedUserId(startUserId);
         ProcessInstanceBuilder processInstanceBuilder = runtimeService.createProcessInstanceBuilder()
                 .processDefinitionId(processDefinition.getId())
@@ -69,22 +75,20 @@ public class ProcessInstanceService {
                 .name( businessName==null?"":businessName  +"-" +processDefinition.getName() )
                 .variables(variables);
         ProcessInstance instance = processInstanceBuilder.start();
-        // 这个方法最终使用一个ThreadLocal类型的变量进行存储，也就是与当前的线程绑定，所以流程实例启动完毕之后，需要设置为null，防止多线程的时候出问题
+        // 这个方法最终使用一个ThreadLocal类型的变量进行存储，也就是与当前的线程绑定，
+        //所以流程实例启动完毕之后，需要设置为null，防止多线程的时候出问题
         Authentication.setAuthenticatedUserId(null);
+
+        // 第一个节点要自动审批(承办人发起环节)
+        List<Task> firstTaskList = taskService.createTaskQuery().processInstanceId(instance.getId()).list();
+        firstTaskList.forEach(task -> {
+            taskService.setAssignee(task.getId(),startUserId);
+            taskService.complete(task.getId());
+        });
+
         //保存业务实例数据，一个流程实例对应一个业务实例
         BusinessProcess bp = new BusinessProcess();
-        bp.setProcessInstanceId(instance.getId());
-        bp.setProcessInstanceName(instance.getName());
-        bp.setBusinessKey(instance.getBusinessKey());
-        bp.setProcessDefinitionId(instance.getProcessDefinitionId());
-        bp.setProcessDefinitionName(instance.getProcessDefinitionName());
-        bp.setProcessDefinitionKey(instance.getProcessDefinitionKey());
-        bp.setStartTime(instance.getStartTime());
-        bp.setStartUserId(instance.getStartUserId());
-        bp.setDeploymentId(instance.getDeploymentId());
-        bp.setEnded(instance.isEnded());
-        bp.setSuspended(instance.isSuspended());
-        bp.setParentId(instance.getParentId());
+        EntityModelUtil.fillBusinessProcess(bp,instance);
         bp.setBusinessId(businessId);
         bp.setBusinessType(businessType);
         bp.setBusinessName(businessName);
@@ -93,6 +97,7 @@ public class ProcessInstanceService {
         bp.setDeptId(null);
         businessProcessRepository.save(bp);
         ProcessInstanceModel instanceModel = EntityModelUtil.toProcessInstanceModel(bp);
+
         return instanceModel;
     }
 

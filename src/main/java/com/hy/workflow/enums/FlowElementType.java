@@ -8,6 +8,10 @@ public final class FlowElementType {
 
     public static final String USER_TASK = "userTask";
 
+    public static final String PARALLEL_TASK = "parallelTask";
+
+    public static final String SEQUENTIAL_TASK = "sequentialTask";
+
     public static final String SERVICE_TASK = "serviceTask";
 
     public static final String PARALLEL_GATEWAY = "parallelGateway";

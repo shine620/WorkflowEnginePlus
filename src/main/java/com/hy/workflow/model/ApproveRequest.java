@@ -10,8 +10,6 @@ public class ApproveRequest {
 
     private String taskId;
 
-    private String taskName;
-
     private String opinion;
 
     private Map<String,Object> variables;
@@ -29,14 +27,6 @@ public class ApproveRequest {
 
     public void setTaskId(String taskId) {
         this.taskId = taskId;
-    }
-
-    public String getTaskName() {
-        return taskName;
-    }
-
-    public void setTaskName(String taskName) {
-        this.taskName = taskName;
     }
 
     public String getOpinion() {

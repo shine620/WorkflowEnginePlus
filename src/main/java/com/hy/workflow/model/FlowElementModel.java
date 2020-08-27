@@ -1,15 +1,22 @@
 package com.hy.workflow.model;
 
+
 public class FlowElementModel {
 
-
+    //节点ID
     private String id;
 
+    //节点名称
     private String name;
 
+    ////节点类型
     private String flowElementType;
 
-    private String pId;
+    //子流程节点时对应的主流程节点ID
+    private String parentId;
+
+    //节点配置
+    private FlowElementConfigModel  config;
 
 
     public String getId() {
@@ -36,11 +43,21 @@ public class FlowElementModel {
         this.flowElementType = flowElementType;
     }
 
-    public String getpId() {
-        return pId;
+    public String getParentId() {
+        return parentId;
     }
 
-    public void setpId(String pId) {
-        this.pId = pId;
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
     }
+
+    public FlowElementConfigModel getConfig() {
+        return config;
+    }
+
+    public void setConfig(FlowElementConfigModel config) {
+        this.config = config;
+    }
+
+
 }

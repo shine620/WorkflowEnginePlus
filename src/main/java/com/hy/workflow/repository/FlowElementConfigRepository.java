@@ -5,6 +5,8 @@ import com.hy.workflow.entity.ProcessDefinitionConfig;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Repository
@@ -12,11 +14,9 @@ public interface FlowElementConfigRepository extends JpaRepository<FlowElementCo
 
     List<FlowElementConfig> findByProcessDefinitionName(String processDefinitionName);
 
-    List<FlowElementConfig> findFlowElementConfigsByProcessDefinitionId(String processDefinitionName);
+    List<FlowElementConfig> findByFlowElementIdIn(Collection<String> flowElementIds);
 
     FlowElementConfig findByProcessDefinitionIdAndFlowElementId(String processDefinitionId,String flowElementId);
-
-    void deleteByFlowElementId(String processDefinitionId);
 
     void deleteByProcessDefinitionId(String processDefinitionId);
 

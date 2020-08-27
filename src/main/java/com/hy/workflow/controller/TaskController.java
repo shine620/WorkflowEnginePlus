@@ -38,6 +38,7 @@ public class TaskController {
     @Autowired
     private FlowableTaskService flowableTaskService;
 
+
     @ApiOperation(value = "查询待办列表", tags = { "Tasks" })
     @GetMapping(value = "/tasks/todoTaskList", produces = "application/json")
     public PageBean<TaskModel> getTodoTaskList(
@@ -73,7 +74,6 @@ public class TaskController {
         PageBean taskPage = new PageBean(pageNum,pageSize,totalCount);
         taskPage.setData(taskList);
         return taskPage;
-
     }
 
 
