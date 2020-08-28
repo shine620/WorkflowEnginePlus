@@ -3,7 +3,9 @@ package com.hy.workflow.service;
 import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.entity.BusinessProcess;
+import com.hy.workflow.enums.ActivityType;
 import com.hy.workflow.model.ProcessInstanceModel;
+import com.hy.workflow.model.StartProcessRequest;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.ValidateUtil;
@@ -59,40 +61,67 @@ public class ProcessInstanceService {
      *
      * @author  zhaoyao
      * @param  processDefinition 流程定义对象
-     * @param  businessId 业务数据ID
-     * @param  businessType 业务类型
-     * @param  businessName 业务数据名称
-     * @param  businessUrl 业务地址
-     * @param  variables 流程变量
+     * @param  startRequest 发起流程请求参数
      * @return ProcessInstanceModel 流程实例封装对象
      */
-    public ProcessInstanceModel startProcess(ProcessDefinition processDefinition, String startUserId, String businessId, String businessType, String businessName,String businessUrl,Map<String,Object> variables) {
+    public ProcessInstanceModel startProcess(ProcessDefinition processDefinition, StartProcessRequest startRequest) {
 
-        Authentication.setAuthenticatedUserId(startUserId);
+        Authentication.setAuthenticatedUserId(startRequest.getStartUserId());
         ProcessInstanceBuilder processInstanceBuilder = runtimeService.createProcessInstanceBuilder()
                 .processDefinitionId(processDefinition.getId())
-                .businessKey(businessType+";"+businessId)
-                .name( businessName==null?"":businessName  +"-" +processDefinition.getName() )
-                .variables(variables);
+                .businessKey(startRequest.getBusinessType()+";"+startRequest.getBusinessId())
+                .name( startRequest.getBusinessName()==null?"":startRequest.getBusinessName()  +"-" +processDefinition.getName() )
+                .variables(startRequest.getVariables());
+
         ProcessInstance instance = processInstanceBuilder.start();
-        // 这个方法最终使用一个ThreadLocal类型的变量进行存储，也就是与当前的线程绑定，
-        //所以流程实例启动完毕之后，需要设置为null，防止多线程的时候出问题
+        /*这个方法最终使用一个ThreadLocal类型的变量进行存储，也就是与当前的线程绑定，
+        所以流程实例启动完毕之后，需要设置为null，防止多线程的时候出问题*/
         Authentication.setAuthenticatedUserId(null);
+
+
+        //设置下一环节处理人
+        Map<String,Object> userVariables = new HashMap();
+
+        if(startRequest.getNextTaskList()!=null){
+
+            startRequest.getNextTaskList().forEach(nextTask ->{
+                Map<String,Object> taskUserMap = new HashMap<>();
+                //非会签
+                 if(ActivityType.USER_TASK.equals(nextTask.getActivityType())){
+                    if(nextTask.getAssignee()!=null) taskUserMap.put("assignee",nextTask.getAssignee());
+                     if(nextTask.getCandidateUser()!=null && nextTask.getCandidateUser().size()>0){
+                         taskUserMap.put("candidateUser",nextTask.getCandidateUser());
+                     }
+                     if(nextTask.getCandidateGroup()!=null && nextTask.getCandidateGroup().size()>0){
+                         taskUserMap.put("candidateGroup",nextTask.getCandidateGroup());
+                     }
+                 }
+                 //会签
+                 else{
+                     if(nextTask.getCandidateUser()!=null && nextTask.getCandidateUser().size()>0){
+                         taskUserMap.put("assigneeList",nextTask.getCandidateUser());
+                     }
+                 }
+                taskUserMap.put("activityType",nextTask.getActivityType());
+                userVariables.put( nextTask.getActivityId(), taskUserMap );
+            });
+
+        }
 
         // 第一个节点要自动审批(承办人发起环节)
         List<Task> firstTaskList = taskService.createTaskQuery().processInstanceId(instance.getId()).list();
         firstTaskList.forEach(task -> {
-            taskService.setAssignee(task.getId(),startUserId);
-            taskService.complete(task.getId());
+            taskService.setAssignee(task.getId(),startRequest.getStartUserId());
+            taskService.complete(task.getId(),userVariables);
         });
 
         //保存业务实例数据，一个流程实例对应一个业务实例
         BusinessProcess bp = new BusinessProcess();
         EntityModelUtil.fillBusinessProcess(bp,instance);
-        bp.setBusinessId(businessId);
-        bp.setBusinessType(businessType);
-        bp.setBusinessName(businessName);
-        bp.setBusinessUrl(businessUrl);
+        bp.setBusinessId(startRequest.getBusinessId());
+        bp.setBusinessType(startRequest.getBusinessType());
+        bp.setBusinessName(startRequest.getBusinessName());
+        bp.setBusinessUrl(startRequest.getBusinessUrl());
         bp.setUnitId(null);
         bp.setDeptId(null);
         businessProcessRepository.save(bp);

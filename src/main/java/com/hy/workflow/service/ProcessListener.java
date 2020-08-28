@@ -1,12 +1,16 @@
 package com.hy.workflow.service;
 
 import com.hy.workflow.entity.BusinessProcess;
+import com.hy.workflow.enums.ActivityType;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEntityEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEventType;
 import org.flowable.common.engine.api.delegate.event.FlowableEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEventType;
+import org.flowable.engine.RuntimeService;
+import org.flowable.engine.delegate.DelegateExecution;
 import org.flowable.engine.delegate.event.AbstractFlowableEngineEventListener;
+import org.flowable.engine.delegate.event.impl.FlowableMultiInstanceActivityEventImpl;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntityImpl;
 import org.flowable.engine.impl.persistence.entity.HistoricProcessInstanceEntityImpl;
 import org.flowable.task.service.impl.persistence.entity.TaskEntityImpl;
@@ -14,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,52 +43,87 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
     public void onEvent(FlowableEvent event) {
 
         FlowableEventType eventType = event.getType();
-        FlowableEngineEntityEvent flowEvent = (FlowableEngineEntityEvent)event;
+        FlowableEngineEntityEvent flowEvent =  (event instanceof  FlowableEngineEntityEvent) ? (FlowableEngineEntityEvent)event : null;
 
         //流程开始
         if(FlowableEngineEventType.PROCESS_STARTED.equals(eventType)){
-            ExecutionEntityImpl execution = (ExecutionEntityImpl)flowEvent.getEntity();
-            logger.error("流程发起监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
-            //TODO  此处应回调业务接口回写数据状态
+            processStarted( (ExecutionEntityImpl)flowEvent.getEntity() );
         }
-
         //流程结束
         else if(FlowableEngineEventType.PROCESS_COMPLETED.equals(eventType)){
-            ExecutionEntityImpl execution = (ExecutionEntityImpl)flowEvent.getEntity();
-            logger.error("流程发起监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
-            //TODO  此处应回调业务接口回写数据状态
+            processCompleted( (ExecutionEntityImpl)flowEvent.getEntity() );
         }
-
-        //流程结束（与PROCESS_COMPLETED相同，但包含略有不同的数据，例如结束时间，持续时间等）注意：必须启用历史记录(最低活动级别)才能接收此事件
+        //流程结束（与PROCESS_COMPLETED相同，但包含略有不同的数据，例如结束时间，持续时间等）
+        // 注意：必须启用历史记录(最低活动级别)才能接收此事件
         else if(FlowableEngineEventType.HISTORIC_PROCESS_INSTANCE_ENDED.equals(eventType)){
             HistoricProcessInstanceEntityImpl execution = (HistoricProcessInstanceEntityImpl)flowEvent.getEntity();
-            Optional<BusinessProcess> op = businessProcessRepository.findById(execution.getProcessInstanceId());
-            if(op.isPresent()){
-                BusinessProcess bp = op.get();
-                bp.setEnded(true);
-                bp.setEndTime(execution.getEndTime());
-                businessProcessRepository.save(bp);
-            }
-            logger.error("流程发起监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
+            historicProcessInstanceEnded(execution);
         }
-
         //任务生成
         else if(FlowableEngineEventType.TASK_CREATED.equals(eventType)){
-            TaskEntityImpl taskEntity = (TaskEntityImpl)flowEvent.getEntity();
-            Map<String, Object>  var = taskEntity.getVariables();
-            System.out.println(3);
-            logger.error("任务生成监听事件执行 processInstanceId: "+taskEntity.getProcessInstanceId() +"  taskId:"+taskEntity.getId());
+            taskCreated( (TaskEntityImpl)flowEvent.getEntity() );
         }
-
+        //多实例开始(设置会签处理人)
+        else if(FlowableEngineEventType.MULTI_INSTANCE_ACTIVITY_STARTED.equals(eventType)){
+            FlowableMultiInstanceActivityEventImpl multiIEvent= (FlowableMultiInstanceActivityEventImpl)event;
+            DelegateExecution execution = multiIEvent.getExecution();
+            Map userVariable = execution.getVariable(multiIEvent.getActivityId(),Map.class);
+            List<String> assigneeList = (List)userVariable.get("assigneeList");
+            execution.setVariable("assigneeList",assigneeList);
+        }
         //任务完成
         else if(FlowableEngineEventType.TASK_COMPLETED.equals(eventType)){
-            TaskEntityImpl taskEntity = (TaskEntityImpl)flowEvent.getEntity();
-            Map<String, Object>  var = taskEntity.getVariables();
-            System.out.println(4);
-            logger.error("任务完成监听事件执行 processInstanceId: "+taskEntity.getProcessInstanceId() +"  taskId:"+taskEntity.getId());
+            taskCompleted( (TaskEntityImpl)flowEvent.getEntity() );
         }
 
     }
+
+
+    private void taskCreated(TaskEntityImpl taskEntity){
+        logger.error("任务生成监听事件执行 processInstanceId: "+taskEntity.getProcessInstanceId() +"  taskId:"+taskEntity.getId());
+        //通过流程变量设置任务处理人
+        Map userVariable = taskEntity.getVariable(taskEntity.getTaskDefinitionKey(),Map.class);
+        if(userVariable!=null){
+            //普通任务
+            if(ActivityType.USER_TASK.equals(userVariable.get("activityType"))){
+                String assignee = (String)userVariable.get("assignee");
+                List<String> candidateUser = (List)userVariable.get("candidateUser");
+                List<String> candidateGroup = (List)userVariable.get("candidateGroup");
+                if(assignee!=null) taskEntity.setAssignee(assignee);
+                if(candidateUser!=null) taskEntity.addCandidateUsers(candidateUser);
+                if(candidateGroup!=null) taskEntity.addCandidateGroups(candidateGroup);
+            }
+        }
+        System.out.println(userVariable);
+    }
+
+    private void taskCompleted(TaskEntityImpl taskEntity){
+        logger.error("任务完成监听事件执行 processInstanceId: "+taskEntity.getProcessInstanceId() +"  taskId:"+taskEntity.getId());
+        Map<String, Object>  variables = taskEntity.getVariables();
+
+    }
+
+    private void processStarted(ExecutionEntityImpl execution){
+        logger.error("流程发起监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
+        //TODO  此处应回调业务接口回写数据状态
+    }
+
+    private void processCompleted(ExecutionEntityImpl execution){
+        logger.error("流程结束监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
+        //TODO  此处应回调业务接口回写数据状态
+    }
+
+    private void historicProcessInstanceEnded(HistoricProcessInstanceEntityImpl execution){
+        logger.error("历史实例结束监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
+        Optional<BusinessProcess> op = businessProcessRepository.findById(execution.getProcessInstanceId());
+        if(op.isPresent()){
+            BusinessProcess bp = op.get();
+            bp.setEnded(true);
+            bp.setEndTime(execution.getEndTime());
+            businessProcessRepository.save(bp);
+        }
+    }
+
 
 
 }

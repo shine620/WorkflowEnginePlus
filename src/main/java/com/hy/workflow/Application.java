@@ -66,6 +66,7 @@ public class Application {
                 typedListeners.put("TASK_CREATED", processCompleteList);
                 typedListeners.put("TASK_COMPLETED", processCompleteList);
                 typedListeners.put("HISTORIC_PROCESS_INSTANCE_ENDED", processCompleteList);
+                typedListeners.put("MULTI_INSTANCE_ACTIVITY_STARTED", processCompleteList);
                 engineConfiguration.setTypedEventListeners(typedListeners);
             }
         };

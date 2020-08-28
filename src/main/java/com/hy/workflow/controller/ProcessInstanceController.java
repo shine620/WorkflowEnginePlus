@@ -3,6 +3,7 @@ package com.hy.workflow.controller;
 import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.model.ProcessInstanceModel;
+import com.hy.workflow.model.StartProcessRequest;
 import com.hy.workflow.service.ProcessInstanceService;
 import com.hy.workflow.util.EntityModelUtil;
 import io.swagger.annotations.*;
@@ -165,18 +166,11 @@ public class ProcessInstanceController {
 
     @ApiOperation(value = "发起流程", tags = { "Process Instances" })
     @PostMapping(value = "/process-instances/startProcessInstance", produces = "application/json")
-    public ProcessInstanceModel startProcessInstance(
-            @ApiParam(name = "processDefinitionId",value = "流程定义ID") @RequestParam String processDefinitionId,
-            @ApiParam(name = "startUserId",value = "发起人ID") @RequestParam String startUserId,
-            @ApiParam(name = "businessId",value = "业务ID") @RequestParam String businessId,
-            @ApiParam(name = "businessType",value = "业务类型") @RequestParam  String businessType,
-            @ApiParam(name = "businessName",value = "业务名称") @RequestParam(required = false) String businessName,
-            @ApiParam(name = "businessUrl",value = "业务地址") @RequestParam(required = false) String businessUrl,
-            @ApiParam(name = "variables",value = "流程变量") @RequestBody Map<String,Object> variables) {
-
+    public ProcessInstanceModel startProcessInstance(@RequestBody StartProcessRequest startRequest) {
+        String processDefinitionId = startRequest.getProcessDefinitionId();
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
         if(processDefinition==null) throw new WorkflowException("流程发起-流程定义不存在："+processDefinitionId);
-        return processInstanceService.startProcess(processDefinition,startUserId,businessId,businessType,businessName,businessUrl,variables);
+        return processInstanceService.startProcess(processDefinition,startRequest);
     }
 
 
