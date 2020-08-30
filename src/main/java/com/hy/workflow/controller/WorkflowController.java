@@ -5,11 +5,8 @@ import com.hy.workflow.model.FlowElementModel;
 import com.hy.workflow.service.WorkflowService;
 import io.swagger.annotations.*;
 import org.flowable.bpmn.model.*;
-import org.flowable.common.engine.api.FlowableException;
-import org.flowable.common.engine.impl.EngineInfo;
 import org.flowable.engine.ManagementService;
 import org.flowable.engine.ProcessEngine;
-import org.flowable.engine.ProcessEngines;
 import org.flowable.engine.RepositoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -95,12 +92,6 @@ public class WorkflowController {
     }
 
 
-    @ApiOperation(value = "获取第一个审批节点", tags = { "Workflows" })
-    @GetMapping(value = "/workflows/getFirstNode/{processDefinitionId}", produces = "application/json")
-    public List<FlowElementModel> getFirstNode(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
-        List<FlowElementModel> firstFlowList = workflowService.getFirstNode(processDefinitionId);
-        return firstFlowList;
-    }
 
 
 

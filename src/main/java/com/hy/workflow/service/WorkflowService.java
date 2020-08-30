@@ -6,6 +6,7 @@ import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.FlowElementModel;
 import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.util.EntityModelUtil;
+import com.hy.workflow.util.WorkflowUtil;
 import org.flowable.bpmn.model.*;
 import org.flowable.bpmn.model.Process;
 import org.flowable.engine.*;
@@ -47,13 +48,13 @@ public class WorkflowService {
 
 
     /**
-     * 获取第一个审批节点
+     *      * 获取第一个审批节点
      *
      * @author  zhaoyao
      * @param processDefinitionId 流程定义ID
      * @return List<FlowElementModel>
      */
-    public List<FlowElementModel> getFirstNode(String processDefinitionId) {
+   /* public List<FlowElementModel> getFirstNode(String processDefinitionId) {
 
         BpmnModel model = repositoryService.getBpmnModel(processDefinitionId);
         if(model == null)  throw new WorkflowException("该流程定义没有模型数据："+processDefinitionId);
@@ -66,6 +67,7 @@ public class WorkflowService {
         FlowNode firstNode =(FlowNode) ((StartEvent) startNode).getOutgoingFlows().get(0).getTargetFlowElement();
 
         List<SequenceFlow> outgoingFlows = firstNode.getOutgoingFlows();
+        //用户任务
         for (SequenceFlow outgoingFlow : outgoingFlows) {
             FlowElement targetFlowElement = outgoingFlow.getTargetFlowElement();
             if (targetFlowElement instanceof UserTask) {
@@ -82,7 +84,34 @@ public class WorkflowService {
                 }
                 flowList.add(flow);
                 flowIdList.add(flow.getId());
-            }else{
+            }
+            //子流程
+            else if(targetFlowElement instanceof SubProcess){
+                SubProcess subProcess = (SubProcess)targetFlowElement;
+                UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess,true);
+                if(userTask!=null){
+                    FlowElementModel flow = new FlowElementModel();
+                    flow.setId(userTask.getId());
+                    flow.setName(userTask.getName());
+                    flow.setFlowElementType(FlowElementType.SUB_PROCESS);
+                    FlowElementsContainer container = userTask.getParentContainer();
+                    flow.setParentId( ((SubProcess)container).getId() );
+                    flow.setParentName( ((SubProcess) container).getName() );
+                    flowList.add(flow);
+                    flowIdList.add(flow.getId());
+                }
+            }
+            //调用活动
+            else if(targetFlowElement instanceof CallActivity){
+                CallActivity callActivity = (CallActivity)targetFlowElement;
+                FlowElementModel flow = new FlowElementModel();
+                flow.setId(callActivity.getId());
+                flow.setName(callActivity.getName());
+                flow.setFlowElementType(FlowElementType.CALL_ACTIVITY);
+                flowList.add(flow);
+                flowIdList.add(flow.getId());
+            }
+            else{
                 throw new WorkflowException("第二节点只能是用户任务节点！");
             }
         }
@@ -91,7 +120,7 @@ public class WorkflowService {
         EntityModelUtil.fillFlowElementConfig(flowList,configs);
 
         return flowList;
-    }
+    }*/
 
 
 

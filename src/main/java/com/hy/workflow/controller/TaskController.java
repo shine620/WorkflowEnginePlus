@@ -128,6 +128,15 @@ public class TaskController {
         flowableTaskService.completeTask(approveRequest);
     }
 
+
+    @ApiOperation(value = "获取第一个审批节点", tags = { "Tasks" })
+    @GetMapping(value = "/tasks/getFirstNode/{processDefinitionId}", produces = "application/json")
+    public List<FlowElementModel> getFirstNode(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
+        List<FlowElementModel> firstFlowList = flowableTaskService.getFirstNode(processDefinitionId);
+        return firstFlowList;
+    }
+
+
     @ApiOperation(value = "根据当前任务获取下一审批节点",tags = { "Tasks" })
     @GetMapping(value = "/tasks/getNextUserTask", produces = "application/json")
     public List<FlowElementModel>  getNextUserTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId) {

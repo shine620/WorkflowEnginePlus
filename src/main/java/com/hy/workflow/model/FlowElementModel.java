@@ -9,11 +9,23 @@ public class FlowElementModel {
     //节点名称
     private String name;
 
-    ////节点类型
+    //节点类型
     private String flowElementType;
 
     //子流程节点时对应的主流程节点ID
     private String parentId;
+
+    //子流程节点时对应的主流程节点名称
+    private String parentName;
+
+    //子流程节点时对应的主流程节点类型
+    private String parentType;
+
+    //部门ID
+    private String  departmentId;
+
+    //模型Key
+    private String  modelKey;
 
     //节点配置
     private FlowElementConfigModel  config;
@@ -49,6 +61,38 @@ public class FlowElementModel {
 
     public void setParentId(String parentId) {
         this.parentId = parentId;
+    }
+
+    public String getParentName() {
+        return parentName;
+    }
+
+    public void setParentName(String parentName) {
+        this.parentName = parentName;
+    }
+
+    public String getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(String departmentId) {
+        this.departmentId = departmentId;
+    }
+
+    public String getParentType() {
+        return parentType;
+    }
+
+    public void setParentType(String parentType) {
+        this.parentType = parentType;
+    }
+
+    public String getModelKey() {
+        return modelKey;
+    }
+
+    public void setModelKey(String modelKey) {
+        this.modelKey = modelKey;
     }
 
     public FlowElementConfigModel getConfig() {

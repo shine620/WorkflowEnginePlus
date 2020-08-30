@@ -210,6 +210,34 @@ public class ProcessDefinitionService {
     }
 
 
+    /**
+     * 获取任务节点配置
+     *
+     * @author  zhaoyao
+     * @param  model 组合条件参数封装
+     * @return FlowElementConfigModel 任务节点配置包装对象
+     */
+    public ProcessDefinitionConfigModel findProcessDefinitionByCondition(ProcessDefinitionConfigModel model ) {
+        Specification<ProcessDefinitionConfig> specification = (Specification<ProcessDefinitionConfig>) (root, criteriaQuery, criteriaBuilder) -> {
+            //设置查询条件
+            Predicate[] predicates= generatePredicates(model,root,criteriaBuilder);
+            Predicate predicate = criteriaBuilder.and( predicates );
+            return predicate;
+        };
+        Optional<ProcessDefinitionConfig> optional = processDefinitionConfigRepository.findOne(specification);
+        if(optional.isPresent()) return EntityModelUtil.toProcessDefinitionConfigModel(optional.get());
+        return null;
+    }
+
+
+    /**
+     * 获取任务节点配置列表
+     *
+     * @author  zhaoyao
+     * @param  model 组合条件参数封装
+     * @param  pageRequest 分页参数
+     * @return PageBean<ProcessDefinitionConfigModel> 任务节点配置分页数据
+     */
     public PageBean<ProcessDefinitionConfigModel> findProcessDefinitionConfigList(ProcessDefinitionConfigModel model, PageRequest pageRequest) {
         ValidateUtil.checkPageNum(pageRequest);
         List<ProcessDefinitionConfigModel> configList = new ArrayList<>();
@@ -246,12 +274,28 @@ public class ProcessDefinitionService {
             predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("deploymentId"),  model.getDeploymentId()) )  );
         }
         if (model.getBusinessType()  != null) {
-            Predicate predicate = criteriaBuilder.and( criteriaBuilder.like( root.get("businessType"), "%" + model.getBusinessType()+"," + "%"));
-            predicatesList.add(predicate);
+            Predicate[] arr = new Predicate[4];
+            arr[0] = criteriaBuilder.equal( root.get("businessType"),  model.getBusinessType()) ;
+            arr[1]=  criteriaBuilder.like( root.get("businessType"), "%," + model.getBusinessType()+",%");
+            arr[2] = criteriaBuilder.like( root.get("businessType"), model.getBusinessType()+",%");
+            arr[3] = criteriaBuilder.like( root.get("businessType"), "%," + model.getBusinessType());
+            predicatesList.add( criteriaBuilder.or(arr) );
         }
         if (model.getUnitId()  != null) {
-            Predicate predicate = criteriaBuilder.and( criteriaBuilder.like( root.get("unitId"), "%" + model.getUnitId()+"," + "%"));
-            predicatesList.add(predicate);
+            Predicate[] arr = new Predicate[4];
+            arr[0] = criteriaBuilder.equal( root.get("unitId"),  model.getUnitId()) ;
+            arr[1]=  criteriaBuilder.like( root.get("unitId"), "%," + model.getUnitId()+",%");
+            arr[2] = criteriaBuilder.like( root.get("unitId"), model.getUnitId()+",%");
+            arr[3] = criteriaBuilder.like( root.get("unitId"), "%," + model.getUnitId());
+            predicatesList.add( criteriaBuilder.or(arr) );
+        }
+        if (model.getDepartmentId()  != null) {
+            Predicate[] arr = new Predicate[4];
+            arr[0] = criteriaBuilder.equal( root.get("departmentId"),  model.getDepartmentId()) ;
+            arr[1]=  criteriaBuilder.like( root.get("departmentId"), "%," + model.getDepartmentId()+",%");
+            arr[2] = criteriaBuilder.like( root.get("departmentId"), model.getDepartmentId()+",%");
+            arr[3] = criteriaBuilder.like( root.get("departmentId"), "%," + model.getDepartmentId());
+            predicatesList.add( criteriaBuilder.or(arr) );
         }
         if (model.getCreateUnitId() != null) {
             predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("createUnitId"),  model.getCreateUnitId()) )  );

@@ -1,5 +1,6 @@
 package com.hy.workflow.base;
 
+import com.hy.workflow.util.WorkflowUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.flowable.bpmn.model.*;
 import org.flowable.common.engine.impl.interceptor.Command;
@@ -10,13 +11,13 @@ import org.flowable.engine.impl.util.condition.ConditionUtil;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FindNextUserTaskNodeCmd implements Command<List<UserTask>> {
+public class FindNextActivityCmd implements Command<List<Activity>> {
 
     private final ExecutionEntity execution;
     private final BpmnModel bpmnModel;
 
-    // 返回下一用户节点
-    private List<UserTask> taskList = new ArrayList<>();
+    // 返回下一审批节点
+    private List<Activity> activityList = new ArrayList<>();
 
 
     /**
@@ -25,23 +26,23 @@ public class FindNextUserTaskNodeCmd implements Command<List<UserTask>> {
      * @param execution 当前执行实例
      * @param bpmnModel 当前执行实例的模型
      */
-    public FindNextUserTaskNodeCmd(ExecutionEntity execution, BpmnModel bpmnModel) {
+    public FindNextActivityCmd(ExecutionEntity execution, BpmnModel bpmnModel) {
         this.execution = execution;
         this.bpmnModel = bpmnModel;
     }
 
 
     @Override
-    public List<UserTask> execute(CommandContext commandContext) {
+    public List<Activity> execute(CommandContext commandContext) {
         FlowElement currentNode = bpmnModel.getFlowElement(execution.getActivityId());
         List<SequenceFlow> outgoingFlows = ((FlowNode) currentNode).getOutgoingFlows();
         if (CollectionUtils.isNotEmpty(outgoingFlows)) {
-            this.findNextUserTaskNode(outgoingFlows, execution);
+            this.findNextActivity(outgoingFlows, execution);
         }
-        return taskList;
+        return activityList;
     }
 
-    private void findNextUserTaskNode(List<SequenceFlow> outgoingFlows, ExecutionEntity execution) {
+    private void findNextActivity(List<SequenceFlow> outgoingFlows, ExecutionEntity execution) {
         for (SequenceFlow outgoingFlow : outgoingFlows) {
             FlowElement sourceFlow = outgoingFlow.getSourceFlowElement();
             FlowElement targetFlow = outgoingFlow.getTargetFlowElement();
@@ -49,42 +50,51 @@ public class FindNextUserTaskNodeCmd implements Command<List<UserTask>> {
             //源节点为排他网关时 查找 分支条件为true的第一个节点
             if(sourceFlow instanceof ExclusiveGateway){
                 if (expr!=null && ConditionUtil.hasTrueCondition(outgoingFlow, execution)) {
-                    addUserTask(targetFlow);
+                    addActivityNode(targetFlow);
                     break;
                 }
             }
             //源节点为包含网关时 查找 无分支条件或者有分支条件并且为true的节点
             else if(sourceFlow instanceof InclusiveGateway){
                 if ( expr==null || (expr!=null && ConditionUtil.hasTrueCondition(outgoingFlow, execution)) ) {
-                    addUserTask(targetFlow);
+                    addActivityNode(targetFlow);
                 }
             }
             //源节点为并行网关或者任务节点时 不判断分支条件
             else{
-                addUserTask(targetFlow);
+                addActivityNode(targetFlow);
             }
         }
     }
 
-    private void addUserTask(FlowElement targetFlow){
+    private void addActivityNode(FlowElement targetFlow){
         if (targetFlow instanceof UserTask) {
-            taskList.add( (UserTask) targetFlow );
+            activityList.add( (UserTask) targetFlow );
         }
         else if(targetFlow instanceof ExclusiveGateway){
             ExclusiveGateway exclusiveGateway = (ExclusiveGateway)targetFlow;
-            findNextUserTaskNode(exclusiveGateway.getOutgoingFlows(), execution);
+            findNextActivity(exclusiveGateway.getOutgoingFlows(), execution);
         }
         else if(targetFlow instanceof ExclusiveGateway){
             ExclusiveGateway exclusiveGateway = (ExclusiveGateway)targetFlow;
-            findNextUserTaskNode(exclusiveGateway.getOutgoingFlows(), execution);
+            findNextActivity(exclusiveGateway.getOutgoingFlows(), execution);
         }
         else if(targetFlow instanceof ParallelGateway){
             ParallelGateway exclusiveGateway = (ParallelGateway)targetFlow;
-            findNextUserTaskNode(exclusiveGateway.getOutgoingFlows(), execution);
+            findNextActivity(exclusiveGateway.getOutgoingFlows(), execution);
         }
         else if(targetFlow instanceof InclusiveGateway){
             InclusiveGateway exclusiveGateway = (InclusiveGateway)targetFlow;
-            findNextUserTaskNode(exclusiveGateway.getOutgoingFlows(), execution);
+            findNextActivity(exclusiveGateway.getOutgoingFlows(), execution);
+        }
+        else if(targetFlow instanceof SubProcess){
+            SubProcess subProcess = (SubProcess)targetFlow;
+            UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess,true);
+            activityList.add( userTask );
+        }
+        else if(targetFlow instanceof CallActivity){
+            CallActivity callActivity = (CallActivity)targetFlow;
+            activityList.add( callActivity );
         }
     }
 

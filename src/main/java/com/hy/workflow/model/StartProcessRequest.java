@@ -1,6 +1,6 @@
 package com.hy.workflow.model;
 
-import com.hy.workflow.enums.ActivityType;
+import com.hy.workflow.enums.FlowElementType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -31,6 +31,12 @@ public class StartProcessRequest {
     @ApiModelProperty(value="流程变量")
     private Map<String,Object> variables;
 
+    @ApiModelProperty(value="发起人单位ID",required = true,example="1000")
+    private String unitId;
+
+    @ApiModelProperty(value="发起人部门ID",required = true,example="1001")
+    private String deptId;
+
     @ApiModelProperty(value="下一环节")
     private List<NextTask> nextTaskList;
 
@@ -40,7 +46,7 @@ public class StartProcessRequest {
         public NextTask(){}
 
         @ApiModelProperty(value="下一节点ID",example="BuMenJingLi")
-        private String activityId;
+        private String flowElementId;
 
         @ApiModelProperty(value="下一节点审批人",example="zhangsan")
         private String assignee;
@@ -51,23 +57,81 @@ public class StartProcessRequest {
         @ApiModelProperty(value="下一节点候选组",example="['LasGroup']")
         private List<String> candidateGroup;
 
-        @ApiModelProperty(value="下一节点类型",example=ActivityType.USER_TASK)
-        private String activityType;
+        @ApiModelProperty(value="下一节点类型",example= FlowElementType.USER_TASK)
+        private String flowElementType;
 
-        public String getActivityId() {return activityId; }
-        public void setActivityId(String activityId) {  this.activityId = activityId; }
+        @ApiModelProperty(value="父节点ID",example= "CaiWuTasK")
+        private String parentFlowElementId;
 
-        public String getAssignee() { return assignee;}
-        public void setAssignee(String assignee) {this.assignee = assignee;}
+        @ApiModelProperty(value="父节点类型",example= FlowElementType.CALL_ACTIVITY)
+        private String parentFlowElementType;
 
-        public List<String> getCandidateUser() {return candidateUser; }
-        public void setCandidateUser(List<String> candidateUser) {this.candidateUser = candidateUser; }
+        @ApiModelProperty(value="模型Key",example="Model1000")
+        private String modelKey;
 
-        public List<String> getCandidateGroup() {return candidateGroup;  }
-        public void setCandidateGroup(List<String> candidateGroup) { this.candidateGroup = candidateGroup; }
+        public String getFlowElementId() {
+            return flowElementId;
+        }
 
-        public String getActivityType() { return activityType; }
-        public void setActivityType(String activityType) { this.activityType = activityType; }
+        public void setFlowElementId(String flowElementId) {
+            this.flowElementId = flowElementId;
+        }
+
+        public String getAssignee() {
+            return assignee;
+        }
+
+        public void setAssignee(String assignee) {
+            this.assignee = assignee;
+        }
+
+        public List<String> getCandidateUser() {
+            return candidateUser;
+        }
+
+        public void setCandidateUser(List<String> candidateUser) {
+            this.candidateUser = candidateUser;
+        }
+
+        public List<String> getCandidateGroup() {
+            return candidateGroup;
+        }
+
+        public void setCandidateGroup(List<String> candidateGroup) {
+            this.candidateGroup = candidateGroup;
+        }
+
+        public String getFlowElementType() {
+            return flowElementType;
+        }
+
+        public void setFlowElementType(String flowElementType) {
+            this.flowElementType = flowElementType;
+        }
+
+        public String getParentFlowElementType() {
+            return parentFlowElementType;
+        }
+
+        public void setParentFlowElementType(String parentFlowElementType) {
+            this.parentFlowElementType = parentFlowElementType;
+        }
+
+        public String getModelKey() {
+            return modelKey;
+        }
+
+        public void setModelKey(String modelKey) {
+            this.modelKey = modelKey;
+        }
+
+        public String getParentFlowElementId() {
+            return parentFlowElementId;
+        }
+
+        public void setParentFlowElementId(String parentFlowElementId) {
+            this.parentFlowElementId = parentFlowElementId;
+        }
 
     }
 
@@ -133,6 +197,22 @@ public class StartProcessRequest {
 
     public void setVariables(Map<String, Object> variables) {
         this.variables = variables;
+    }
+
+    public String getUnitId() {
+        return unitId;
+    }
+
+    public void setUnitId(String unitId) {
+        this.unitId = unitId;
+    }
+
+    public String getDeptId() {
+        return deptId;
+    }
+
+    public void setDeptId(String deptId) {
+        this.deptId = deptId;
     }
 
 

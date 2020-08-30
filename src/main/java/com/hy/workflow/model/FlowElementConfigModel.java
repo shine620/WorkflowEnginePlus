@@ -73,6 +73,9 @@ public class FlowElementConfigModel {
     //修改时间
     private Date updateTime;
 
+    //子流程模型
+    private String subProcessModel;
+
 
     public String getId() {
         return id;
@@ -257,5 +260,14 @@ public class FlowElementConfigModel {
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
     }
+
+    public String getSubProcessModel() {
+        return subProcessModel;
+    }
+
+    public void setSubProcessModel(String subProcessModel) {
+        this.subProcessModel = subProcessModel;
+    }
+
 
 }

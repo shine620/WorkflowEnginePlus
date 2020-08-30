@@ -3,12 +3,13 @@ package com.hy.workflow.service;
 import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.entity.BusinessProcess;
-import com.hy.workflow.enums.ActivityType;
+import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.model.StartProcessRequest;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.ValidateUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.flowable.common.engine.impl.identity.Authentication;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
@@ -78,41 +79,70 @@ public class ProcessInstanceService {
         所以流程实例启动完毕之后，需要设置为null，防止多线程的时候出问题*/
         Authentication.setAuthenticatedUserId(null);
 
-
+        //调用活动多实例的子流程模型ID(支持并行网关上的调用活动多实例)
+        Map<String,List<String>>  modelkeyMap = new HashMap();
         //设置下一环节处理人
-        Map<String,Object> userVariables = new HashMap();
+        Map<String,Object> variables = new HashMap();
+        //设置调用活动多实例的处理人信息
+        List<Map<String,Object>> callActivityMultiInfo = new ArrayList<>();
 
         if(startRequest.getNextTaskList()!=null){
 
             startRequest.getNextTaskList().forEach(nextTask ->{
-                Map<String,Object> taskUserMap = new HashMap<>();
-                //非会签
-                 if(ActivityType.USER_TASK.equals(nextTask.getActivityType())){
-                    if(nextTask.getAssignee()!=null) taskUserMap.put("assignee",nextTask.getAssignee());
-                     if(nextTask.getCandidateUser()!=null && nextTask.getCandidateUser().size()>0){
-                         taskUserMap.put("candidateUser",nextTask.getCandidateUser());
+                //用户任务
+                 if(FlowElementType.USER_TASK.equals(nextTask.getFlowElementType())){
+                     //调用活动中的用户任务节点
+                     if( nextTask.getParentFlowElementType()!=null || FlowElementType.CALL_ACTIVITY.equals(nextTask.getParentFlowElementType()) ){
+                         //设置调用活动多实例发起时需要的模型变量
+                         List<String>  modelKeyList;
+                         if(modelkeyMap.get(nextTask.getParentFlowElementId())==null){
+                             modelKeyList = new ArrayList<>();
+                         }else{
+                             modelKeyList = modelkeyMap.get(nextTask.getParentFlowElementId());
+                         }
+                         modelKeyList.add(nextTask.getModelKey());
+                         modelkeyMap.put(nextTask.getParentFlowElementId(),modelKeyList);
+                         //设置调用活动多实例生成任务时需要的审批人相关信息
+                         Map<String,Object> map = new HashMap<>();
+                         map.put("flowElementId",nextTask.getFlowElementId());
+                         map.put("parentFlowElementId",nextTask.getParentFlowElementId());
+                         map.put("modelKey",nextTask.getModelKey());
+                         map.put("assignee",nextTask.getAssignee());
+                         map.put("candidateUser",nextTask.getCandidateUser());
+                         map.put("candidateGroup",nextTask.getCandidateGroup());
+                         callActivityMultiInfo.add(map);
                      }
-                     if(nextTask.getCandidateGroup()!=null && nextTask.getCandidateGroup().size()>0){
+                     //普通用户任务节点
+                     else{
+                         Map<String,Object> taskUserMap = new HashMap<>();
+                         taskUserMap.put("assignee",nextTask.getAssignee());
+                         taskUserMap.put("candidateUser",nextTask.getCandidateUser());
                          taskUserMap.put("candidateGroup",nextTask.getCandidateGroup());
+                         taskUserMap.put("flowElementType",nextTask.getFlowElementType());
+                         variables.put( nextTask.getFlowElementId(), taskUserMap );
                      }
                  }
                  //会签
-                 else{
+                else if(FlowElementType.PARALLEL_TASK.equals(nextTask.getFlowElementType()) || FlowElementType.SEQUENTIAL_TASK.equals(nextTask.getFlowElementType())){
+                     Map<String,Object> taskUserMap = new HashMap<>();
                      if(nextTask.getCandidateUser()!=null && nextTask.getCandidateUser().size()>0){
                          taskUserMap.put("assigneeList",nextTask.getCandidateUser());
+                     }else if(StringUtils.isNotBlank(nextTask.getAssignee())){
+                         taskUserMap.put("assigneeList",nextTask.getAssignee());
                      }
-                 }
-                taskUserMap.put("activityType",nextTask.getActivityType());
-                userVariables.put( nextTask.getActivityId(), taskUserMap );
+                     taskUserMap.put("flowElementType",nextTask.getFlowElementType());
+                     variables.put( nextTask.getFlowElementId(), taskUserMap );
+                }
             });
-
+            variables.put( "callActivityList", callActivityMultiInfo );
+            variables.put( "callActivityModelKeyMap", modelkeyMap );
         }
 
         // 第一个节点要自动审批(承办人发起环节)
         List<Task> firstTaskList = taskService.createTaskQuery().processInstanceId(instance.getId()).list();
         firstTaskList.forEach(task -> {
             taskService.setAssignee(task.getId(),startRequest.getStartUserId());
-            taskService.complete(task.getId(),userVariables);
+            taskService.complete(task.getId(),variables);
         });
 
         //保存业务实例数据，一个流程实例对应一个业务实例
@@ -122,8 +152,8 @@ public class ProcessInstanceService {
         bp.setBusinessType(startRequest.getBusinessType());
         bp.setBusinessName(startRequest.getBusinessName());
         bp.setBusinessUrl(startRequest.getBusinessUrl());
-        bp.setUnitId(null);
-        bp.setDeptId(null);
+        bp.setUnitId(startRequest.getUnitId());
+        bp.setDeptId(startRequest.getDeptId());
         businessProcessRepository.save(bp);
         ProcessInstanceModel instanceModel = EntityModelUtil.toProcessInstanceModel(bp);
 
