@@ -9,6 +9,7 @@ import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.ApproveRequest;
 import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.FlowElementModel;
+import com.hy.workflow.model.ProcessDefinitionConfigModel;
 import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.repository.ProcessDefinitionConfigRepository;
 import com.hy.workflow.util.EntityModelUtil;
@@ -57,6 +58,9 @@ public class FlowableTaskService {
     @Autowired
     private ProcessDefinitionConfigRepository processDefinitionConfigRepository;
 
+    @Autowired
+    private ProcessDefinitionService processDefinitionService;
+
 
     /**
      * 审批任务
@@ -99,7 +103,6 @@ public class FlowableTaskService {
 
         List<FlowElementModel> flowList =  new ArrayList<>();
         List<String> flowIdList =  new ArrayList<>();
-        List<FlowElementModel> subFlowList =  new ArrayList<>();
 
         Process process =  model.getMainProcess();
         FlowElement startNode = process.getInitialFlowElement();
@@ -107,11 +110,12 @@ public class FlowableTaskService {
         List<SequenceFlow> outgoingFlows = firstNode.getOutgoingFlows();
 
         for (SequenceFlow outgoingFlow : outgoingFlows) {
+
             FlowElement targetFlowElement = outgoingFlow.getTargetFlowElement();
+            FlowElementModel flow = new FlowElementModel();
 
             //用户任务（包含会签）
             if (targetFlowElement instanceof UserTask) {
-                FlowElementModel flow = new FlowElementModel();
                 UserTask userTask =  (UserTask)targetFlowElement;
                 flow.setId(userTask.getId());
                 flow.setName(userTask.getName());
@@ -130,13 +134,11 @@ public class FlowableTaskService {
                 SubProcess subProcess = (SubProcess)targetFlowElement;
                 UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess,true);
                 if(userTask!=null){
-                    FlowElementModel flow = new FlowElementModel();
                     flow.setId(userTask.getId());
                     flow.setName(userTask.getName());
                     flow.setFlowElementType(FlowElementType.USER_TASK);
-                    FlowElementsContainer container = userTask.getParentContainer();
-                    flow.setParentId( ((SubProcess)container).getId() );
-                    flow.setParentName( ((SubProcess) container).getName() );
+                    flow.setParentId( subProcess.getId() );
+                    flow.setParentName( subProcess.getName() );
                     flow.setParentType( FlowElementType.SUB_PROCESS);
                     flowList.add(flow);
                     flowIdList.add(flow.getId());
@@ -144,7 +146,10 @@ public class FlowableTaskService {
             }
             //调用活动
             else if(targetFlowElement instanceof CallActivity){
-                subFlowList = getCallActivityTask(processDefinitionId,(CallActivity)targetFlowElement);
+                CallActivity callActivity =  (CallActivity)targetFlowElement;
+                flow.setId(callActivity.getId());
+                flow.setName(callActivity.getName());
+                flow.setFlowElementType(FlowElementType.CALL_ACTIVITY);
             }
             //其他类型节点
             else{
@@ -155,8 +160,6 @@ public class FlowableTaskService {
         //设置节点配置信息
         List<FlowElementConfig> configs = flowElementConfigRepository.findByFlowElementIdIn(flowIdList);
         EntityModelUtil.fillFlowElementConfig(flowList,configs);
-
-        flowList.addAll(subFlowList);
 
         return flowList;
     }
@@ -178,7 +181,6 @@ public class FlowableTaskService {
 
         List<FlowElementModel> flowList = new ArrayList<>();
         List<String> flowIdList =  new ArrayList<>();
-        List<FlowElementModel> subFlowList =  new ArrayList<>();
 
         activityList.forEach( activity -> {
 
@@ -186,6 +188,7 @@ public class FlowableTaskService {
             model.setId(activity.getId());
             model.setName(activity.getName());
 
+            //普通任务及嵌入式子流程
             if(activity instanceof UserTask){
                 MultiInstanceLoopCharacteristics multiInstance = activity.getLoopCharacteristics();
                 if(multiInstance!=null){
@@ -194,18 +197,21 @@ public class FlowableTaskService {
                 }else{
                     model.setFlowElementType(FlowElementType.USER_TASK);
                 }
+                //属于子流程任务节点时设置Parent和分组
                 FlowElementsContainer container = activity.getParentContainer();
                 if(container instanceof SubProcess){
                     model.setParentId( ((SubProcess)container).getId() );
                     model.setParentName( ((SubProcess) container).getName() );
+                    setFlowElementGroup((SubProcess)container,execution.getActivityId(),model);
+                }else{
+                    //设置任务组信息(下一环节有多个时需要选择，如一条线连到普通任务节点，另一条线连到并行网关分支，根据分组选择)
+                    setFlowElementGroup(activity,execution.getActivityId(),model);
                 }
-                //设置任务组信息(下一个环节有多个时需要选择，如一条线连到普通任务节点，另一条线连到并行网关分支)
-                //TODO 调用活动修改完需要继续设置
-                setFlowElementGroup(activity,execution.getActivityId(),model);
             }
             //调用活动
             else if(activity instanceof CallActivity){
-                subFlowList.addAll( getCallActivityTask(task.getProcessDefinitionId(),(CallActivity)activity) );
+                model.setFlowElementType(FlowElementType.CALL_ACTIVITY);
+                setFlowElementGroup(activity,execution.getActivityId(),model);
             }
             else {
                 throw new WorkflowException("不支持的节点类型：processDefinitionId="+task.getProcessDefinitionId()+"  flowElementId="+task.getTaskDefinitionKey());
@@ -224,7 +230,7 @@ public class FlowableTaskService {
     }
 
 
-    private List<FlowElementModel> getCallActivityTask(String processDefinitionId,CallActivity callActivity){
+    /*private List<FlowElementModel> getCallActivityTask(String processDefinitionId,CallActivity callActivity){
         List<FlowElementModel> subFlowList =  new ArrayList<>();
         FlowElementConfig callActivityConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinitionId,callActivity.getId());
         String subProcessModel= callActivityConfig.getSubProcessModel();
@@ -276,7 +282,7 @@ public class FlowableTaskService {
         }
         return subFlowList;
     }
-
+*/
 
     /**
      * 任务节点分组
@@ -306,6 +312,41 @@ public class FlowableTaskService {
                 setFlowElementGroup((FlowNode)sourceFlow,rootId,model);
             }
         }
+    }
+
+
+    /**
+     * 根据部门ID获取该部门子流程审批节点
+     *
+     * @author  zhaoyao
+     * @param departmentId 部门ID
+     * @return List<FlowElementModel>
+     */
+    public List<FlowElementModel> getSubProcessByDeptId(String departmentId) {
+        List<FlowElementModel> nodeList = new ArrayList<>();
+        ProcessDefinitionConfigModel model = new ProcessDefinitionConfigModel();
+        model.setDepartmentId(departmentId);
+        //获取该单位所有的流程定义配置
+        List<ProcessDefinitionConfigModel> modelConfigList = processDefinitionService.findProcessDefinitionConfigList(model);
+        modelConfigList.forEach( modelConfig -> {
+            ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(modelConfig.getProcessDefinitionId()).singleResult();
+            //查找子流程第一个节点及该节点配置
+            Process subProcess =  repositoryService.getBpmnModel(processDefinition.getId()).getMainProcess();
+            StartEvent subStartEvent = (StartEvent) subProcess.getInitialFlowElement();
+            FlowNode subFirstNode =(FlowNode) subStartEvent.getOutgoingFlows().get(0).getTargetFlowElement();
+            FlowElementConfig subFirstNodeConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinition.getId(),subFirstNode.getId());
+            FlowElementConfigModel configModel = EntityModelUtil.toFlowElementConfigMode(subFirstNodeConfig);
+            //封装任务节点
+            FlowElementModel node = new FlowElementModel();
+            node.setId(subFirstNode.getId());
+            node.setName(subFirstNode.getName());
+            node.setFlowElementType(FlowElementType.USER_TASK);
+            node.setConfig(configModel);
+            node.setModelKey(processDefinition.getKey());
+            node.setDepartmentId(departmentId);
+            nodeList.add(node);
+        });
+        return nodeList;
     }
 
 

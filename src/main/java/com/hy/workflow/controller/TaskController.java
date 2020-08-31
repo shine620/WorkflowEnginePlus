@@ -144,5 +144,12 @@ public class TaskController {
         return flowList;
     }
 
+    @ApiOperation(value = "根据部门ID获取该部门子流程审批节点",tags = { "Tasks" })
+    @GetMapping(value = "/tasks/getSubProcessByDeptId", produces = "application/json")
+    public List<FlowElementModel>  getSubProcessByDeptId(@ApiParam(name = "departmentId",value = "部门ID") @RequestParam String departmentId) {
+        List<FlowElementModel>  flowList =  flowableTaskService.getSubProcessByDeptId(departmentId);
+        return flowList;
+    }
+
 
 }

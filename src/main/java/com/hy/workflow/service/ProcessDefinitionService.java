@@ -139,6 +139,13 @@ public class ProcessDefinitionService {
     }
 
 
+    /**
+     * 挂起流程
+     *
+     * @author  zhaoyao
+     * @param  processDefinitionId 流程定义
+     * @param  suspend 是否挂起
+     */
     public void suspendProcessDefinitionById(String processDefinitionId, Boolean suspend) {
         //ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
         if(suspend){
@@ -151,7 +158,6 @@ public class ProcessDefinitionService {
             ProcessDefinitionConfig sourceConfig = sourceConfigOptional.get();
             sourceConfig.setSuspended(suspend);
         }
-
     }
 
 
@@ -211,32 +217,35 @@ public class ProcessDefinitionService {
 
 
     /**
-     * 获取任务节点配置
+     * 获取任务节点配置列表
      *
      * @author  zhaoyao
      * @param  model 组合条件参数封装
-     * @return FlowElementConfigModel 任务节点配置包装对象
+     * @return List<ProcessDefinitionConfigModel> 流程定义配置数据
      */
-    public ProcessDefinitionConfigModel findProcessDefinitionByCondition(ProcessDefinitionConfigModel model ) {
+    public List<ProcessDefinitionConfigModel> findProcessDefinitionConfigList(ProcessDefinitionConfigModel model ) {
         Specification<ProcessDefinitionConfig> specification = (Specification<ProcessDefinitionConfig>) (root, criteriaQuery, criteriaBuilder) -> {
             //设置查询条件
             Predicate[] predicates= generatePredicates(model,root,criteriaBuilder);
             Predicate predicate = criteriaBuilder.and( predicates );
             return predicate;
         };
-        Optional<ProcessDefinitionConfig> optional = processDefinitionConfigRepository.findOne(specification);
-        if(optional.isPresent()) return EntityModelUtil.toProcessDefinitionConfigModel(optional.get());
-        return null;
+        List<ProcessDefinitionConfig> configs = processDefinitionConfigRepository.findAll(specification);
+        List<ProcessDefinitionConfigModel> configModelList = new ArrayList<>();
+        configs.forEach(bp->{
+            configModelList.add(EntityModelUtil.toProcessDefinitionConfigModel(bp));
+        });
+        return configModelList;
     }
 
 
     /**
-     * 获取任务节点配置列表
+     * 获取流程定义配置列表
      *
      * @author  zhaoyao
      * @param  model 组合条件参数封装
      * @param  pageRequest 分页参数
-     * @return PageBean<ProcessDefinitionConfigModel> 任务节点配置分页数据
+     * @return PageBean<ProcessDefinitionConfigModel> 流程定义配置分页数据
      */
     public PageBean<ProcessDefinitionConfigModel> findProcessDefinitionConfigList(ProcessDefinitionConfigModel model, PageRequest pageRequest) {
         ValidateUtil.checkPageNum(pageRequest);
