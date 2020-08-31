@@ -71,7 +71,21 @@ public class FindNextActivityCmd implements Command<List<Activity>> {
         if (targetFlow instanceof UserTask) {
             activityList.add( (UserTask) targetFlow );
         }
-        else if(targetFlow instanceof ExclusiveGateway){
+        else if(targetFlow instanceof Gateway){  //网关继续向后查找
+            Gateway exclusiveGateway = (Gateway)targetFlow;
+            findNextActivity(exclusiveGateway.getOutgoingFlows(), execution);
+        }
+        else if(targetFlow instanceof SubProcess){  //子流程查找其第一个节点
+            SubProcess subProcess = (SubProcess)targetFlow;
+            UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess,true);
+            activityList.add( userTask );
+        }
+        else if(targetFlow instanceof CallActivity){
+            CallActivity callActivity = (CallActivity)targetFlow;
+            activityList.add( callActivity );
+        }
+
+        /*else if(targetFlow instanceof ExclusiveGateway){
             ExclusiveGateway exclusiveGateway = (ExclusiveGateway)targetFlow;
             findNextActivity(exclusiveGateway.getOutgoingFlows(), execution);
         }
@@ -86,16 +100,8 @@ public class FindNextActivityCmd implements Command<List<Activity>> {
         else if(targetFlow instanceof InclusiveGateway){
             InclusiveGateway exclusiveGateway = (InclusiveGateway)targetFlow;
             findNextActivity(exclusiveGateway.getOutgoingFlows(), execution);
-        }
-        else if(targetFlow instanceof SubProcess){
-            SubProcess subProcess = (SubProcess)targetFlow;
-            UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess,true);
-            activityList.add( userTask );
-        }
-        else if(targetFlow instanceof CallActivity){
-            CallActivity callActivity = (CallActivity)targetFlow;
-            activityList.add( callActivity );
-        }
+        }*/
+
     }
 
 

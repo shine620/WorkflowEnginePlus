@@ -27,6 +27,12 @@ public class FlowElementModel {
     //模型Key
     private String  modelKey;
 
+    //组ID(选择下一节点使用)
+    private String  groupId;
+
+    //组名称
+    private String  groupName;
+
     //节点配置
     private FlowElementConfigModel  config;
 
@@ -93,6 +99,22 @@ public class FlowElementModel {
 
     public void setModelKey(String modelKey) {
         this.modelKey = modelKey;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 
     public FlowElementConfigModel getConfig() {

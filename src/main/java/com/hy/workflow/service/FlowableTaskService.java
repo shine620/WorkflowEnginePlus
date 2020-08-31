@@ -125,59 +125,6 @@ public class FlowableTaskService {
                 flowList.add(flow);
                 flowIdList.add(flow.getId());
             }
-            //调用活动
-            else if(targetFlowElement instanceof CallActivity){
-
-                CallActivity callActivity = (CallActivity)targetFlowElement;
-                FlowElementConfig callActivityConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinitionId,callActivity.getId());
-                String subProcessModel= callActivityConfig.getSubProcessModel();
-                if(StringUtils.isBlank(subProcessModel)) throw new WorkflowException(callActivity.getName()+"未配置子流程：processDefinitionId:"+processDefinitionId);
-                if(subProcessModel.endsWith(",")) subProcessModel = subProcessModel.substring(0,subProcessModel.length()-1);
-                String[]  subModelArr = subProcessModel.split(",");
-
-                for(String subModel : subModelArr ){
-                    ProcessDefinition subProcessDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionKey(subModel).latestVersion().singleResult();
-                    if(subProcessDefinition==null) throw new WorkflowException("配置的子流程：modelId:"+subModel +"未部署");
-
-                    //查找子流程第一个节点及该节点配置
-                    Process subProcess =  repositoryService.getBpmnModel(subProcessDefinition.getId()).getMainProcess();
-                    StartEvent subStartEvent = (StartEvent) subProcess.getInitialFlowElement();
-                    FlowNode subFirstNode =(FlowNode) subStartEvent.getOutgoingFlows().get(0).getTargetFlowElement();
-                    FlowElementConfig subFirstNodeConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(subProcessDefinition.getId(),subFirstNode.getId());
-                    FlowElementConfigModel configModel = EntityModelUtil.toFlowElementConfigMode(subFirstNodeConfig);
-                    //查找子流程配置的部门
-                    ProcessDefinitionConfig config = processDefinitionConfigRepository.findByProcessDefinitionId(subProcessDefinition.getId());
-                    String depts = config.getDepartmentId();
-                    if(StringUtils.isBlank(depts)){ //未配置子流程部门
-                        FlowElementModel subFlow = new FlowElementModel();
-                        subFlow.setId(subFirstNode.getId());
-                        subFlow.setName(subFirstNode.getName());
-                        subFlow.setFlowElementType(FlowElementType.USER_TASK);
-                        subFlow.setParentId( callActivity.getId() );
-                        subFlow.setParentName( callActivity.getName() );
-                        subFlow.setParentType( FlowElementType.CALL_ACTIVITY);
-                        subFlow.setModelKey(subModel);
-                        subFlow.setConfig(configModel);
-                        subFlowList.add(subFlow);
-                    }
-                    else{
-                        String[] arr = depts.split(",");
-                        for(String d : arr ){
-                            FlowElementModel subFlow = new FlowElementModel();
-                            subFlow.setId(subFirstNode.getId());
-                            subFlow.setName(subFirstNode.getName());
-                            subFlow.setFlowElementType(FlowElementType.USER_TASK);
-                            subFlow.setParentId( callActivity.getId() );
-                            subFlow.setParentType( FlowElementType.CALL_ACTIVITY);
-                            subFlow.setParentName( callActivity.getName() );
-                            subFlow.setDepartmentId(d);
-                            subFlow.setModelKey(subModel);
-                            subFlow.setConfig(configModel);
-                            subFlowList.add(subFlow);
-                        }
-                    }
-                }
-            }
             //子流程
             else if(targetFlowElement instanceof SubProcess){
                 SubProcess subProcess = (SubProcess)targetFlowElement;
@@ -194,6 +141,10 @@ public class FlowableTaskService {
                     flowList.add(flow);
                     flowIdList.add(flow.getId());
                 }
+            }
+            //调用活动
+            else if(targetFlowElement instanceof CallActivity){
+                subFlowList = getCallActivityTask(processDefinitionId,(CallActivity)targetFlowElement);
             }
             //其他类型节点
             else{
@@ -224,14 +175,17 @@ public class FlowableTaskService {
         ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
         BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
         List<Activity> activityList = managementService.executeCommand(new FindNextActivityCmd(execution, bpmnModel));
+
         List<FlowElementModel> flowList = new ArrayList<>();
         List<String> flowIdList =  new ArrayList<>();
+        List<FlowElementModel> subFlowList =  new ArrayList<>();
 
         activityList.forEach( activity -> {
 
             FlowElementModel model =  new FlowElementModel();
             model.setId(activity.getId());
             model.setName(activity.getName());
+
             if(activity instanceof UserTask){
                 MultiInstanceLoopCharacteristics multiInstance = activity.getLoopCharacteristics();
                 if(multiInstance!=null){
@@ -245,9 +199,15 @@ public class FlowableTaskService {
                     model.setParentId( ((SubProcess)container).getId() );
                     model.setParentName( ((SubProcess) container).getName() );
                 }
-            }else if(activity instanceof CallActivity){
-                model.setFlowElementType(FlowElementType.CALL_ACTIVITY);
-            }else {
+                //设置任务组信息(下一个环节有多个时需要选择，如一条线连到普通任务节点，另一条线连到并行网关分支)
+                //TODO 调用活动修改完需要继续设置
+                setFlowElementGroup(activity,execution.getActivityId(),model);
+            }
+            //调用活动
+            else if(activity instanceof CallActivity){
+                subFlowList.addAll( getCallActivityTask(task.getProcessDefinitionId(),(CallActivity)activity) );
+            }
+            else {
                 throw new WorkflowException("不支持的节点类型：processDefinitionId="+task.getProcessDefinitionId()+"  flowElementId="+task.getTaskDefinitionKey());
             }
 
@@ -261,6 +221,91 @@ public class FlowableTaskService {
 
         return flowList;
 
+    }
+
+
+    private List<FlowElementModel> getCallActivityTask(String processDefinitionId,CallActivity callActivity){
+        List<FlowElementModel> subFlowList =  new ArrayList<>();
+        FlowElementConfig callActivityConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinitionId,callActivity.getId());
+        String subProcessModel= callActivityConfig.getSubProcessModel();
+        if(StringUtils.isBlank(subProcessModel)) throw new WorkflowException(callActivity.getName()+"未配置子流程：processDefinitionId:"+processDefinitionId);
+        if(subProcessModel.endsWith(",")) subProcessModel = subProcessModel.substring(0,subProcessModel.length()-1);
+        String[]  subModelArr = subProcessModel.split(",");
+
+        for(String subModel : subModelArr ){
+            ProcessDefinition subProcessDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionKey(subModel).latestVersion().singleResult();
+            if(subProcessDefinition==null) throw new WorkflowException("配置的子流程：modelId:"+subModel +"未部署");
+
+            //查找子流程第一个节点及该节点配置
+            Process subProcess =  repositoryService.getBpmnModel(subProcessDefinition.getId()).getMainProcess();
+            StartEvent subStartEvent = (StartEvent) subProcess.getInitialFlowElement();
+            FlowNode subFirstNode =(FlowNode) subStartEvent.getOutgoingFlows().get(0).getTargetFlowElement();
+            FlowElementConfig subFirstNodeConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(subProcessDefinition.getId(),subFirstNode.getId());
+            FlowElementConfigModel configModel = EntityModelUtil.toFlowElementConfigMode(subFirstNodeConfig);
+            //查找子流程配置的部门
+            ProcessDefinitionConfig config = processDefinitionConfigRepository.findByProcessDefinitionId(subProcessDefinition.getId());
+            String depts = config.getDepartmentId();
+            if(StringUtils.isBlank(depts)){ //未配置子流程部门（调用活动节点配置的子流程数量为实际发起的子流程数量）
+                FlowElementModel subFlow = new FlowElementModel();
+                subFlow.setId(subFirstNode.getId());
+                subFlow.setName(subFirstNode.getName());
+                subFlow.setFlowElementType(FlowElementType.USER_TASK);
+                subFlow.setParentId( callActivity.getId() );
+                subFlow.setParentName( callActivity.getName() );
+                subFlow.setParentType( FlowElementType.CALL_ACTIVITY);
+                subFlow.setModelKey(subModel);
+                subFlow.setConfig(configModel);
+                subFlowList.add(subFlow);
+            }
+            else{ //子流程配置了部门（实际发起的子流程数量 = 各子流程中配置的部门数之和 ）
+                String[] arr = depts.split(",");
+                for(String d : arr ){
+                    FlowElementModel subFlow = new FlowElementModel();
+                    subFlow.setId(subFirstNode.getId());
+                    subFlow.setName(subFirstNode.getName());
+                    subFlow.setFlowElementType(FlowElementType.USER_TASK);
+                    subFlow.setParentId( callActivity.getId() );
+                    subFlow.setParentType( FlowElementType.CALL_ACTIVITY);
+                    subFlow.setParentName( callActivity.getName() );
+                    subFlow.setDepartmentId(d);
+                    subFlow.setModelKey(subModel);
+                    subFlow.setConfig(configModel);
+                    subFlowList.add(subFlow);
+                }
+            }
+        }
+        return subFlowList;
+    }
+
+
+    /**
+     * 任务节点分组
+     *
+     * @author  zhaoyao
+     * @param activity 节点信息
+     * @param rootId 根节点 ID
+     * @param model 分组信息要封装到的对象
+     */
+    private void setFlowElementGroup(FlowNode activity, String rootId, FlowElementModel model){
+        List<SequenceFlow> incomingFlows = activity.getIncomingFlows();
+        for(SequenceFlow line : incomingFlows){
+            FlowElement sourceFlow = line.getSourceFlowElement();
+            if(sourceFlow.getId().equals(rootId)){
+                model.setGroupId(activity.getId());
+                if(StringUtils.isNotBlank(activity.getName())){
+                    model.setGroupName(activity.getName());
+                }
+                else{
+                    if(activity instanceof ExclusiveGateway) model.setGroupName("互斥网关任务");
+                    else if(activity instanceof ParallelGateway) model.setGroupName("并行网关任务");
+                    else if(activity instanceof InclusiveGateway) model.setGroupName("包含网关任务");
+                    else model.setGroupName("其他任务");
+                }
+                return;
+            }else if(sourceFlow instanceof Gateway){
+                setFlowElementGroup((FlowNode)sourceFlow,rootId,model);
+            }
+        }
     }
 
 
