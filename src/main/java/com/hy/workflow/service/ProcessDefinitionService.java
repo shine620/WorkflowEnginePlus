@@ -7,7 +7,6 @@ import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
 import com.hy.workflow.model.FlowElementConfigModel;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
-import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.repository.ProcessDefinitionConfigRepository;
@@ -23,11 +22,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
-import javax.transaction.Transactional;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.criteria.*;
 import java.util.*;
 
 @Service
@@ -48,6 +47,9 @@ public class ProcessDefinitionService {
 
     @Autowired
     private BusinessProcessRepository businessProcessRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /**
      * 删除流程部署
@@ -217,7 +219,7 @@ public class ProcessDefinitionService {
 
 
     /**
-     * 获取任务节点配置列表
+     * 查询流程定义配置列表
      *
      * @author  zhaoyao
      * @param  model 组合条件参数封装
@@ -236,6 +238,34 @@ public class ProcessDefinitionService {
             configModelList.add(EntityModelUtil.toProcessDefinitionConfigModel(bp));
         });
         return configModelList;
+    }
+
+
+    /**
+     * 查询最新的流程定义配置列表
+     *
+     * @author  zhaoyao
+     * @param  model 组合条件参数封装
+     * @return List<ProcessDefinitionConfigModel> 流程定义配置数据
+     */
+    public List<ProcessDefinitionConfigModel> findProcessDefinitionConfigLaterstList(ProcessDefinitionConfigModel model ) {
+
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ProcessDefinitionConfigModel> criteriaQuery = criteriaBuilder.createQuery(ProcessDefinitionConfigModel.class);
+        Root<ProcessDefinitionConfig> root = criteriaQuery.from(ProcessDefinitionConfig.class);
+        //注意这里的字段设置顺序要与ProcessDefinitionConfigModel构造方法一致
+        criteriaQuery.multiselect(root.get("processDefinitionId"),root.get("processDefinitionKey"),
+                root.get("processDefinitionName"),criteriaBuilder.max(root.get("version")).alias("version"),root.get("description"),root.get("suspended"),
+                root.get("createUserId"),root.get("createDeptId"),root.get("createUnitId"),
+                root.get("createTime"),root.get("updateTime"),root.get("businessType"),
+                root.get("departmentId"),root.get("unitId"),root.get("deploymentId"),
+                root.get("callable"),root.get("defaultProcess"));
+        Predicate[] predicates= generatePredicates(model,root,criteriaBuilder);
+        Predicate predicate = criteriaBuilder.and( predicates );
+        Order createTimeOrder = criteriaBuilder.desc(root.get("createTime"));
+        criteriaQuery.where(predicate).groupBy(root.get("processDefinitionKey")).orderBy(createTimeOrder);
+        List<ProcessDefinitionConfigModel> configs = entityManager.createQuery(criteriaQuery).getResultList();
+        return configs;
     }
 
 

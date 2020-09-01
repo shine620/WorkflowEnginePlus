@@ -10,12 +10,12 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.flowable.editor.language.json.converter.util.CollectionUtils;
+import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.TaskService;
 import org.flowable.identitylink.api.IdentityLink;
 import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.Task;
-import org.flowable.task.api.TaskQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,44 +36,19 @@ public class TaskController {
     private TaskService taskService;
 
     @Autowired
+    private HistoryService historyService;
+
+    @Autowired
     private FlowableTaskService flowableTaskService;
 
 
     @ApiOperation(value = "查询待办列表", tags = { "Tasks" })
     @GetMapping(value = "/tasks/todoTaskList", produces = "application/json")
-    public PageBean<TaskModel> getTodoTaskList(
-         @ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,@ApiParam(name = "userId",value = "用户ID") @RequestParam String userId,
-         @ApiParam @RequestParam(defaultValue = "1") Integer pageNum,@ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
-
-        ArrayList taskList =  new ArrayList();
-        TaskQuery taskQuery  = taskService.createTaskQuery()
-                .taskCandidateOrAssigned(userId)
-                .orderByTaskCreateTime()
-                .desc();
-        Long totalCount = taskQuery.count();
-
-        List<Task> todoTaskList ;
-        if(loadAll==true){
-            todoTaskList = taskQuery.list();
-        }else{
-            int startIndex = (pageNum-1)*20;
-            todoTaskList = taskQuery.listPage(startIndex,pageSize);
-        }
-
-        todoTaskList.forEach(task -> {
-            TaskModel taskModel = new TaskModel();
-            taskModel.setTaskId(task.getId());
-            taskModel.setTaskName(task.getName());
-            taskModel.setTaskDefinitionKey(task.getTaskDefinitionKey());
-            taskModel.setCreateTime(task.getCreateTime());
-            taskModel.setAssignee(task.getAssignee());
-            taskModel.setProcessInstanceId(task.getProcessInstanceId());
-            taskList.add(taskModel);
-        });
-
-        PageBean taskPage = new PageBean(pageNum,pageSize,totalCount);
-        taskPage.setData(taskList);
-        return taskPage;
+    public PageBean<TaskModel> getTodoTaskList(@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,
+         @ApiParam @RequestParam(defaultValue = "1") Integer pageNum,@ApiParam @RequestParam(defaultValue = "10") Integer pageSize,
+         @ApiParam(value = "用户ID") @RequestParam String userId ) {
+        PageBean<TaskModel> taskPage = flowableTaskService.getTodoTaskList(loadAll,pageNum,pageSize,userId);
+        return  taskPage;
     }
 
 

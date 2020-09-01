@@ -1,15 +1,15 @@
 package com.hy.workflow.service;
 
 import com.hy.workflow.base.FindNextActivityCmd;
+import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
+import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
 import com.hy.workflow.enums.ApproveType;
 import com.hy.workflow.enums.FlowElementType;
-import com.hy.workflow.model.ApproveRequest;
-import com.hy.workflow.model.FlowElementConfigModel;
-import com.hy.workflow.model.FlowElementModel;
-import com.hy.workflow.model.ProcessDefinitionConfigModel;
+import com.hy.workflow.model.*;
+import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.repository.ProcessDefinitionConfigRepository;
 import com.hy.workflow.util.EntityModelUtil;
@@ -20,18 +20,18 @@ import org.flowable.bpmn.model.*;
 import org.flowable.bpmn.model.Process;
 import org.flowable.engine.*;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
-import org.flowable.engine.impl.util.condition.ConditionUtil;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
+import org.flowable.task.api.TaskQuery;
+import org.flowable.task.service.impl.persistence.entity.TaskEntityImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.transaction.Transactional;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 @Service
 @Transactional
@@ -60,6 +60,9 @@ public class FlowableTaskService {
 
     @Autowired
     private ProcessDefinitionService processDefinitionService;
+
+    @Autowired
+    private BusinessProcessRepository businessProcessRepository;
 
 
     /**
@@ -230,60 +233,6 @@ public class FlowableTaskService {
     }
 
 
-    /*private List<FlowElementModel> getCallActivityTask(String processDefinitionId,CallActivity callActivity){
-        List<FlowElementModel> subFlowList =  new ArrayList<>();
-        FlowElementConfig callActivityConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinitionId,callActivity.getId());
-        String subProcessModel= callActivityConfig.getSubProcessModel();
-        if(StringUtils.isBlank(subProcessModel)) throw new WorkflowException(callActivity.getName()+"未配置子流程：processDefinitionId:"+processDefinitionId);
-        if(subProcessModel.endsWith(",")) subProcessModel = subProcessModel.substring(0,subProcessModel.length()-1);
-        String[]  subModelArr = subProcessModel.split(",");
-
-        for(String subModel : subModelArr ){
-            ProcessDefinition subProcessDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionKey(subModel).latestVersion().singleResult();
-            if(subProcessDefinition==null) throw new WorkflowException("配置的子流程：modelId:"+subModel +"未部署");
-
-            //查找子流程第一个节点及该节点配置
-            Process subProcess =  repositoryService.getBpmnModel(subProcessDefinition.getId()).getMainProcess();
-            StartEvent subStartEvent = (StartEvent) subProcess.getInitialFlowElement();
-            FlowNode subFirstNode =(FlowNode) subStartEvent.getOutgoingFlows().get(0).getTargetFlowElement();
-            FlowElementConfig subFirstNodeConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(subProcessDefinition.getId(),subFirstNode.getId());
-            FlowElementConfigModel configModel = EntityModelUtil.toFlowElementConfigMode(subFirstNodeConfig);
-            //查找子流程配置的部门
-            ProcessDefinitionConfig config = processDefinitionConfigRepository.findByProcessDefinitionId(subProcessDefinition.getId());
-            String depts = config.getDepartmentId();
-            if(StringUtils.isBlank(depts)){ //未配置子流程部门（调用活动节点配置的子流程数量为实际发起的子流程数量）
-                FlowElementModel subFlow = new FlowElementModel();
-                subFlow.setId(subFirstNode.getId());
-                subFlow.setName(subFirstNode.getName());
-                subFlow.setFlowElementType(FlowElementType.USER_TASK);
-                subFlow.setParentId( callActivity.getId() );
-                subFlow.setParentName( callActivity.getName() );
-                subFlow.setParentType( FlowElementType.CALL_ACTIVITY);
-                subFlow.setModelKey(subModel);
-                subFlow.setConfig(configModel);
-                subFlowList.add(subFlow);
-            }
-            else{ //子流程配置了部门（实际发起的子流程数量 = 各子流程中配置的部门数之和 ）
-                String[] arr = depts.split(",");
-                for(String d : arr ){
-                    FlowElementModel subFlow = new FlowElementModel();
-                    subFlow.setId(subFirstNode.getId());
-                    subFlow.setName(subFirstNode.getName());
-                    subFlow.setFlowElementType(FlowElementType.USER_TASK);
-                    subFlow.setParentId( callActivity.getId() );
-                    subFlow.setParentType( FlowElementType.CALL_ACTIVITY);
-                    subFlow.setParentName( callActivity.getName() );
-                    subFlow.setDepartmentId(d);
-                    subFlow.setModelKey(subModel);
-                    subFlow.setConfig(configModel);
-                    subFlowList.add(subFlow);
-                }
-            }
-        }
-        return subFlowList;
-    }
-*/
-
     /**
      * 任务节点分组
      *
@@ -327,7 +276,7 @@ public class FlowableTaskService {
         ProcessDefinitionConfigModel model = new ProcessDefinitionConfigModel();
         model.setDepartmentId(departmentId);
         //获取该单位所有的流程定义配置
-        List<ProcessDefinitionConfigModel> modelConfigList = processDefinitionService.findProcessDefinitionConfigList(model);
+        List<ProcessDefinitionConfigModel> modelConfigList = processDefinitionService.findProcessDefinitionConfigLaterstList(model);
         modelConfigList.forEach( modelConfig -> {
             ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionId(modelConfig.getProcessDefinitionId()).singleResult();
             //查找子流程第一个节点及该节点配置
@@ -340,6 +289,13 @@ public class FlowableTaskService {
             FlowElementModel node = new FlowElementModel();
             node.setId(subFirstNode.getId());
             node.setName(subFirstNode.getName());
+            MultiInstanceLoopCharacteristics multiInstance = ((UserTask)subFirstNode).getLoopCharacteristics();
+            if(multiInstance!=null){
+                if(multiInstance.isSequential()) node.setFlowElementType(FlowElementType.SEQUENTIAL_TASK);
+                else node.setFlowElementType(FlowElementType.PARALLEL_TASK);
+            }else{
+                node.setFlowElementType(FlowElementType.USER_TASK);
+            }
             node.setFlowElementType(FlowElementType.USER_TASK);
             node.setConfig(configModel);
             node.setModelKey(processDefinition.getKey());
@@ -347,6 +303,58 @@ public class FlowableTaskService {
             nodeList.add(node);
         });
         return nodeList;
+    }
+
+    @Transactional(propagation= Propagation.NOT_SUPPORTED)
+    public PageBean<TaskModel>  getTodoTaskList(Boolean loadAll, Integer pageNum, Integer pageSize, String userId) {
+        ArrayList<TaskModel> taskList =  new ArrayList();
+        TaskQuery taskQuery  = taskService.createTaskQuery().taskCandidateOrAssigned(userId).orderByTaskCreateTime().desc();
+        Long totalCount = taskQuery.count();
+
+        List<Task> todoTaskList ;
+        if(loadAll==true){
+            todoTaskList = taskQuery.list();
+        }else{
+            int startIndex = (pageNum-1)*20;
+            todoTaskList = taskQuery.listPage(startIndex,pageSize);
+        }
+
+        Set<String> instanceIds = new HashSet<>();
+        todoTaskList.forEach(task -> {
+            TaskModel taskModel = new TaskModel();
+            taskModel.setTaskId(task.getId());
+            taskModel.setTaskName(task.getName());
+            taskModel.setTaskDefinitionKey(task.getTaskDefinitionKey());
+            taskModel.setProcessInstanceId(task.getProcessInstanceId());
+            taskModel.setProcessDefinitionId(task.getProcessDefinitionId());
+            taskModel.setCreateTime(task.getCreateTime());
+            taskModel.setClaimTime(task.getClaimTime());
+            taskModel.setAssignee(task.getAssignee());
+            taskModel.setOwner(task.getOwner());
+            taskModel.setExecutionId(task.getExecutionId());
+            taskList.add(taskModel);
+            instanceIds.add(task.getProcessInstanceId());
+        });
+
+        //查询流程实例相关信息
+        List<BusinessProcess> businessList = businessProcessRepository.findAllById(instanceIds);
+        Map<String,BusinessProcess> bsMap = new HashMap<>();
+        businessList.forEach(businessProcess -> {
+            bsMap.put(businessProcess.getProcessInstanceId(),businessProcess);
+        });
+
+       //设置流程实例名称
+        taskList.forEach(taskModel -> {
+            businessList.forEach(businessProcess -> {
+                BusinessProcess bp = bsMap.get(taskModel.getProcessInstanceId());
+                taskModel.setProcessInstanceName(bp.getProcessInstanceName());
+            });
+        });
+
+        PageBean taskPage = new PageBean(pageNum,pageSize,totalCount);
+        taskPage.setData(taskList);
+
+        return taskPage;
     }
 
 

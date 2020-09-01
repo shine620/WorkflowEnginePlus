@@ -38,6 +38,33 @@ public class ProcessDefinitionConfigModel {
 
     private Boolean defaultProcess;
 
+    public ProcessDefinitionConfigModel(){ }
+
+    //构造器参数顺序要与findProcessDefinitionConfigLaterstList方法查询顺序一致
+    public ProcessDefinitionConfigModel(
+                String processDefinitionId, String processDefinitionKey, String processDefinitionName,
+                Integer version, String description, Boolean suspended, String createUserId, String createDeptId, String createUnitId,
+                Date createTime, Date updateTime, String businessType, String departmentId, String unitId, String deploymentId,
+                Boolean callable, Boolean defaultProcess) {
+        this.processDefinitionId = processDefinitionId;
+        this.processDefinitionKey = processDefinitionKey;
+        this.processDefinitionName = processDefinitionName;
+        this.version = version;
+        this.description = description;
+        this.suspended = suspended;
+        this.createUserId = createUserId;
+        this.createDeptId = createDeptId;
+        this.createUnitId = createUnitId;
+        this.createTime = createTime;
+        this.updateTime = updateTime;
+        this.businessType = businessType;
+        this.departmentId = departmentId;
+        this.unitId = unitId;
+        this.deploymentId = deploymentId;
+        this.callable = callable;
+        this.defaultProcess = defaultProcess;
+    }
+
     public String getProcessDefinitionId() {
         return processDefinitionId;
     }

@@ -1,13 +1,18 @@
 package com.hy.workflow.model;
 
 import com.hy.workflow.enums.ApproveType;
+import io.swagger.annotations.ApiModelProperty;
 
+import java.util.List;
 import java.util.Map;
 
 public class ApproveRequest {
 
+
+    @ApiModelProperty(value="流程实例ID",required = true, example="170052")
     private String processInstanceId;
 
+    @ApiModelProperty(value="任务ID",required = true, example="1200")
     private String taskId;
 
     private String opinion;

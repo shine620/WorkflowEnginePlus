@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
@@ -31,7 +32,6 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
-import javax.transaction.Transactional;
 import java.util.*;
 
 @Service
@@ -79,15 +79,11 @@ public class ProcessInstanceService {
         所以流程实例启动完毕之后，需要设置为null，防止多线程的时候出问题*/
         Authentication.setAuthenticatedUserId(null);
 
-        //调用活动多实例的子流程模型ID(支持并行网关上的调用活动多实例)
-        Map<String,List<String>>  modelkeyMap = new HashMap();
         //设置下一环节处理人
         Map<String,Object> variables = new HashMap();
-        //设置调用活动多实例的处理人信息
-        List<Map<String,Object>> callActivityMultiInfo = new ArrayList<>();
-
+        List<Map<String,Object>> callActivityMultiInfo = new ArrayList<>();  //设置调用活动多实例的处理人信息
+        Map<String,List<String>>  modelkeyMap = new HashMap();              //调用活动多实例的子流程模型ID(支持并行网关上的调用活动多实例)
         if(startRequest.getNextTaskList()!=null){
-
             startRequest.getNextTaskList().forEach(nextTask ->{
                 //用户任务
                  if(FlowElementType.USER_TASK.equals(nextTask.getFlowElementType())){
@@ -140,10 +136,9 @@ public class ProcessInstanceService {
 
         // 第一个节点要自动审批(承办人发起环节)
         List<Task> firstTaskList = taskService.createTaskQuery().processInstanceId(instance.getId()).list();
-        firstTaskList.forEach(task -> {
-            taskService.setAssignee(task.getId(),startRequest.getStartUserId());
-            taskService.complete(task.getId(),variables);
-        });
+        if(firstTaskList.size()>1) throw new WorkflowException("开始节点后存在两条输出线！");
+        taskService.setAssignee(firstTaskList.get(0).getId(),startRequest.getStartUserId());
+        taskService.complete(firstTaskList.get(0).getId(),variables);
 
         //保存业务实例数据，一个流程实例对应一个业务实例
         BusinessProcess bp = new BusinessProcess();
