@@ -52,6 +52,14 @@ public class TaskController {
     }
 
 
+    @ApiOperation(value = "获取待办详情", tags = { "Tasks" })
+    @GetMapping(value = "/tasks/todoTaskInfo", produces = "application/json")
+    public TaskModel todoTaskInfo(@ApiParam(value = "任务ID") @RequestParam String taskId ) {
+        TaskModel task = flowableTaskService.todoTaskInfo(taskId);
+        return  task;
+    }
+
+
     @ApiOperation(value = "签收任务", tags = { "Tasks" })
     @GetMapping(value = "/tasks/claimTask", produces = "application/json")
     public void claimTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId,
@@ -104,6 +112,15 @@ public class TaskController {
     }
 
 
+    @ApiOperation(value = "结束任务", tags = { "Tasks" })
+    @PostMapping(value = "/tasks/endTask", produces = "application/json")
+    public void endTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId) {
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if(task==null) throw new WorkflowException("该任务不存在，无法结束："+taskId);
+        taskService.complete(taskId);
+    }
+
+
     @ApiOperation(value = "获取第一个审批节点", tags = { "Tasks" })
     @GetMapping(value = "/tasks/getFirstNode/{processDefinitionId}", produces = "application/json")
     public List<FlowElementModel> getFirstNode(@ApiParam(name = "processDefinitionId") @PathVariable String processDefinitionId) {
@@ -113,9 +130,9 @@ public class TaskController {
 
 
     @ApiOperation(value = "根据当前任务获取下一审批节点",tags = { "Tasks" })
-    @GetMapping(value = "/tasks/getNextUserTask", produces = "application/json")
-    public List<FlowElementModel>  getNextUserTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId) {
-        List<FlowElementModel>  flowList =  flowableTaskService.getNextUserTask(taskId);
+    @GetMapping(value = "/tasks/getNextFlowNode", produces = "application/json")
+    public List<FlowElementModel>  getNextFlowNode(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId) {
+        List<FlowElementModel>  flowList =  flowableTaskService.getNextFlowNode(taskId);
         return flowList;
     }
 

@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.util.Date;
+import java.util.List;
 
 @ApiModel(value="任务信息",description="待办或已办信息封装对象")
 public class TaskModel {
@@ -51,6 +52,11 @@ public class TaskModel {
     @ApiModelProperty(value="执行实例ID")
     private String executionId;
 
+    @ApiModelProperty(value="候选用户")
+    private List<String> candidateUsers;
+
+    @ApiModelProperty(value="候选组")
+    private List<String> candidateGroups;
 
 
     public String getTaskId() {
@@ -164,4 +170,22 @@ public class TaskModel {
     public void setExecutionId(String executionId) {
         this.executionId = executionId;
     }
+
+    public List<String> getCandidateUsers() {
+        return candidateUsers;
+    }
+
+    public void setCandidateUsers(List<String> candidateUsers) {
+        this.candidateUsers = candidateUsers;
+    }
+
+    public List<String> getCandidateGroups() {
+        return candidateGroups;
+    }
+
+    public void setCandidateGroups(List<String> candidateGroups) {
+        this.candidateGroups = candidateGroups;
+    }
+
+
 }

@@ -1,13 +1,15 @@
 package com.hy.workflow.model;
 
 import com.hy.workflow.enums.ApproveType;
+import com.hy.workflow.enums.FlowElementType;
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 import java.util.Map;
 
-public class ApproveRequest {
-
+@ApiModel(value="ApproveRequest对象",description="封装流程审批请求参数")
+public class ApproveRequest extends ApproveInfo{
 
     @ApiModelProperty(value="流程实例ID",required = true, example="170052")
     private String processInstanceId;
@@ -15,32 +17,9 @@ public class ApproveRequest {
     @ApiModelProperty(value="任务ID",required = true, example="1200")
     private String taskId;
 
-    private String opinion;
-
-    private Map<String,Object> variables;
-
+    @ApiModelProperty(value="审批类型")
     private ApproveType approveType;
 
-    private String rejectActivityId;
-
-    private String turnUserId;
-
-
-    public String getTaskId() {
-        return taskId;
-    }
-
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
-    }
-
-    public String getOpinion() {
-        return opinion;
-    }
-
-    public void setOpinion(String opinion) {
-        this.opinion = opinion;
-    }
 
     public String getProcessInstanceId() {
         return processInstanceId;
@@ -50,13 +29,15 @@ public class ApproveRequest {
         this.processInstanceId = processInstanceId;
     }
 
-    public Map<String, Object> getVariables() {
-        return variables;
+    public String getTaskId() {
+        return taskId;
     }
 
-    public void setVariables(Map<String, Object> variables) {
-        this.variables = variables;
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
     }
+
+
 
     public ApproveType getApproveType() {
         return approveType;
@@ -64,22 +45,6 @@ public class ApproveRequest {
 
     public void setApproveType(ApproveType approveType) {
         this.approveType = approveType;
-    }
-
-    public String getRejectActivityId() {
-        return rejectActivityId;
-    }
-
-    public void setRejectActivityId(String rejectActivityId) {
-        this.rejectActivityId = rejectActivityId;
-    }
-
-    public String getTurnUserId() {
-        return turnUserId;
-    }
-
-    public void setTurnUserId(String turnUserId) {
-        this.turnUserId = turnUserId;
     }
 
 

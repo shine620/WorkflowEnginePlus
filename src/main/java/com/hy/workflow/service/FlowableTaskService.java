@@ -22,6 +22,8 @@ import org.flowable.engine.*;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.identitylink.api.IdentityLink;
+import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.Task;
 import org.flowable.task.api.TaskQuery;
 import org.flowable.task.service.impl.persistence.entity.TaskEntityImpl;
@@ -78,7 +80,23 @@ public class FlowableTaskService {
         taskService.addComment(approveRequest.getTaskId(), approveRequest.getProcessInstanceId(), approveRequest.getOpinion());
         //审批通过
         if(ApproveType.APPROVE.equals(approveType)){
-            taskService.complete(approveRequest.getTaskId(),approveRequest.getVariables());
+
+            //设置下一环节处理信息
+            Map<String,Object> variables = approveRequest.getVariables();
+            WorkflowUtil.setNextTaskInfoVariables(variables,approveRequest);
+
+            //判断选择分支的情况
+            List<FlowElementModel>  nextNodes = getNextFlowNode(approveRequest.getTaskId());
+            /*approveRequest.getNextTaskList().forEach(nextTask ->{
+            });*/
+            Task task = taskService.createTaskQuery().taskId(approveRequest.getTaskId()).singleResult();
+            ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
+            BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
+            FlowNode currentNode = (FlowNode) bpmnModel.getFlowElement(execution.getActivityId());
+            List<SequenceFlow> outLines = currentNode.getOutgoingFlows();
+            //outLines.remove(0);
+
+            taskService.complete(approveRequest.getTaskId(),variables);
         }
         //驳回
         else if(ApproveType.REJECT.equals(approveType)){
@@ -153,6 +171,8 @@ public class FlowableTaskService {
                 flow.setId(callActivity.getId());
                 flow.setName(callActivity.getName());
                 flow.setFlowElementType(FlowElementType.CALL_ACTIVITY);
+                flowList.add(flow);
+                flowIdList.add(flow.getId());
             }
             //其他类型节点
             else{
@@ -175,25 +195,26 @@ public class FlowableTaskService {
      * @param taskId 任务ID
      * @return List<FlowElementModel>
      */
-    public List<FlowElementModel> getNextUserTask(String taskId) {
+    public List<FlowElementModel> getNextFlowNode(String taskId) {
 
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
         BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
-        List<Activity> activityList = managementService.executeCommand(new FindNextActivityCmd(execution, bpmnModel));
+        List<FlowNode> activityList = managementService.executeCommand(new FindNextActivityCmd(execution, bpmnModel));
 
         List<FlowElementModel> flowList = new ArrayList<>();
         List<String> flowIdList =  new ArrayList<>();
 
-        activityList.forEach( activity -> {
+        activityList.forEach( flowNode -> {
 
             FlowElementModel model =  new FlowElementModel();
-            model.setId(activity.getId());
-            model.setName(activity.getName());
+            model.setId(flowNode.getId());
+            model.setName(flowNode.getName());
 
             //普通任务及嵌入式子流程
-            if(activity instanceof UserTask){
-                MultiInstanceLoopCharacteristics multiInstance = activity.getLoopCharacteristics();
+            if(flowNode instanceof UserTask){
+                UserTask userTask = (UserTask)flowNode;
+                MultiInstanceLoopCharacteristics multiInstance = userTask.getLoopCharacteristics();
                 if(multiInstance!=null){
                     if(multiInstance.isSequential()) model.setFlowElementType(FlowElementType.SEQUENTIAL_TASK);
                     else model.setFlowElementType(FlowElementType.PARALLEL_TASK);
@@ -201,27 +222,33 @@ public class FlowableTaskService {
                     model.setFlowElementType(FlowElementType.USER_TASK);
                 }
                 //属于子流程任务节点时设置Parent和分组
-                FlowElementsContainer container = activity.getParentContainer();
+                FlowElementsContainer container = flowNode.getParentContainer();
                 if(container instanceof SubProcess){
                     model.setParentId( ((SubProcess)container).getId() );
                     model.setParentName( ((SubProcess) container).getName() );
                     setFlowElementGroup((SubProcess)container,execution.getActivityId(),model);
                 }else{
                     //设置任务组信息(下一环节有多个时需要选择，如一条线连到普通任务节点，另一条线连到并行网关分支，根据分组选择)
-                    setFlowElementGroup(activity,execution.getActivityId(),model);
+                    setFlowElementGroup(flowNode,execution.getActivityId(),model);
                 }
             }
             //调用活动
-            else if(activity instanceof CallActivity){
+            else if(flowNode instanceof CallActivity){
                 model.setFlowElementType(FlowElementType.CALL_ACTIVITY);
-                setFlowElementGroup(activity,execution.getActivityId(),model);
+                setFlowElementGroup(flowNode,execution.getActivityId(),model);
+            }
+            //结束
+            else if(flowNode instanceof EndEvent){
+                model.setFlowElementType(FlowElementType.END_EVENT);
+                if(StringUtils.isBlank(model.getName())) model.setName("结束");
+                setFlowElementGroup(flowNode,execution.getActivityId(),model);
             }
             else {
                 throw new WorkflowException("不支持的节点类型：processDefinitionId="+task.getProcessDefinitionId()+"  flowElementId="+task.getTaskDefinitionKey());
             }
 
             flowList.add(model);
-            flowIdList.add(activity.getId());
+            flowIdList.add(flowNode.getId());
 
         });
         //查询并填充节点配置信息
@@ -237,23 +264,24 @@ public class FlowableTaskService {
      * 任务节点分组
      *
      * @author  zhaoyao
-     * @param activity 节点信息
+     * @param flowNode 节点信息
      * @param rootId 根节点 ID
      * @param model 分组信息要封装到的对象
      */
-    private void setFlowElementGroup(FlowNode activity, String rootId, FlowElementModel model){
-        List<SequenceFlow> incomingFlows = activity.getIncomingFlows();
+    private void setFlowElementGroup(FlowNode flowNode, String rootId, FlowElementModel model){
+        List<SequenceFlow> incomingFlows = flowNode.getIncomingFlows();
         for(SequenceFlow line : incomingFlows){
             FlowElement sourceFlow = line.getSourceFlowElement();
             if(sourceFlow.getId().equals(rootId)){
-                model.setGroupId(activity.getId());
-                if(StringUtils.isNotBlank(activity.getName())){
-                    model.setGroupName(activity.getName());
+                model.setGroupId(flowNode.getId());
+                if(StringUtils.isNotBlank(flowNode.getName())){
+                    model.setGroupName(flowNode.getName());
                 }
                 else{
-                    if(activity instanceof ExclusiveGateway) model.setGroupName("互斥网关任务");
-                    else if(activity instanceof ParallelGateway) model.setGroupName("并行网关任务");
-                    else if(activity instanceof InclusiveGateway) model.setGroupName("包含网关任务");
+                    if(flowNode instanceof ExclusiveGateway) model.setGroupName("互斥网关任务");
+                    else if(flowNode instanceof ParallelGateway) model.setGroupName("并行网关任务");
+                    else if(flowNode instanceof InclusiveGateway) model.setGroupName("包含网关任务");
+                    else if(flowNode instanceof EndEvent) model.setGroupName("结束");
                     else model.setGroupName("其他任务");
                 }
                 return;
@@ -305,6 +333,17 @@ public class FlowableTaskService {
         return nodeList;
     }
 
+
+    /**
+     * 根据用户ID查询待办信息
+     *
+     * @author  zhaoyao
+     * @param loadAll 是否查询全部
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @param userId 用户ID
+     * @return PageBean<TaskModel>
+     */
     @Transactional(propagation= Propagation.NOT_SUPPORTED)
     public PageBean<TaskModel>  getTodoTaskList(Boolean loadAll, Integer pageNum, Integer pageSize, String userId) {
         ArrayList<TaskModel> taskList =  new ArrayList();
@@ -357,6 +396,51 @@ public class FlowableTaskService {
         return taskPage;
     }
 
+
+    /**
+     * 查询待办任务信息
+     *
+     * @author  zhaoyao
+     * @param taskId 任务ID
+     * @return TaskModel
+     */
+    public TaskModel todoTaskInfo(String taskId) {
+        TaskModel model = null;
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if(task!=null){
+            model = new TaskModel();
+            model.setTaskId(task.getId());
+            model.setTaskName(task.getName());
+            model.setTaskDefinitionKey(task.getTaskDefinitionKey());
+            model.setProcessInstanceId(task.getProcessInstanceId());
+            model.setProcessDefinitionId(task.getProcessDefinitionId());
+            model.setAssignee(task.getAssignee());
+            model.setOwner(task.getOwner());
+            model.setCreateTime(task.getCreateTime());
+            model.setClaimTime(task.getClaimTime());
+            model.setExecutionId(task.getExecutionId());
+        }
+        //流程实例和业务信息
+        Optional<BusinessProcess> optional = businessProcessRepository.findById(task.getProcessInstanceId());
+        BusinessProcess bp = optional.isPresent()?optional.get():null;
+        model.setProcessInstanceName(bp.getProcessInstanceName());
+        //候选用户及候选组信息
+        List<String> candidateUsers = new ArrayList<>();
+        List<String> candidateGroups =  new ArrayList<>();
+        List<IdentityLink> identityLinks = taskService.getIdentityLinksForTask(taskId);
+        for (IdentityLink identityLink : identityLinks) {
+            if ( IdentityLinkType.CANDIDATE.equalsIgnoreCase(identityLink.getType()))  {
+                if (StringUtils.isNotBlank(identityLink.getUserId())) {
+                    candidateUsers.add(identityLink.getUserId());
+                } else if (StringUtils.isNotBlank(identityLink.getGroupId())) {
+                    candidateGroups.add(identityLink.getGroupId());
+                }
+            }
+        }
+        model.setCandidateUsers(candidateUsers);
+        model.setCandidateGroups(candidateGroups);
+        return model;
+    }
 
 
 }

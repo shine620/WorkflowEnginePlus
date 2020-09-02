@@ -11,13 +11,13 @@ import org.flowable.engine.impl.util.condition.ConditionUtil;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FindNextActivityCmd implements Command<List<Activity>> {
+public class FindNextActivityCmd implements Command<List<FlowNode>> {
 
     private final ExecutionEntity execution;
     private final BpmnModel bpmnModel;
 
     // 返回下一审批节点
-    private List<Activity> activityList = new ArrayList<>();
+    private List<FlowNode> activityList = new ArrayList<>();
 
 
     /**
@@ -33,7 +33,7 @@ public class FindNextActivityCmd implements Command<List<Activity>> {
 
 
     @Override
-    public List<Activity> execute(CommandContext commandContext) {
+    public List<FlowNode> execute(CommandContext commandContext) {
         FlowElement currentNode = bpmnModel.getFlowElement(execution.getActivityId());
         List<SequenceFlow> outgoingFlows = ((FlowNode) currentNode).getOutgoingFlows();
         if (CollectionUtils.isNotEmpty(outgoingFlows)) {
@@ -83,6 +83,15 @@ public class FindNextActivityCmd implements Command<List<Activity>> {
         else if(targetFlow instanceof CallActivity){
             CallActivity callActivity = (CallActivity)targetFlow;
             activityList.add( callActivity );
+        }
+        else if(targetFlow instanceof EndEvent){
+            EndEvent endEvent = (EndEvent)targetFlow;
+            FlowElementsContainer container = targetFlow.getParentContainer();
+            if(container instanceof SubProcess){
+                findNextActivity(((SubProcess) container).getOutgoingFlows(), execution);
+            }else{
+                activityList.add( endEvent );
+            }
         }
 
         /*else if(targetFlow instanceof ExclusiveGateway){
