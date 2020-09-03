@@ -58,6 +58,12 @@ public class TaskModel {
     @ApiModelProperty(value="候选组")
     private List<String> candidateGroups;
 
+    @ApiModelProperty(value="总的会签数")
+    private int nrOfInstances;
+
+    @ApiModelProperty(value="已完成会签数")
+    private int nrOfCompletedInstances;
+
 
     public String getTaskId() {
         return taskId;
@@ -185,6 +191,22 @@ public class TaskModel {
 
     public void setCandidateGroups(List<String> candidateGroups) {
         this.candidateGroups = candidateGroups;
+    }
+
+    public int getNrOfInstances() {
+        return nrOfInstances;
+    }
+
+    public void setNrOfInstances(int nrOfInstances) {
+        this.nrOfInstances = nrOfInstances;
+    }
+
+    public int getNrOfCompletedInstances() {
+        return nrOfCompletedInstances;
+    }
+
+    public void setNrOfCompletedInstances(int nrOfCompletedInstances) {
+        this.nrOfCompletedInstances = nrOfCompletedInstances;
     }
 
 

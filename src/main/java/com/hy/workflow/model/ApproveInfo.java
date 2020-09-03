@@ -45,6 +45,10 @@ public class ApproveInfo {
         @ApiModelProperty(value="模型Key",example="Model1000")
         private String modelKey;
 
+        @ApiModelProperty(value="组ID",example="ChengBanRen")
+        private String  groupId;
+
+
         public String getFlowElementId() {
             return flowElementId;
         }
@@ -108,6 +112,15 @@ public class ApproveInfo {
         public void setParentFlowElementId(String parentFlowElementId) {
             this.parentFlowElementId = parentFlowElementId;
         }
+
+        public String getGroupId() {
+            return groupId;
+        }
+
+        public void setGroupId(String groupId) {
+            this.groupId = groupId;
+        }
+
 
     }
 

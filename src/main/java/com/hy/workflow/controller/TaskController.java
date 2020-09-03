@@ -52,7 +52,7 @@ public class TaskController {
     }
 
 
-    @ApiOperation(value = "获取待办详情", tags = { "Tasks" })
+    @ApiOperation(value = "查询待办详情", tags = { "Tasks" })
     @GetMapping(value = "/tasks/todoTaskInfo", produces = "application/json")
     public TaskModel todoTaskInfo(@ApiParam(value = "任务ID") @RequestParam String taskId ) {
         TaskModel task = flowableTaskService.todoTaskInfo(taskId);

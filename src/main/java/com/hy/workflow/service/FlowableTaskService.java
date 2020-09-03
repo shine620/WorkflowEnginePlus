@@ -21,6 +21,7 @@ import org.flowable.bpmn.model.Process;
 import org.flowable.engine.*;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
 import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.engine.runtime.ActivityInstance;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.identitylink.api.IdentityLink;
 import org.flowable.identitylink.api.IdentityLinkType;
@@ -85,21 +86,52 @@ public class FlowableTaskService {
             Map<String,Object> variables = approveRequest.getVariables();
             WorkflowUtil.setNextTaskInfoVariables(variables,approveRequest);
 
-            //判断选择分支的情况
-            List<FlowElementModel>  nextNodes = getNextFlowNode(approveRequest.getTaskId());
-            /*approveRequest.getNextTaskList().forEach(nextTask ->{
-            });*/
+            //会签非最后一个实例时不设置下环节处理人信息
             Task task = taskService.createTaskQuery().taskId(approveRequest.getTaskId()).singleResult();
+            Map<String,Object> processVariables = runtimeService.getVariables(task.getExecutionId());
+            if(processVariables.get("nrOfInstances")!=null){
+                int nrOfInstances = (Integer) processVariables.get("nrOfInstances");
+                int nrOfCompletedInstances = (Integer) processVariables.get("nrOfCompletedInstances");
+                if( nrOfInstances!=0 && nrOfCompletedInstances != nrOfInstances -1){
+                    taskService.complete(approveRequest.getTaskId(),variables);
+                    return;
+                }
+            }
+
+            //所选择的流程分支节点
+            List<String> selectOutNode = new ArrayList<>();
+            approveRequest.getNextTaskList().forEach(nextTask ->{
+                selectOutNode.add(nextTask.getGroupId());
+            });
+
+            //当前节点信息
             ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
             BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
             FlowNode currentNode = (FlowNode) bpmnModel.getFlowElement(execution.getActivityId());
-            List<SequenceFlow> outLines = currentNode.getOutgoingFlows();
-            //outLines.remove(0);
 
+            //剪断当前节点未选择的下一分支流向
+            List<SequenceFlow> removedNodes = new ArrayList<>();
+            List<SequenceFlow> outLines = currentNode.getOutgoingFlows();
+            Iterator<SequenceFlow> it = outLines.listIterator();
+            while (it.hasNext()){
+                SequenceFlow sequenceFlow = it.next();
+                FlowElement target = sequenceFlow.getTargetFlowElement();
+                if(!selectOutNode.contains(target.getId())){
+                    removedNodes.add( sequenceFlow );
+                    it.remove();
+                }
+            }
+
+            //审批任务
             taskService.complete(approveRequest.getTaskId(),variables);
+
+            //审批完成后还原原来的分支流向
+            outLines.addAll(removedNodes);
         }
-        //驳回
+        //驳回  TODO
         else if(ApproveType.REJECT.equals(approveType)){
+
+
         }
         //转办
         else if(ApproveType.TURN.equals(approveType)){
@@ -204,6 +236,14 @@ public class FlowableTaskService {
 
         List<FlowElementModel> flowList = new ArrayList<>();
         List<String> flowIdList =  new ArrayList<>();
+
+        //最后一个会签环实例才可以选择下一节点处理人信息(非固定人员时可选)
+        Map<String,Object> variables = runtimeService.getVariables(task.getExecutionId());
+        if(variables.get("nrOfInstances")!=null){
+            int nrOfInstances = (Integer) variables.get("nrOfInstances");
+            int nrOfCompletedInstances = (Integer) variables.get("nrOfCompletedInstances");
+            if( nrOfInstances!=0 && nrOfCompletedInstances != nrOfInstances -1) return flowList;
+        }
 
         activityList.forEach( flowNode -> {
 
@@ -335,7 +375,7 @@ public class FlowableTaskService {
 
 
     /**
-     * 根据用户ID查询待办信息
+     * 根据用户ID查询待办信息列表
      *
      * @author  zhaoyao
      * @param loadAll 是否查询全部
@@ -437,6 +477,13 @@ public class FlowableTaskService {
                 }
             }
         }
+
+        Map<String,Object> variables = runtimeService.getVariables(task.getExecutionId());
+        if(variables.get("nrOfInstances")!=null){
+            model.setNrOfInstances((Integer) variables.get("nrOfInstances"));
+            model.setNrOfCompletedInstances((Integer) variables.get("nrOfCompletedInstances"));
+        }
+
         model.setCandidateUsers(candidateUsers);
         model.setCandidateGroups(candidateGroups);
         return model;
