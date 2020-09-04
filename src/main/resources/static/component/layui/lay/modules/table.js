@@ -718,7 +718,6 @@ layui.define(['laytpl', 'laypage', 'layer', 'form', 'util'], function(exports){
       var pageSize = request.limitName;
       var paramJson = {startPage:curr,pageSize:options.limit};
       options.url = that.replaceParamVal(options.url ,paramJson);
-      console.info(options.url );
 
       that.loading();
 

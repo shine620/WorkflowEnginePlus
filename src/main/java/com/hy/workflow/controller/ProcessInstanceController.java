@@ -184,6 +184,18 @@ public class ProcessInstanceController {
     }
 
 
+    @ApiOperation(value = "删除多个流程实例", tags = { "Process Instances" })
+    @DeleteMapping("/process-instances/batchDeleteInstances")
+    public void batchDeleteInstances(HttpServletResponse response,
+         @ApiParam(name = "processInstanceIds",value = "多个流程实例ID") @RequestParam String[] processInstanceIds,
+         @ApiParam(name = "deleteReason",value = "删除原因") @RequestParam(required = false) String deleteReason) {
+        for(String processInstanceId : processInstanceIds ){
+            processInstanceService.deleteProcessInstance(processInstanceId,deleteReason);
+        }
+        response.setStatus(HttpStatus.NO_CONTENT.value());
+    }
+
+
     @ApiOperation(value = "挂起流程实例", tags = { "Process Instances" })
     @GetMapping(value = "/process-instances/suspendProcessInstance")
     public void suspendProcessInstance( HttpServletResponse response,

@@ -47,6 +47,11 @@
 		    </div>
 		</body>
 
+		<script type="text/html" id="todoInstance-toolbar">
+			<button class="pear-btn pear-btn-danger pear-btn-md" lay-event="batchRemove">
+				<i class="layui-icon layui-icon-delete"></i>批量删除
+			</button>
+		</script>
 
         <!--挂起、删除和查看按钮-->
 		<script type="text/html" id="instance-bar">
@@ -80,6 +85,7 @@
 		
 		        let cols = [
 		            [
+						{type:'checkbox'},
 		                {title: 'ID', field: 'processInstanceId', align:'left',sort:true,width:80},
 		                {title: '名称', field: 'processInstanceName', align:'left'},
 		                {title: '发起人', field: 'startUserId', align:'left',sort:true,width:100},
@@ -98,6 +104,7 @@
 		            page: true ,
 		            cols: cols ,
 		            skin: 'line',
+					toolbar: '#todoInstance-toolbar',
 					where:{ended: false},
                     limits: [5,10, 20, 30, 40, 50],
 					method:'post',
@@ -122,7 +129,17 @@
 					}
 		        });
 
-                //搜索框提交事件
+		        //批量删除
+				table.on('toolbar(instance-table)', function(obj){
+					if(obj.event === 'refresh'){
+						window.refresh();
+					} else if(obj.event === 'batchRemove'){
+						window.batchRemove(obj);
+					}
+				});
+
+
+				//搜索框提交事件
 		        form.on('submit(instance-query)', function(data){
 					var fileds = data.field;
 					var paramJson = tableInstance.config.where;
@@ -200,6 +217,36 @@
 		            });
 		        }
 
+				window.batchRemove = function(obj){
+					let data = table.checkStatus(obj.config.id).data;
+					if(data.length === 0){
+						layer.msg("未选中数据",{icon:3,time:1000});
+						return false;
+					}
+					let processInstanceIds=[];
+					for(let i = 0;i<data.length;i++){
+						processInstanceIds[i] = data[i].processInstanceId;
+					}
+					layer.confirm('确定要删除这些流程实例吗？', {icon: 3, title:'提示'}, function(index){
+						layer.close(index);
+						let loading = layer.load();
+						$.ajax({
+							url: MODULE_PATH+"batchDeleteInstances?processInstanceIds="+processInstanceIds,
+							dataType:'json',
+							type:'delete',
+							success:function(result){
+								layer.close(loading);
+								table.reload('instance-table');
+								layer.msg("删除成功",{icon:1,time:1000});
+							},
+							error:function(XMLHttpRequest){
+								layer.msg("删除失败",{icon:2,time:1000});
+								layer.close(loading);
+								console.info(XMLHttpRequest.responseText);
+							}
+						})
+					});
+				}
 		
 		        window.refresh = function(param){
 		            table.reload('instance-table');
