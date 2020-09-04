@@ -105,8 +105,8 @@ public class WorkflowUtil {
 
         });
 
-        variables.put( "callActivityList", callActivityMultiInfo );
-        variables.put( "callActivityModelKeyMap", modelkeyMap );
+        if(callActivityMultiInfo.size()>0) variables.put( "callActivityList", callActivityMultiInfo );
+        if(modelkeyMap.size()>0) variables.put( "callActivityModelKeyMap", modelkeyMap );
 
         return variables;
 

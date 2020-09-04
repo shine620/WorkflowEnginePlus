@@ -11,6 +11,8 @@ import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.ValidateUtil;
 import com.hy.workflow.util.WorkflowUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.flowable.bpmn.model.*;
+import org.flowable.bpmn.model.Process;
 import org.flowable.common.engine.impl.identity.Authentication;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
@@ -80,15 +82,43 @@ public class ProcessInstanceService {
         所以流程实例启动完毕之后，需要设置为null，防止多线程的时候出问题*/
         Authentication.setAuthenticatedUserId(null);
 
-        //设置下一环节处理人
+        //设置下一环节处理信息
         Map<String,Object> variables = new HashMap();
         WorkflowUtil.setNextTaskInfoVariables(variables,startRequest);
+
+        //所选择的流程分支节点
+        List<String> selectOutNode = new ArrayList<>();
+        startRequest.getNextTaskList().forEach(nextTask ->{
+            selectOutNode.add(nextTask.getGroupId());
+        });
+
+        //获取第一个节点
+        BpmnModel model = repositoryService.getBpmnModel(processDefinition.getId());
+        Process process =  model.getMainProcess();
+        FlowElement startNode = process.getInitialFlowElement();
+        FlowNode firstNode =(FlowNode) ((StartEvent) startNode).getOutgoingFlows().get(0).getTargetFlowElement();
+        List<SequenceFlow> outLines = firstNode.getOutgoingFlows();
+
+        //剪断当前节点未选择的下一分支流向
+        List<SequenceFlow> removedNodes = new ArrayList<>();
+        Iterator<SequenceFlow> it = outLines.listIterator();
+        while ( it.hasNext() && selectOutNode.size()>0 ){
+            SequenceFlow sequenceFlow = it.next();
+            FlowElement target = sequenceFlow.getTargetFlowElement();
+            if(!selectOutNode.contains(target.getId())){
+                removedNodes.add( sequenceFlow );
+                it.remove();
+            }
+        }
 
         // 第一个节点要自动审批(承办人发起环节)
         List<Task> firstTaskList = taskService.createTaskQuery().processInstanceId(instance.getId()).list();
         if(firstTaskList.size()>1) throw new WorkflowException("开始节点后存在两条输出线！");
         taskService.setAssignee(firstTaskList.get(0).getId(),startRequest.getStartUserId());
         taskService.complete(firstTaskList.get(0).getId(),variables);
+
+        //第一节点自动审批后还原原来的分支流向
+        outLines.addAll(removedNodes);
 
         //保存业务实例数据，一个流程实例对应一个业务实例
         BusinessProcess bp = new BusinessProcess();

@@ -166,6 +166,8 @@ public class FlowableTaskService {
 
             FlowElement targetFlowElement = outgoingFlow.getTargetFlowElement();
             FlowElementModel flow = new FlowElementModel();
+            flow.setGroupId(targetFlowElement.getId());
+            flow.setGroupName(targetFlowElement.getName());
 
             //用户任务（包含会签）
             if (targetFlowElement instanceof UserTask) {
@@ -193,6 +195,8 @@ public class FlowableTaskService {
                     flow.setParentId( subProcess.getId() );
                     flow.setParentName( subProcess.getName() );
                     flow.setParentType( FlowElementType.SUB_PROCESS);
+                    flow.setGroupId(userTask.getId());
+                    flow.setGroupName(userTask.getName());
                     flowList.add(flow);
                     flowIdList.add(flow.getId());
                 }
