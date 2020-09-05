@@ -39,7 +39,11 @@
         <appender-ref ref="FILE"/>
     </root>
 
-    <!--org.flowable包下的日志在控制台打印Debug级别-->
+    <!-- 打印SQL及其参数，可配置在applicaiton.properties -->
+    <!--<logger name="org.hibernate.SQL" level="DEBUG"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="trace" />-->
+
+    <!-- org.flowable包下的日志在控制台打印Debug级别 -->
     <!--<logger name="org.flowable" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
     </logger>-->
