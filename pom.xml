@@ -87,7 +87,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-starter</artifactId>
-            <version>1.1.22</version>
+            <version>1.1.23</version>
         </dependency>
         <!-- swagger -->
         <dependency>
@@ -106,6 +106,24 @@
             <artifactId>fastjson</artifactId>
             <version>1.2.73</version>
         </dependency>
+        <!-- H2 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.200</version>
+        </dependency>
+        <!-- Oracle -->
+        <dependency>
+            <groupId>cn.easyproject</groupId>
+            <artifactId>ojdbc7</artifactId>
+            <version>12.1.0.2.0</version>
+        </dependency>
+        <!--ojbc6不支持自动建表-->
+        <!--<dependency>
+            <groupId>cn.easyproject</groupId>
+            <artifactId>ojdbc6</artifactId>
+            <version>11.2.0.4</version>
+        </dependency>-->
     </dependencies>
 
 
