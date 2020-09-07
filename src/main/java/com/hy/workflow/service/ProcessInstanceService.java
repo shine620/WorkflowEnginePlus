@@ -88,9 +88,11 @@ public class ProcessInstanceService {
 
         //所选择的流程分支节点
         List<String> selectOutNode = new ArrayList<>();
-        startRequest.getNextTaskList().forEach(nextTask ->{
-            selectOutNode.add(nextTask.getGroupId());
-        });
+        if(startRequest.getNextTaskList()!=null){
+            startRequest.getNextTaskList().forEach(nextTask ->{
+                selectOutNode.add(nextTask.getGroupId());
+            });
+        }
 
         //获取第一个节点
         BpmnModel model = repositoryService.getBpmnModel(processDefinition.getId());
@@ -112,10 +114,9 @@ public class ProcessInstanceService {
         }
 
         // 第一个节点要自动审批(承办人发起环节)
-        List<Task> firstTaskList = taskService.createTaskQuery().processInstanceId(instance.getId()).list();
-        if(firstTaskList.size()>1) throw new WorkflowException("开始节点后存在两条输出线！");
-        taskService.setAssignee(firstTaskList.get(0).getId(),startRequest.getStartUserId());
-        taskService.complete(firstTaskList.get(0).getId(),variables);
+        Task firstTask = taskService.createTaskQuery().processInstanceId(instance.getId()).singleResult();
+        taskService.setAssignee(firstTask.getId(),startRequest.getStartUserId());
+        taskService.complete(firstTask.getId(),variables);
 
         //第一节点自动审批后还原原来的分支流向
         outLines.addAll(removedNodes);
