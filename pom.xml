@@ -22,14 +22,6 @@
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-tomcat</artifactId>
                 </exclusion>
             </exclusions>
@@ -71,8 +63,8 @@
             <version>6.5.0</version>
             <exclusions>
                 <exclusion>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-slf4j-impl</artifactId>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-log4j2</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -95,7 +87,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-starter</artifactId>
-            <version>1.1.22</version>
+            <version>1.1.23</version>
         </dependency>
         <!-- swagger -->
         <dependency>
@@ -108,26 +100,31 @@
             <artifactId>springfox-swagger2</artifactId>
             <version>2.9.2</version>
         </dependency>
-        <!-- Logger -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.30</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.30</version>
-        </dependency>
         <!-- Fastjson -->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>1.2.73</version>
         </dependency>
-
+        <!-- H2 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.200</version>
+        </dependency>
+        <!-- Oracle -->
+        <dependency>
+            <groupId>cn.easyproject</groupId>
+            <artifactId>ojdbc7</artifactId>
+            <version>12.1.0.2.0</version>
+        </dependency>
+        <!--ojbc6不支持自动建表-->
+        <!--<dependency>
+            <groupId>cn.easyproject</groupId>
+            <artifactId>ojdbc6</artifactId>
+            <version>11.2.0.4</version>
+        </dependency>-->
     </dependencies>
-
 
 
     <dependencyManagement>
@@ -139,9 +136,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-models</artifactId>
+                <version>1.5.22</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
-
 
     <build>
         <plugins>

@@ -54,6 +54,7 @@ public class Application {
                 engineConfiguration.setActivityFontName("宋体");
                 engineConfiguration.setLabelFontName("宋体");
                 engineConfiguration.setAnnotationFontName("宋体");
+                //ID生成策略，使用数值而非UUID
                 engineConfiguration.setIdGenerator(new DbIdGenerator());
                 //注册事件监听器（ 也可以用流程模型XML添加监听属性 flowable:eventListener ）
                 Map<String, List<FlowableEventListener>> typedListeners = new HashMap<String, List<FlowableEventListener>>();
