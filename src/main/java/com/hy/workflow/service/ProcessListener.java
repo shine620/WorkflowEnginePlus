@@ -82,7 +82,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
 
     private void taskCreated(TaskEntityImpl taskEntity){
 
-        logger.error("任务生成监听事件执行 processInstanceId: "+taskEntity.getProcessInstanceId() +"  taskId:"+taskEntity.getId());
+        logger.info("任务生成监听事件执行 processInstanceId:{}  taskId:{}",taskEntity.getProcessInstanceId(),taskEntity.getId());
         //如果是并行发起其他任务和调用活动子流程，子流程中的第一个审批节点ID和父流程中并行发起的其他任务节点ID不能相同
         Map taskKeyVariable = taskEntity.getVariable(taskEntity.getTaskDefinitionKey(),Map.class);
         List<Map<String,Object>> callActivityList = taskEntity.getVariable("callActivityList",List.class);
@@ -130,13 +130,13 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
 
 
     private void taskCompleted(TaskEntityImpl taskEntity){
-        logger.error("任务完成监听事件执行 processInstanceId: "+taskEntity.getProcessInstanceId() +"  taskId:"+taskEntity.getId());
+        logger.info("任务完成监听事件执行 processInstanceId:{}  taskId:{}",taskEntity.getProcessInstanceId(),taskEntity.getId());
         Map<String, Object>  variables = taskEntity.getVariables();
     }
 
 
     private void multiInstanceActivityStarted(FlowableMultiInstanceActivityEventImpl multiIEvent){
-        logger.error("多实例开始 processInstanceId: "+multiIEvent.getProcessInstanceId() +"  activityId:"+multiIEvent.getActivityId());
+        logger.info("多实例开始 processInstanceId:{}  activityId:{}",multiIEvent.getProcessInstanceId(),multiIEvent.getActivityId());
         DelegateExecution execution = multiIEvent.getExecution();
         //调用活动多实例
         if(FlowElementType.CALL_ACTIVITY.equals(multiIEvent.getActivityType())){
@@ -160,7 +160,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
 
 
     private void processStarted(ExecutionEntityImpl execution){
-        logger.error("流程发起监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
+        logger.info("流程发起监听事件执行 processInstanceId:"+execution.getProcessInstanceId());
         ExecutionEntityImpl subProcessInstance = execution.getParent();
         if(subProcessInstance.getSuperExecution()!=null){ //子流程设置发起人和标题
             ExecutionEntity rootProcessInstance = execution.getRootProcessInstance();
@@ -176,13 +176,13 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
     }
 
     private void processCompleted(ExecutionEntityImpl execution){
-        logger.error("流程结束监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
+        logger.info("流程结束监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
         //TODO  此处应回调业务接口回写数据状态
     }
 
 
     private void historicProcessInstanceEnded(HistoricProcessInstanceEntityImpl execution){
-        logger.error("历史实例结束监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
+        logger.info("历史实例结束监听事件执行 processInstanceId:"+execution.getProcessInstanceId());
         Optional<BusinessProcess> op = businessProcessRepository.findById(execution.getProcessInstanceId());
         if(op.isPresent()){
             BusinessProcess bp = op.get();
