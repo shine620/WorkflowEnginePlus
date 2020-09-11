@@ -6,8 +6,11 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.flowable.engine.*;
+import org.flowable.engine.impl.runtime.ChangeActivityStateBuilderImpl;
 import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.engine.runtime.ChangeActivityStateBuilder;
+import org.flowable.engine.runtime.Execution;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
 import org.flowable.ui.modeler.repository.ModelRepository;
@@ -50,16 +53,68 @@ public class DemoController {
 
     @PostMapping(value="/sayHello",produces = "application/json")
     @ApiOperation(value = "创建模型", notes = "创建一个流程模型")
-    public String sayHello(
-            @ApiParam(required = true, name = "userName", value = "用户名") @RequestParam String userName
-    ) {
+    public String sayHello(@ApiParam(required = true, name = "userName") @RequestParam String userName) {
         return "你好: "+userName;
     }
 
-    @PostMapping(value="/process")
-    public void startProcessInstance(String processKey) {
-        demoService.startProcess(processKey);
+
+
+    @GetMapping(value = "/rejectTask/{taskId}")
+    public String rejectTask(@RequestParam String taskId,@RequestParam String targetNodeId) {
+
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+
+
+        // moveActivityIdsToSingleActivityId  这可以用于并行执行，如并行/包容网关
+        List<String> sourceNodes = new ArrayList<>();
+        sourceNodes.add(task.getTaskDefinitionKey());
+        runtimeService.createChangeActivityStateBuilder()
+                .processInstanceId(task.getProcessInstanceId())
+                .moveActivityIdsToSingleActivityId(sourceNodes, targetNodeId)
+                .changeState();
+
+
+        /*List<String > executionIds = new ArrayList<>();
+        Execution currentExecution= runtimeService.createExecutionQuery().executionId(task.getProcessInstanceId()).singleResult();
+        List<Execution> executions = runtimeService.createExecutionQuery().parentId(currentExecution.getRootProcessInstanceId()).list();
+        for (Execution execution : executions) {
+            //if(execution.getActivityId()!=null&&execution.getActivityId().equals("CCC")){
+                executionIds.add(execution.getId());
+            //}
+        }
+        runtimeService.createChangeActivityStateBuilder()
+                .moveExecutionsToSingleActivityId(executionIds, targetNodeId)
+                .changeState();*/
+
+       /* List<String> sourceNodes = new ArrayList<>();
+        sourceNodes.add(task.getTaskDefinitionKey());
+        runtimeService.createChangeActivityStateBuilder()
+                .processInstanceId(task.getProcessInstanceId())
+                .moveActivityIdToParentActivityId(task.getTaskDefinitionKey(), targetNodeId)
+                .changeState();*/
+
+        /*List<String> sourceNodes = new ArrayList<>();
+        //sourceNodes.add("ZiLiuCheng");
+        sourceNodes.add(task.getTaskDefinitionKey());
+        ChangeActivityStateBuilderImpl builder = (ChangeActivityStateBuilderImpl)runtimeService.createChangeActivityStateBuilder();
+        builder.moveActivityIdsToParentActivityId(sourceNodes, targetNodeId,null).processInstanceId(task.getProcessInstanceId()).changeState();*/
+
+        /*List<String > currentExecutionIds = new ArrayList<>();
+        List<Execution> executions = runtimeService.createExecutionQuery().parentId(task.getProcessInstanceId()).list();
+        for (Execution execution : executions) {
+            System.out.println("并行网关节点数："+execution.getActivityId());
+            currentExecutionIds.add(execution.getId());
+        }
+        runtimeService.createChangeActivityStateBuilder()
+                .moveExecutionsToSingleActivityId(currentExecutionIds, targetNodeId)
+                .changeState();*/
+
+
+
+        return "SUCCESS";
     }
+
+
 
 
     @GetMapping(value="/startProcess")
@@ -103,12 +158,8 @@ public class DemoController {
     }
 
 
-    @RequestMapping(value = "/hello",method = RequestMethod.GET)
-    public String hello() {
-        return "Hello World , I am a Demo!";
-    }
-
     public static void main(String[] args) {
+
         ProcessEngineConfiguration cfg = new StandaloneProcessEngineConfiguration()
                 .setJdbcUrl("jdbc:mysql://localhost:3306/flowable?useSSL=false&useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true")
                 .setJdbcUsername("zhaoyao")

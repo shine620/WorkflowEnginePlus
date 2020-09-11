@@ -14,6 +14,9 @@ public class ApproveInfo {
     @ApiModelProperty(value="审批意见",example="同意")
     private String opinion;
 
+    @ApiModelProperty(value="当前用户ID",example="张三")
+    private String userId;
+
     @ApiModelProperty(value="下一环节")
     private List<NextTask> nextTaskList;
 
@@ -147,6 +150,14 @@ public class ApproveInfo {
 
     public void setNextTaskList(List<NextTask> nextTaskList) {
         this.nextTaskList = nextTaskList;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
 

@@ -2,6 +2,7 @@ package com.hy.workflow.model;
 
 import com.hy.workflow.enums.ApproveType;
 import com.hy.workflow.enums.FlowElementType;
+import com.hy.workflow.enums.RejectType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -20,6 +21,66 @@ public class ApproveRequest extends ApproveInfo{
     @ApiModelProperty(value="审批类型")
     private ApproveType approveType;
 
+    @ApiModelProperty(value="驳回信息")
+    private RejectInfo rejectInfo;
+
+    public static class RejectInfo{
+
+        @ApiModelProperty(value="驳回类型")
+        private RejectType rejectType;
+
+        @ApiModelProperty(value="驳回节点ID", example="JingLi")
+        private String flowElementId;
+
+        @ApiModelProperty(value="驳回节点名称", example="经理审批")
+        private String flowElementName;
+
+        @ApiModelProperty(value="驳回节点类型", example=FlowElementType.USER_TASK)
+        private String flowElementType;
+
+        @ApiModelProperty(value="主流程实例ID",notes = "有值时为主流程节点", example="11000")
+        private String parentProcessInstanceId;
+
+        public RejectType getRejectType() {
+            return rejectType;
+        }
+
+        public void setRejectType(RejectType rejectType) {
+            this.rejectType = rejectType;
+        }
+
+        public String getParentProcessInstanceId() {
+            return parentProcessInstanceId;
+        }
+
+        public void setParentProcessInstanceId(String parentProcessInstanceId) {
+            this.parentProcessInstanceId = parentProcessInstanceId;
+        }
+
+        public String getFlowElementId() {
+            return flowElementId;
+        }
+
+        public void setFlowElementId(String flowElementId) {
+            this.flowElementId = flowElementId;
+        }
+
+        public String getFlowElementName() {
+            return flowElementName;
+        }
+
+        public void setFlowElementName(String flowElementName) {
+            this.flowElementName = flowElementName;
+        }
+
+        public String getFlowElementType() {
+            return flowElementType;
+        }
+
+        public void setFlowElementType(String flowElementType) {
+            this.flowElementType = flowElementType;
+        }
+    }
 
     public String getProcessInstanceId() {
         return processInstanceId;
@@ -37,8 +98,6 @@ public class ApproveRequest extends ApproveInfo{
         this.taskId = taskId;
     }
 
-
-
     public ApproveType getApproveType() {
         return approveType;
     }
@@ -47,5 +106,12 @@ public class ApproveRequest extends ApproveInfo{
         this.approveType = approveType;
     }
 
+    public RejectInfo getRejectInfo() {
+        return rejectInfo;
+    }
+
+    public void setRejectInfo(RejectInfo rejectInfo) {
+        this.rejectInfo = rejectInfo;
+    }
 
 }

@@ -6,12 +6,15 @@ import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.ProcessDefinitionConfig;
+import com.hy.workflow.entity.RejectRecord;
 import com.hy.workflow.enums.ApproveType;
 import com.hy.workflow.enums.FlowElementType;
+import com.hy.workflow.enums.RejectType;
 import com.hy.workflow.model.*;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.repository.ProcessDefinitionConfigRepository;
+import com.hy.workflow.repository.RejectRecordRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.WorkflowUtil;
 import org.apache.commons.collections.CollectionUtils;
@@ -19,14 +22,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.flowable.bpmn.model.*;
 import org.flowable.bpmn.model.Process;
 import org.flowable.engine.*;
+import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
+import org.flowable.engine.impl.persistence.entity.ExecutionEntityImpl;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ActivityInstance;
+import org.flowable.engine.runtime.Execution;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.identitylink.api.IdentityLink;
 import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.Task;
 import org.flowable.task.api.TaskQuery;
+import org.flowable.task.api.history.HistoricTaskInstance;
 import org.flowable.task.service.impl.persistence.entity.TaskEntityImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -67,6 +74,8 @@ public class FlowableTaskService {
     @Autowired
     private BusinessProcessRepository businessProcessRepository;
 
+    @Autowired
+    private RejectRecordRepository rejectRecordRepository;
 
     /**
      * 审批任务
@@ -76,10 +85,11 @@ public class FlowableTaskService {
      * @return List<FlowElementModel>
      */
     public void completeTask(ApproveRequest approveRequest) {
+
         ApproveType approveType = approveRequest.getApproveType();
-        //生成审批意见
-        taskService.addComment(approveRequest.getTaskId(), approveRequest.getProcessInstanceId(), approveRequest.getOpinion());
-        //审批通过
+        taskService.addComment(approveRequest.getTaskId(), approveRequest.getProcessInstanceId(), approveRequest.getOpinion());//生成审批意见
+
+         /** 审批通过 */
         if(ApproveType.APPROVE.equals(approveType)){
 
             //设置下一环节处理信息
@@ -100,46 +110,82 @@ public class FlowableTaskService {
 
             //所选择的流程分支节点
             List<String> selectOutNode = new ArrayList<>();
-            approveRequest.getNextTaskList().forEach(nextTask ->{
-                selectOutNode.add(nextTask.getGroupId());
-            });
+            if(approveRequest.getNextTaskList()!=null){
+                approveRequest.getNextTaskList().forEach(nextTask ->{
+                    selectOutNode.add(nextTask.getGroupId());
+                });
+            }
 
             //当前节点信息
             ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
             BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
             FlowNode currentNode = (FlowNode) bpmnModel.getFlowElement(execution.getActivityId());
 
-            //剪断当前节点未选择的下一分支流向
-            List<SequenceFlow> removedNodes = new ArrayList<>();
-            List<SequenceFlow> outLines = currentNode.getOutgoingFlows();
-            Iterator<SequenceFlow> it = outLines.listIterator();
-            while (it.hasNext()){
-                SequenceFlow sequenceFlow = it.next();
-                FlowElement target = sequenceFlow.getTargetFlowElement();
-                if(!selectOutNode.contains(target.getId())){
-                    removedNodes.add( sequenceFlow );
-                    it.remove();
-                }
+            //任务未签收时先进行签收
+            if(task.getAssignee()==null&&approveRequest.getUserId()!=null){
+                taskService.claim(task.getId(),approveRequest.getUserId());
             }
 
-            //审批任务
-            taskService.complete(approveRequest.getTaskId(),variables);
+            //审批流程节点
+            WorkflowUtil.completeTaskBySelectNode(selectOutNode,currentNode,taskService,task,variables);
 
-            //审批完成后还原原来的分支流向
-            outLines.addAll(removedNodes);
         }
-        //驳回  TODO
+        /** 驳回 */
         else if(ApproveType.REJECT.equals(approveType)){
-
-
+            rejectTask(approveRequest);
         }
-        //转办
+        /** 转办 */
         else if(ApproveType.TURN.equals(approveType)){
         }
-        //委托
+        /** 委托 */
         else if(ApproveType.ENTRUST.equals(approveType)){
         }
+
     }
+
+
+    /**
+     * 驳回任务
+     *
+     * @author  zhaoyao
+     * @param approveRequest 审批请求数据
+     */
+    private void rejectTask(ApproveRequest approveRequest){
+
+        Task task = taskService.createTaskQuery().taskId(approveRequest.getTaskId()).singleResult();
+        ProcessInstance instance = runtimeService.createProcessInstanceQuery().processInstanceId(task.getProcessInstanceId()).singleResult();
+        if(instance == null) throw new WorkflowException("驳回失败，流程信息不存在：ProcessInstanceId="+task.getProcessInstanceId());
+        BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
+        FlowNode currentNode = (FlowNode) bpmnModel.getFlowElement(task.getTaskDefinitionKey());
+
+        ApproveRequest.RejectInfo rejectInfo = approveRequest.getRejectInfo();
+        //正常驳回
+        if(rejectInfo.getParentProcessInstanceId()==null){
+
+        }else{ //驳回到主流程
+
+        }
+
+        //记录驳回信息
+        RejectRecord rejectRecord = new RejectRecord();
+        String businessKey = instance.getBusinessKey();
+        rejectRecord.setProcessInstanceId(task.getProcessInstanceId());
+        rejectRecord.setBusinessType(businessKey.split(";")[0]);
+        rejectRecord.setBusinessId(businessKey.split(";")[1]);
+        rejectRecord.setRejectTaskId(task.getId());
+        rejectRecord.setRejectElementId(currentNode.getId());
+        rejectRecord.setRejectElementName(currentNode.getName());
+        rejectRecord.setRejectUser(approveRequest.getUserId());
+        if(RejectType.RESUBMIT.equals(rejectInfo.getRejectType()))
+            rejectRecord.setRejectType(RejectType.RESUBMIT);
+        else if(RejectType.SUBMIT_REJECT.equals(rejectInfo.getRejectType()))
+            rejectRecord.setRejectType(RejectType.SUBMIT_REJECT);
+        rejectRecord.setRejectedElementId(rejectInfo.getFlowElementId());
+        rejectRecord.setRejectedElementName(rejectInfo.getFlowElementName());
+        rejectRecord.setCreateTime(new Date());
+        rejectRecordRepository.save(rejectRecord);
+    }
+
 
 
     /**
@@ -174,13 +220,7 @@ public class FlowableTaskService {
                 UserTask userTask =  (UserTask)targetFlowElement;
                 flow.setId(userTask.getId());
                 flow.setName(userTask.getName());
-                MultiInstanceLoopCharacteristics multiInstance = userTask.getLoopCharacteristics();
-                if(multiInstance!=null){
-                    if(multiInstance.isSequential()) flow.setFlowElementType(FlowElementType.SEQUENTIAL_TASK);
-                    else flow.setFlowElementType(FlowElementType.PARALLEL_TASK);
-                }else{
-                    flow.setFlowElementType(FlowElementType.USER_TASK);
-                }
+                flow.setFlowElementType(getUserTaskType(userTask));
                 flowList.add(flow);
                 flowIdList.add(flow.getId());
             }
@@ -258,13 +298,7 @@ public class FlowableTaskService {
             //普通任务及嵌入式子流程
             if(flowNode instanceof UserTask){
                 UserTask userTask = (UserTask)flowNode;
-                MultiInstanceLoopCharacteristics multiInstance = userTask.getLoopCharacteristics();
-                if(multiInstance!=null){
-                    if(multiInstance.isSequential()) model.setFlowElementType(FlowElementType.SEQUENTIAL_TASK);
-                    else model.setFlowElementType(FlowElementType.PARALLEL_TASK);
-                }else{
-                    model.setFlowElementType(FlowElementType.USER_TASK);
-                }
+                model.setFlowElementType(getUserTaskType(userTask));
                 //属于子流程任务节点时设置Parent和分组
                 FlowElementsContainer container = flowNode.getParentContainer();
                 if(container instanceof SubProcess){
@@ -361,14 +395,7 @@ public class FlowableTaskService {
             FlowElementModel node = new FlowElementModel();
             node.setId(subFirstNode.getId());
             node.setName(subFirstNode.getName());
-            MultiInstanceLoopCharacteristics multiInstance = ((UserTask)subFirstNode).getLoopCharacteristics();
-            if(multiInstance!=null){
-                if(multiInstance.isSequential()) node.setFlowElementType(FlowElementType.SEQUENTIAL_TASK);
-                else node.setFlowElementType(FlowElementType.PARALLEL_TASK);
-            }else{
-                node.setFlowElementType(FlowElementType.USER_TASK);
-            }
-            node.setFlowElementType(FlowElementType.USER_TASK);
+            node.setFlowElementType( getUserTaskType((UserTask)subFirstNode) );
             node.setConfig(configModel);
             node.setModelKey(processDefinition.getKey());
             node.setDepartmentId(departmentId);
@@ -492,6 +519,196 @@ public class FlowableTaskService {
         model.setCandidateGroups(candidateGroups);
         return model;
     }
+
+
+    /**
+     * 查询任务可驳回节点
+     *
+     * 流程驳回的基本规则：
+     * 1.审批过的历史节点
+     * 2.若存在并行或者包含网关节点，在同一条分支线上可驳回
+     * 3.若存在并行或者包含网关节点，且当前节点在网关合并之后，则不能驳回到网关上的某个节点，只能驳回到网关分支发起之前的节点
+     *
+     * @author  zhaoyao
+     * @param taskId 任务ID
+     * @return RejectTask
+     */
+    public RejectTask getRejectTask(String taskId) {
+
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        RejectTask rejectTask = new RejectTask();
+        rejectTask.setTaskId(task.getId());
+        rejectTask.setTaskName(task.getName());
+        rejectTask.setTaskDefinitionKey(task.getTaskDefinitionKey());
+
+        //审批过的历史节点ID
+        ArrayList<String> hisTaskKeys = new ArrayList<>();
+        List<HistoricTaskInstance> hisTaskList = historyService.createHistoricTaskInstanceQuery()
+                .processInstanceId(task.getProcessInstanceId()).finished()
+                .orderByHistoricTaskInstanceEndTime().desc()
+                .list();
+        hisTaskList.forEach(historicTaskInstance -> {
+            hisTaskKeys.add(historicTaskInstance.getTaskDefinitionKey());
+        });
+
+        BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
+        Process process =  bpmnModel.getMainProcess();
+        StartEvent startEvent = (StartEvent) process.getInitialFlowElement();
+        FlowNode firstNode =(FlowNode) (startEvent).getOutgoingFlows().get(0).getTargetFlowElement();
+        Map<String,FlowElement> elementMap = bpmnModel.getMainProcess().getFlowElementMap();
+        FlowNode currentNode= (FlowNode) elementMap.get(task.getTaskDefinitionKey());
+
+        //可驳回的历史审批节点(若存在并行网关，则与当前节点在同一条分支线上，不包括网关前的节点)
+        Map<String, FlowElement> afterGatewayMap = new HashMap<>();
+        afterGatewayHisTask(hisTaskKeys,currentNode,afterGatewayMap);
+
+        //并行或包含网关之前的可驳回历史节点
+        Map<String, FlowElement> beforeGatewayMap = new HashMap<>();
+        beforeGatewayHisTask(hisTaskKeys,firstNode,beforeGatewayMap);
+        if(!firstNode.getId().equals(currentNode.getId())) beforeGatewayMap.put(firstNode.getId(),firstNode);
+
+        //可驳回节点
+        Map<String, FlowElement> rejectable = new HashMap<>();
+        rejectable.putAll(afterGatewayMap);
+        rejectable.putAll(beforeGatewayMap);
+
+        //封装返回数据
+        List<RejectTask.TaskNode> rejectNodes = new ArrayList<>();
+        rejectable.forEach((id, flowElement) -> {
+            RejectTask.TaskNode node = new RejectTask.TaskNode();
+            node.setFlowElementId(id);
+            node.setFlowElementName(flowElement.getName());
+            if(flowElement instanceof UserTask){ //设置节点类型
+                node.setFlowElementType(getUserTaskType((UserTask)flowElement));
+            }else if(flowElement instanceof CallActivity){
+                node.setFlowElementType(FlowElementType.CALL_ACTIVITY);
+            }
+            rejectNodes.add(node);
+        });
+
+        //父流程上可驳回的流程节点
+        rejectNodes.addAll( getParentRejectableNode(task.getProcessInstanceId()) );
+
+        rejectTask.setHisTask(rejectNodes);
+
+        return rejectTask;
+    }
+
+
+    //并行或包含网关之前的可驳回历史节点，正向查找
+    private void beforeGatewayHisTask(ArrayList<String> hisTaskKeys, FlowNode currentNode, Map<String, FlowElement> map){
+        List<SequenceFlow> outLines = currentNode.getOutgoingFlows();
+        for(SequenceFlow sequenceFlow : outLines ) {
+            FlowElement targetFlow = sequenceFlow.getTargetFlowElement();
+            if(targetFlow instanceof SubProcess ){
+                Map<String,FlowElement> subNodes = WorkflowUtil.getSubProcessRejectableTask(hisTaskKeys, (SubProcess) targetFlow);
+                map.putAll(subNodes);
+                beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map);
+            }
+            else if(targetFlow instanceof CallActivity){
+                map.put(targetFlow.getId(),targetFlow);
+                beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map);
+            }
+            else{
+                if(hisTaskKeys.contains(targetFlow.getId())){
+                    if( targetFlow instanceof UserTask){
+                        map.put(targetFlow.getId(),targetFlow);
+                        beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map);
+                    }
+                }
+            }
+        }
+    }
+
+
+    //同一分支线上的历史节点(网关节点之后)，逆向查找
+    private void afterGatewayHisTask(ArrayList<String> hisTaskKeys, FlowNode currentNode, Map<String, FlowElement> map){
+        List<SequenceFlow> inLines = currentNode.getIncomingFlows();
+        for(SequenceFlow sequenceFlow : inLines ) {
+            FlowElement sourceFlow = sequenceFlow.getSourceFlowElement();
+            //嵌入式子流程
+            if(sourceFlow instanceof SubProcess ){
+                Map<String,FlowElement> subNodes = WorkflowUtil.getSubProcessRejectableTask(hisTaskKeys, (SubProcess) sourceFlow);
+                map.putAll(subNodes);
+                afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map);
+            }
+            //调用活动
+            else if(sourceFlow instanceof CallActivity){
+                map.put(sourceFlow.getId(),sourceFlow);
+                afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map);
+            }
+            //普通任务
+            else{
+                if(hisTaskKeys.contains(sourceFlow.getId())){
+                    if( sourceFlow instanceof UserTask){
+                        map.put(sourceFlow.getId(),sourceFlow);
+                        afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map);
+                    }
+                }
+            }
+        }
+    }
+
+
+    //查询父流程上可驳回的节点(子流程只能驳回到父流程上发起子流程时的节点，且该节点只能是用户任务节点)
+    private List<RejectTask.TaskNode> getParentRejectableNode(String processInstanceId){
+
+        ArrayList<RejectTask.TaskNode> list = new ArrayList();
+        //子流程实例Execution
+        ExecutionEntity instanceExecution =  (ExecutionEntity) runtimeService.createExecutionQuery().executionId(processInstanceId).singleResult();
+        //存在父流程
+        if(instanceExecution.getSuperExecutionId()!=null){
+
+            ExecutionEntity superExecution =  (ExecutionEntity) runtimeService.createExecutionQuery().executionId(instanceExecution.getSuperExecutionId()).singleResult();
+            HistoricProcessInstance hisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+            HistoricProcessInstance parentHisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(hisInstance.getSuperProcessInstanceId()).singleResult();
+
+            //父流程审批过的节点
+            ArrayList<String> hisTaskKeys = new ArrayList<>();
+            List<HistoricTaskInstance> hisTaskList = historyService.createHistoricTaskInstanceQuery()
+                    .processInstanceId(parentHisInstance.getId()).finished()
+                    .orderByHistoricTaskInstanceEndTime().desc()
+                    .list();
+            hisTaskList.forEach(historicTaskInstance -> {
+                hisTaskKeys.add(historicTaskInstance.getTaskDefinitionKey());
+            });
+
+            //对应的父流程调用活动节点
+            String parentActivityId = superExecution.getActivityId();
+            BpmnModel bpmnModel = repositoryService.getBpmnModel(parentHisInstance.getProcessDefinitionId());
+            FlowNode parentNode = (FlowNode) bpmnModel.getFlowElement(parentActivityId);
+            List<SequenceFlow> inLines = parentNode.getIncomingFlows();
+            for(SequenceFlow sequenceFlow : inLines ) {
+                FlowElement sourceFlow = sequenceFlow.getSourceFlowElement();
+                if(hisTaskKeys.contains(sourceFlow.getId())){
+                    if( sourceFlow instanceof UserTask){
+                        RejectTask.TaskNode node = new RejectTask.TaskNode();
+                        node.setFlowElementId(sourceFlow.getId());
+                        node.setFlowElementName(sourceFlow.getName());
+                        node.setFlowElementType(FlowElementType.USER_TASK);
+                        node.setParentProcessInstanceId(parentHisInstance.getId());
+                        list.add(node);
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+
+    //获取任务节点类型(串行会签、并行会签、用户任务)
+    private String getUserTaskType(UserTask userTask){
+        String type;
+        MultiInstanceLoopCharacteristics multiInstance = userTask.getLoopCharacteristics();
+        if(multiInstance!=null){
+            if(multiInstance.isSequential()) type= FlowElementType.SEQUENTIAL_TASK;
+            else type= FlowElementType.PARALLEL_TASK;
+        }else{
+            type= FlowElementType.USER_TASK;
+        }
+        return type;
+    }
+
 
 
 }

@@ -99,27 +99,12 @@ public class ProcessInstanceService {
         Process process =  model.getMainProcess();
         FlowElement startNode = process.getInitialFlowElement();
         FlowNode firstNode =(FlowNode) ((StartEvent) startNode).getOutgoingFlows().get(0).getTargetFlowElement();
-        List<SequenceFlow> outLines = firstNode.getOutgoingFlows();
 
-        //剪断当前节点未选择的下一分支流向
-        List<SequenceFlow> removedNodes = new ArrayList<>();
-        Iterator<SequenceFlow> it = outLines.listIterator();
-        while ( it.hasNext() && selectOutNode.size()>0 ){
-            SequenceFlow sequenceFlow = it.next();
-            FlowElement target = sequenceFlow.getTargetFlowElement();
-            if(!selectOutNode.contains(target.getId())){
-                removedNodes.add( sequenceFlow );
-                it.remove();
-            }
-        }
-
-        // 第一个节点要自动审批(承办人发起环节)
         Task firstTask = taskService.createTaskQuery().processInstanceId(instance.getId()).singleResult();
         taskService.setAssignee(firstTask.getId(),startRequest.getStartUserId());
-        taskService.complete(firstTask.getId(),variables);
 
-        //第一节点自动审批后还原原来的分支流向
-        outLines.addAll(removedNodes);
+        //第一个节点要自动审批(承办人发起环节)
+        WorkflowUtil.completeTaskBySelectNode(selectOutNode,firstNode,taskService,firstTask,variables);
 
         //保存业务实例数据，一个流程实例对应一个业务实例
         BusinessProcess bp = new BusinessProcess();

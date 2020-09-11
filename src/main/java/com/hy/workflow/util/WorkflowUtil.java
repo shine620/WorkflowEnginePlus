@@ -5,11 +5,10 @@ import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.ApproveInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.bpmn.model.*;
+import org.flowable.engine.TaskService;
+import org.flowable.task.api.Task;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class WorkflowUtil {
 
@@ -40,6 +39,30 @@ public class WorkflowUtil {
             throw new WorkflowException("子流程第一个审批节点不是用户任务节点 flowElementId："+subProcess.getId());
         }
         return userTask;
+    }
+
+
+    /**
+     * 获取子流程内部的可驳回节点
+     *
+     * @author  zhaoyao
+     * @param hisTaskKeys 审批过的历史节点
+     * @param subProcess 子流程对象
+     * @return Map<String,FlowElement>
+     */
+    public static Map<String,FlowElement> getSubProcessRejectableTask(ArrayList<String> hisTaskKeys, SubProcess subProcess){
+        Map<String,FlowElement> map = new HashMap<>();
+        for( FlowElement flowElement : subProcess.getFlowElements()){
+            if(flowElement instanceof UserTask){
+                if(hisTaskKeys.contains(flowElement.getId())){
+                    map.put(flowElement.getId(),flowElement);
+                }
+            }else if(flowElement instanceof ParallelGateway||flowElement instanceof InclusiveGateway){
+                //嵌入式子流程存在并行或者包含网关节点时直接返回空，不允许驳回
+                return new HashMap<>();
+            }
+        }
+        return map;
     }
 
 
@@ -110,6 +133,41 @@ public class WorkflowUtil {
 
         return variables;
 
+    }
+
+
+    /**
+     * 选择下一节点时的任务审批
+     *
+     * 审批时要走向用户选择的下一节点分支时，需要拆除原来未选择的流程分支线，
+     * 会存在同一流程模型实例审批时线程安全问题，因此代码同步保证流向的正确性
+     *
+     * @author  zhaoyao
+     * @param selectOutNode 已选择的下一节点ID
+     * @param currentNode 当前审批的节点对象
+     * @param taskService TaskService
+     * @param task 当前审批的任务对象
+     * @param variables 流程变量
+     */
+    public static void completeTaskBySelectNode(List<String> selectOutNode, FlowNode currentNode, TaskService taskService, Task task, Map variables){
+        synchronized (task.getProcessDefinitionId()) {
+            List<SequenceFlow> outLines = currentNode.getOutgoingFlows();
+            //剪断当前节点未选择的下一分支流向
+            List<SequenceFlow> removedNodes = new ArrayList<>();
+            Iterator<SequenceFlow> it = outLines.listIterator();
+            while (it.hasNext() && selectOutNode.size() > 0) {
+                SequenceFlow sequenceFlow = it.next();
+                FlowElement target = sequenceFlow.getTargetFlowElement();
+                if (!selectOutNode.contains(target.getId())) {
+                    removedNodes.add(sequenceFlow);
+                    it.remove();
+                }
+            }
+            //审批任务
+            taskService.complete(task.getId(), variables);
+            //审批完成后还原原来的分支流向
+            outLines.addAll(removedNodes);
+        }
     }
 
 

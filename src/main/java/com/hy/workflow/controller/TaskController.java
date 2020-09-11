@@ -4,6 +4,7 @@ import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.model.ApproveRequest;
 import com.hy.workflow.model.FlowElementModel;
+import com.hy.workflow.model.RejectTask;
 import com.hy.workflow.model.TaskModel;
 import com.hy.workflow.service.FlowableTaskService;
 import io.swagger.annotations.Api;
@@ -66,7 +67,9 @@ public class TaskController {
                           @ApiParam(name = "userId",value = "签收人ID") @RequestParam String userId) {
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if(task==null) throw new WorkflowException("签收失败，该任务不存在："+taskId);
-        taskService.claim(taskId, userId);
+        if(task.getAssignee()==null){
+            taskService.claim(taskId, userId);
+        }
     }
 
 
@@ -136,12 +139,22 @@ public class TaskController {
         return flowList;
     }
 
+
     @ApiOperation(value = "根据部门ID获取该部门子流程审批节点",tags = { "Tasks" })
     @GetMapping(value = "/tasks/getSubProcessByDeptId", produces = "application/json")
     public List<FlowElementModel>  getSubProcessByDeptId(@ApiParam(name = "departmentId",value = "部门ID") @RequestParam String departmentId) {
         List<FlowElementModel>  flowList =  flowableTaskService.getSubProcessByDeptId(departmentId);
         return flowList;
     }
+
+
+    @ApiOperation(value = "获取可驳回节点", tags = { "Tasks" })
+    @GetMapping(value = "/tasks/getRejectTask/{taskId}", produces = "application/json")
+    public RejectTask getRejectTask(@ApiParam(name = "taskId") @PathVariable String taskId) {
+        return flowableTaskService.getRejectTask(taskId);
+    }
+
+
 
 
 }
