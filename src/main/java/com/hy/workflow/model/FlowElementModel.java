@@ -27,6 +27,9 @@ public class FlowElementModel {
     //模型Key
     private String  modelKey;
 
+    //模型名称
+    private String  modelName;
+
     //组ID(选择下一节点使用)
     private String  groupId;
 
@@ -125,5 +128,12 @@ public class FlowElementModel {
         this.config = config;
     }
 
+    public String getModelName() {
+        return modelName;
+    }
+
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
+    }
 
 }

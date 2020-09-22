@@ -438,6 +438,7 @@ public class FlowableTaskService {
         List<String> flowIdList =  new ArrayList<>();
 
         //最后一个会签环实例才可以选择下一节点处理人信息(非固定人员时可选)
+        //TODO 还需处理 并行用户任务会签、子流程会签、并行子流程会签
         Map<String,Object> variables = runtimeService.getVariables(task.getExecutionId());
         if(variables.get("nrOfInstances")!=null){
             int nrOfInstances = (Integer) variables.get("nrOfInstances");
@@ -554,6 +555,7 @@ public class FlowableTaskService {
             node.setFlowElementType( getUserTaskType((UserTask)subFirstNode) );
             node.setConfig(configModel);
             node.setModelKey(processDefinition.getKey());
+            node.setModelName(processDefinition.getName());
             node.setDepartmentId(departmentId);
             nodeList.add(node);
         });

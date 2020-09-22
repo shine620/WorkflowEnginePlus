@@ -99,10 +99,9 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
         }
          //调用活动多实例生成的任务节点
         else if (callActivityList!=null && callActivityList.size()>0 ){
-            //通过 任务Key、父节点ID、子流程模型Key
+            //通过 任务Key、父节点ID、子流程模型Key来设置子流程接收人
             Iterator<Map<String,Object>> it = callActivityList.listIterator();
             while (it.hasNext()){
-                System.out.println(taskEntity.getVariable("callActivityList",List.class));
                 Map<String,Object> map = it.next();
                 if (map.get("flowElementId").equals(taskEntity.getTaskDefinitionKey())) {
                     RuntimeService runtimeService =SpringContextUtil.getBeanByClass(RuntimeService.class);

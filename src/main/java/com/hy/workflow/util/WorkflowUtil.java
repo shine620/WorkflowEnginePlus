@@ -77,8 +77,8 @@ public class WorkflowUtil {
     public static Map<String,Object>  setNextTaskInfoVariables(Map<String,Object> variables, ApproveInfo approveInfo ){
 
         if(approveInfo.getNextTaskList()==null) return variables;
-        Map<String,List<String>>  modelkeyMap = new HashMap();              //调用活动多实例的子流程模型ID
-        List<Map<String,Object>> callActivityMultiInfo = new ArrayList<>();  //设置调用活动多实例的处理人信息
+        Map<String,List<String>>  callActivityModelKeyMap = new HashMap();    //调用活动多实例时发起的子流程模型ID(决定子流程数量)
+        List<Map<String,Object>> callActivityList = new ArrayList<>();                 //调用活动多实例时每个子流程的处理人信息
 
         approveInfo.getNextTaskList().forEach(nextTask ->{
 
@@ -87,10 +87,10 @@ public class WorkflowUtil {
                 //调用活动中的用户任务节点（流程模型第一个节点不允许为会签）
                 if( nextTask.getParentFlowElementType()!=null && FlowElementType.CALL_ACTIVITY.equals(nextTask.getParentFlowElementType()) ){
                     List<String>  modelKeyList; //设置调用活动多实例发起时需要的模型变量
-                    if(modelkeyMap.get(nextTask.getParentFlowElementId())==null) modelKeyList = new ArrayList<>();
-                    else modelKeyList = modelkeyMap.get(nextTask.getParentFlowElementId());
+                    if(callActivityModelKeyMap.get(nextTask.getParentFlowElementId())==null) modelKeyList = new ArrayList<>();
+                    else modelKeyList = callActivityModelKeyMap.get(nextTask.getParentFlowElementId());
                     modelKeyList.add(nextTask.getModelKey());
-                    modelkeyMap.put(nextTask.getParentFlowElementId(),modelKeyList);
+                    callActivityModelKeyMap.put(nextTask.getParentFlowElementId(),modelKeyList); /** modelkeyMap格式： { "FaWuHuiQian":["SubModelA","SubModelB"], "CaiWuHuiQian":["SubModelC","SubModelD"] } */
                     //设置调用活动多实例生成任务时需要的审批人相关信息
                     Map<String,Object> map = new HashMap<>();
                     map.put("flowElementId",nextTask.getFlowElementId());
@@ -99,7 +99,8 @@ public class WorkflowUtil {
                     map.put("assignee",nextTask.getAssignee());
                     map.put("candidateUser",nextTask.getCandidateUser());
                     map.put("candidateGroup",nextTask.getCandidateGroup());
-                    callActivityMultiInfo.add(map);
+                    map.put("suProcessDepartmentId",nextTask.getSuProcessDepartmentId());
+                    callActivityList.add(map);
                 }
                 //正常用户任务节点
                 else{
@@ -128,8 +129,8 @@ public class WorkflowUtil {
 
         });
 
-        if(callActivityMultiInfo.size()>0) variables.put( "callActivityList", callActivityMultiInfo );
-        if(modelkeyMap.size()>0) variables.put( "callActivityModelKeyMap", modelkeyMap );
+        if(callActivityList.size()>0) variables.put( "callActivityList", callActivityList );
+        if(callActivityModelKeyMap.size()>0) variables.put( "callActivityModelKeyMap", callActivityModelKeyMap );
 
         return variables;
 

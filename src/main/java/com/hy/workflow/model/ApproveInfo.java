@@ -51,6 +51,9 @@ public class ApproveInfo {
         @ApiModelProperty(value="组ID",example="ChengBanRen")
         private String  groupId;
 
+        @ApiModelProperty(value="子流程部门ID",example="1002")
+        private String  suProcessDepartmentId;
+
 
         public String getFlowElementId() {
             return flowElementId;
@@ -124,6 +127,13 @@ public class ApproveInfo {
             this.groupId = groupId;
         }
 
+        public String getSuProcessDepartmentId() {
+            return suProcessDepartmentId;
+        }
+
+        public void setSuProcessDepartmentId(String suProcessDepartmentId) {
+            this.suProcessDepartmentId = suProcessDepartmentId;
+        }
 
     }
 
