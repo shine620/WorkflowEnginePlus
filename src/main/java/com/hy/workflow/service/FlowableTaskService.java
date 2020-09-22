@@ -1,32 +1,31 @@
 package com.hy.workflow.service;
 
+
+import com.hy.workflow.base.EvaluateExpressionCmd;
 import com.hy.workflow.base.FindNextActivityCmd;
 import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.FlowElementConfig;
-import com.hy.workflow.entity.ProcessDefinitionConfig;
 import com.hy.workflow.entity.RejectRecord;
 import com.hy.workflow.enums.ApproveType;
 import com.hy.workflow.enums.FlowElementType;
+import com.hy.workflow.enums.RejectPosition;
 import com.hy.workflow.enums.RejectType;
 import com.hy.workflow.model.*;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.FlowElementConfigRepository;
-import com.hy.workflow.repository.ProcessDefinitionConfigRepository;
 import com.hy.workflow.repository.RejectRecordRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.WorkflowUtil;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.bpmn.model.*;
 import org.flowable.bpmn.model.Process;
 import org.flowable.engine.*;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
-import org.flowable.engine.impl.persistence.entity.ExecutionEntityImpl;
 import org.flowable.engine.repository.ProcessDefinition;
-import org.flowable.engine.runtime.ActivityInstance;
+import org.flowable.engine.runtime.ChangeActivityStateBuilder;
 import org.flowable.engine.runtime.Execution;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.identitylink.api.IdentityLink;
@@ -34,7 +33,8 @@ import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.Task;
 import org.flowable.task.api.TaskQuery;
 import org.flowable.task.api.history.HistoricTaskInstance;
-import org.flowable.task.service.impl.persistence.entity.TaskEntityImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -46,6 +46,8 @@ import java.util.*;
 @Service
 @Transactional
 public class FlowableTaskService {
+
+    private static final Logger logger = LoggerFactory.getLogger(FlowableTaskService.class);
 
     @Autowired
     private RuntimeService runtimeService;
@@ -66,9 +68,6 @@ public class FlowableTaskService {
     private FlowElementConfigRepository flowElementConfigRepository;
 
     @Autowired
-    private ProcessDefinitionConfigRepository processDefinitionConfigRepository;
-
-    @Autowired
     private ProcessDefinitionService processDefinitionService;
 
     @Autowired
@@ -76,6 +75,7 @@ public class FlowableTaskService {
 
     @Autowired
     private RejectRecordRepository rejectRecordRepository;
+
 
     /**
      * 审批任务
@@ -147,6 +147,21 @@ public class FlowableTaskService {
     /**
      * 驳回任务
      *
+         拆分原子标签：①普通用户任务  ②会签用户任务  ③会签子流程  ④并行普通用户任务  ⑤并行会签用户任务  ⑥并行会签子流程任务
+         排列组合：以主流程的角度出发
+         1. ① 非并行分支上普通用户任务
+         2. ② 非并行分支上会签用户任务
+         3. ③① 非并行分支上会签子流程，对应子流程任务为普通用户任务
+         4. ③② 非并行分支上会签子流程，对应子流程任务为会签用户任务
+         5. ③④ 非并行分支上会签子流程，对应子流程任务为并行普通用户任务
+         6. ③⑤ 非并行分支上会签子流程，对应子流程任务为并行会签用户任务
+         7. ④ 并行普通用户任务
+         8. ⑤ 并行会签用户任务
+         9. ⑥① 并行分支上会签子流程，对应子流程任务为普通用户任务
+         10.⑥② 并行分支上会签子流程，对应子流程任务为会签用户任务
+         11.⑥④ 并行分支上会签子流程，对应子流程任务为会并行普通用户任务
+         12.⑥⑤ 并行分支上会签子流程，对应子流程任务为会并行会签用户任务
+
      * @author  zhaoyao
      * @param approveRequest 审批请求数据
      */
@@ -159,10 +174,62 @@ public class FlowableTaskService {
         FlowNode currentNode = (FlowNode) bpmnModel.getFlowElement(task.getTaskDefinitionKey());
 
         ApproveRequest.RejectInfo rejectInfo = approveRequest.getRejectInfo();
-        //正常驳回
-        if(rejectInfo.getParentProcessInstanceId()==null){
+        String parentProcessInstanceId = rejectInfo.getParentProcessInstanceId();
+        String targetNodeId = rejectInfo.getFlowElementId();
+        String rejectPosition = rejectInfo.getRejectPosition();
 
-        }else{ //驳回到主流程
+        //当前任务执行实例
+        ExecutionEntity taskExe = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
+        //当前任务实例父实例（执行实例或者流程实例）
+        ExecutionEntity parentExe =  (ExecutionEntity) runtimeService.createExecutionQuery().executionId(taskExe.getParentId()).singleResult();
+        String processInstanceId = taskExe.getProcessInstanceId();
+        String rootProcessInstanceId = taskExe.getRootProcessInstanceId();
+
+        ChangeActivityStateBuilder changeBuilder = runtimeService.createChangeActivityStateBuilder();
+        List<Execution> processList=  runtimeService.createExecutionQuery().parentId(rootProcessInstanceId).list();
+        logger.info("流程驳回操作：processInstanceId:{}，taskId:{}，rejectNode:{}",task.getProcessInstanceId(),task.getId(),targetNodeId);
+
+        /* 用户任务：无子流程、无会签 */
+        if(StringUtils.equals(processInstanceId,rootProcessInstanceId)&&StringUtils.equals(processInstanceId,taskExe.getParentId())){
+            /** ①普通用户任务 */
+            if(processList.size()==1)
+                changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo(task.getTaskDefinitionKey(),targetNodeId).changeState();
+            /** ④并行分支上普通用户任务 */
+            else if(processList.size()>1)
+                innerReject(changeBuilder,task,targetNodeId,rejectPosition);
+        }
+        else{
+            /* 用户任务会签 */
+            if( StringUtils.equals(parentExe.getParentId(),parentExe.getRootProcessInstanceId()) ){
+                /** ②会签用户任务 */
+                if(processList.size()==1)
+                    changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo(task.getTaskDefinitionKey(),targetNodeId).changeState();
+                /** ⑤并行分支上会签用户任务 */
+                else if(processList.size()>1)
+                    innerReject(changeBuilder,task,targetNodeId,rejectPosition);
+            }
+            /* 子流程会签 */
+            else{
+                /**③①  ③④  ⑥①  ⑥④ */
+                if(parentExe.getSuperExecutionId()!=null){ //
+                    //当前子流程是否有多个用户任务
+                    List<Execution> executionList=  runtimeService.createExecutionQuery().parentId(parentExe.getId()).list();
+                    //当前子流程会签任务对应其父流程上的调用活动节点执行实例
+                    ExecutionEntity superExe = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(parentExe.getSuperExecutionId()).singleResult();
+                    //子流程的任务驳回
+                    subProcessReject(changeBuilder,task,executionList,superExe,targetNodeId,rejectPosition,parentProcessInstanceId);
+                }
+                /** ③②  ③⑤  ⑥②  ⑥⑤ */
+                else{
+                    //当前子流程是否有多个会签任务
+                    List<Execution> executionList=  runtimeService.createExecutionQuery().parentId(parentExe.getProcessInstanceId()).list();
+                    //当前子流程会签任务对应其父流程上的调用活动节点执行实例
+                    ExecutionEntity grandpaExe = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(parentExe.getParentId()).singleResult();
+                    ExecutionEntity superExe = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(grandpaExe.getSuperExecutionId()).singleResult();
+                    //子流程的任务驳回
+                    subProcessReject(changeBuilder,task,executionList,superExe,targetNodeId,rejectPosition,parentProcessInstanceId);
+                }
+            }
 
         }
 
@@ -172,20 +239,109 @@ public class FlowableTaskService {
         rejectRecord.setProcessInstanceId(task.getProcessInstanceId());
         rejectRecord.setBusinessType(businessKey.split(";")[0]);
         rejectRecord.setBusinessId(businessKey.split(";")[1]);
-        rejectRecord.setRejectTaskId(task.getId());
-        rejectRecord.setRejectElementId(currentNode.getId());
-        rejectRecord.setRejectElementName(currentNode.getName());
+        rejectRecord.setSourceTaskId(task.getId());
+        rejectRecord.setSourceElementId(currentNode.getId());
+        rejectRecord.setSourceElementName(currentNode.getName());
         rejectRecord.setRejectUser(approveRequest.getUserId());
         if(RejectType.RESUBMIT.equals(rejectInfo.getRejectType()))
             rejectRecord.setRejectType(RejectType.RESUBMIT);
         else if(RejectType.SUBMIT_REJECT.equals(rejectInfo.getRejectType()))
             rejectRecord.setRejectType(RejectType.SUBMIT_REJECT);
-        rejectRecord.setRejectedElementId(rejectInfo.getFlowElementId());
-        rejectRecord.setRejectedElementName(rejectInfo.getFlowElementName());
+        rejectRecord.setTargetElementId(rejectInfo.getFlowElementId());
+        rejectRecord.setTargetElementName(rejectInfo.getFlowElementName());
+        rejectRecord.setTargetProcessInstanceId(rejectInfo.getParentProcessInstanceId());
         rejectRecord.setCreateTime(new Date());
         rejectRecordRepository.save(rejectRecord);
     }
 
+
+    //存在子流程会签的驳回
+    private void subProcessReject(ChangeActivityStateBuilder changeBuilder,Task task,List<Execution> executionList,ExecutionEntity superExe,String targetNodeId,String rejectPosition,String parentProcessInstanceId){
+        //当前子流程任务对应其父流程上的调用活动节点，是否存在多个并行任务
+        List<Execution> superParentExeList=  runtimeService.createExecutionQuery().parentId(superExe.getProcessInstanceId()).list();
+        if( superParentExeList.size()==1&& executionList.size()==1 ){
+            /** ③①非并行分支上会签子流程，对应子流程任务为普通用户任务
+             *   ③②非并行分支上会签子流程，对应子流程任务为会签用户任务*/
+            if(parentProcessInstanceId!=null){   //驳回到父流程
+                rejectParentProcess(changeBuilder,parentProcessInstanceId,superExe,targetNodeId);
+            }else{   //子流程内部驳回
+                changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo(task.getTaskDefinitionKey(),targetNodeId).changeState();
+            }
+        }
+        else if( superParentExeList.size()==1&& executionList.size()>1 ){
+            /** ③④非并行分支上会签子流程，对应子流程任务为并行普通用户任务
+             *   ③⑤非并行分支上会签子流程，对应子流程任务为并行会签用户任务 */
+            if(parentProcessInstanceId!=null){   //驳回到父流程
+                rejectParentProcess(changeBuilder,parentProcessInstanceId,superExe,targetNodeId);
+            }else{   //子流程内部驳回(并行分支)
+                innerReject(changeBuilder,task,targetNodeId,rejectPosition);
+            }
+        }else if( superParentExeList.size()>1&& executionList.size()==1 ){
+            /** ⑥①并行分支上会签子流程，对应子流程任务为普通用户任务
+             *   ⑥②并行分支上会签子流程，对应子流程任务为会签用户任务 */
+            if(parentProcessInstanceId!=null){   //驳回到父流程
+                rejectParentProcess(changeBuilder,parentProcessInstanceId,superExe,superParentExeList,targetNodeId,rejectPosition);
+            }else{   //子流程内部驳回
+                changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo(task.getTaskDefinitionKey(),targetNodeId).changeState();
+            }
+        }else if( superParentExeList.size()>1&& executionList.size()>1 ){
+            /** ⑥④并行分支上会签子流程，对应子流程任务为会并行普通用户任务
+             *   ⑥⑤并行分支上会签子流程，对应子流程任务为会并行会签用户任务*/
+            if(parentProcessInstanceId!=null){   //驳回到父流程
+                rejectParentProcess(changeBuilder,parentProcessInstanceId,superExe,superParentExeList,targetNodeId,rejectPosition);
+            }else{   //子流程内部驳回(并行分支)
+                innerReject(changeBuilder,task,targetNodeId,rejectPosition);
+            }
+        }
+    }
+
+    //并行分支流程内部驳回(主流程内部驳回/子流程内部驳回)
+    private void innerReject(ChangeActivityStateBuilder changeBuilder,Task task,String targetNodeId,String rejectPosition){
+        if(RejectPosition.AFTER_GATEWAY.equals(rejectPosition)||RejectPosition.NO_GATEWAY.equals(rejectPosition)){
+            changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo(task.getTaskDefinitionKey(),targetNodeId).changeState();
+        }else if(RejectPosition.BEFORE_GATEWAY.equals(rejectPosition)){
+            ProcessDefinitionConfigModel definitionConfig = processDefinitionService.getProcessConfig(task.getProcessDefinitionId());
+            if(definitionConfig.getRejectGatewayBefore()!=null&&definitionConfig.getRejectGatewayBefore()){
+                List<String > currentExecutionIds = new ArrayList<>();
+                List<Execution> executions = runtimeService.createExecutionQuery().parentId(task.getProcessInstanceId()).list();
+                for (Execution execution : executions) {
+                    currentExecutionIds.add(execution.getId());
+                }
+                changeBuilder.moveExecutionsToSingleActivityId(currentExecutionIds, targetNodeId).changeState();
+            }else{
+                throw new WorkflowException("此流程不允许驳回到网关发起前节点：processInstanceId="+task.getProcessInstanceId()+",taskId="+task.getId());
+            }
+        }
+    }
+
+    //子流程驳回到主流程
+    private void rejectParentProcess(ChangeActivityStateBuilder changeBuilder, String parentProcessInstanceId, Execution superExe, String targetNodeId){
+        ProcessInstance parentInstance = runtimeService.createProcessInstanceQuery().processInstanceId(parentProcessInstanceId).singleResult();
+        ProcessDefinitionConfigModel definitionConfig = processDefinitionService.getProcessConfig(parentInstance.getProcessDefinitionId());
+        if(definitionConfig.getRejectParentProcess()!=null&&definitionConfig.getRejectParentProcess()){
+            changeBuilder.moveExecutionsToSingleActivityId( Collections.singletonList(superExe.getParentId()), targetNodeId ).changeState();
+        }
+    }
+
+    //子流程驳回到主流程(子流程处在父流程并行网关分支中)
+    private void rejectParentProcess(ChangeActivityStateBuilder changeBuilder, String parentProcessInstanceId, Execution superExe, List<Execution> superParentExeList, String targetNodeId, String rejectPosition){
+        ProcessInstance parentInstance = runtimeService.createProcessInstanceQuery().processInstanceId(parentProcessInstanceId).singleResult();
+        ProcessDefinitionConfigModel definitionConfig = processDefinitionService.getProcessConfig(parentInstance.getProcessDefinitionId());
+        if(definitionConfig.getRejectParentProcess()!=null&&definitionConfig.getRejectParentProcess()){
+            /*是否驳回到父流程网关前节点（如果父流程上对应的调用活动节点在并行网关分支中，子流程应该只能驳回到父流程上发起子流程的节点，
+               不应能驳回到父流程网关前节点，这样会清空父流程上其他网关分支上的节点），目前系统设计驳回到父流程时rejectPosition值不会为BEFORE_GATEWAY*/
+            if(RejectPosition.BEFORE_GATEWAY.equals(rejectPosition)){
+                List<String > executionIds = new ArrayList<>();
+                for(Execution execution : superParentExeList){
+                    executionIds.add(execution.getId());
+                }
+                changeBuilder.moveExecutionsToSingleActivityId( executionIds, targetNodeId ).changeState();
+            }else{ //rejectPosition=(null,AFTER_GATEWAY,NO_GATEWAY)
+                changeBuilder.moveExecutionsToSingleActivityId( Collections.singletonList(superExe.getParentId()), targetNodeId ).changeState();
+            }
+
+        }
+    }
 
 
     /**
@@ -536,6 +692,7 @@ public class FlowableTaskService {
     public RejectTask getRejectTask(String taskId) {
 
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        ExecutionEntity execution = (ExecutionEntity)runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
         RejectTask rejectTask = new RejectTask();
         rejectTask.setTaskId(task.getId());
         rejectTask.setTaskName(task.getName());
@@ -559,18 +716,25 @@ public class FlowableTaskService {
         FlowNode currentNode= (FlowNode) elementMap.get(task.getTaskDefinitionKey());
 
         //可驳回的历史审批节点(若存在并行网关，则与当前节点在同一条分支线上，不包括网关前的节点)
-        Map<String, FlowElement> afterGatewayMap = new HashMap<>();
-        afterGatewayHisTask(hisTaskKeys,currentNode,afterGatewayMap);
+        Map<String, FlowElement> afterGatewayMap = new LinkedHashMap<>();
+        afterGatewayHisTask(hisTaskKeys,currentNode,afterGatewayMap,execution);
 
         //并行或包含网关之前的可驳回历史节点
-        Map<String, FlowElement> beforeGatewayMap = new HashMap<>();
-        beforeGatewayHisTask(hisTaskKeys,firstNode,beforeGatewayMap);
-        if(!firstNode.getId().equals(currentNode.getId())) beforeGatewayMap.put(firstNode.getId(),firstNode);
+        Map<String, FlowElement> beforeGatewayMap = new LinkedHashMap<>();
+        //检查流程配置是否允许并行网关分支中节点驳回网关发起前
+        ProcessDefinitionConfigModel definitionConfig = processDefinitionService.getProcessConfig(task.getProcessDefinitionId());
+        if(definitionConfig.getRejectGatewayBefore()!=null&&definitionConfig.getRejectGatewayBefore()){
+            if(!firstNode.getId().equals(currentNode.getId())) beforeGatewayMap.put(firstNode.getId(),firstNode);
+            beforeGatewayHisTask(hisTaskKeys,firstNode,beforeGatewayMap,execution);
+        }
+
+        //网关前和网关节点后有交集，说明非并行网关节点
+        //Set<String> differenceSet = Sets.intersection(afterGatewayMap.keySet(), beforeGatewayMap.keySet());
 
         //可驳回节点
-        Map<String, FlowElement> rejectable = new HashMap<>();
-        rejectable.putAll(afterGatewayMap);
+        Map<String, FlowElement> rejectable = new LinkedHashMap<>();
         rejectable.putAll(beforeGatewayMap);
+        rejectable.putAll(afterGatewayMap);
 
         //封装返回数据
         List<RejectTask.TaskNode> rejectNodes = new ArrayList<>();
@@ -582,6 +746,13 @@ public class FlowableTaskService {
                 node.setFlowElementType(getUserTaskType((UserTask)flowElement));
             }else if(flowElement instanceof CallActivity){
                 node.setFlowElementType(FlowElementType.CALL_ACTIVITY);
+            }
+            if( afterGatewayMap.containsKey(id)&&beforeGatewayMap.containsKey(id) ){
+                node.setRejectPosition(RejectPosition.NO_GATEWAY);
+            }else if(afterGatewayMap.containsKey(id)){
+                node.setRejectPosition(RejectPosition.AFTER_GATEWAY);
+            }else if(beforeGatewayMap.containsKey(id)){
+                node.setRejectPosition(RejectPosition.BEFORE_GATEWAY);
             }
             rejectNodes.add(node);
         });
@@ -596,24 +767,35 @@ public class FlowableTaskService {
 
 
     //并行或包含网关之前的可驳回历史节点，正向查找
-    private void beforeGatewayHisTask(ArrayList<String> hisTaskKeys, FlowNode currentNode, Map<String, FlowElement> map){
+    private void beforeGatewayHisTask(ArrayList<String> hisTaskKeys, FlowNode currentNode, Map<String, FlowElement> map,ExecutionEntity execution){
         List<SequenceFlow> outLines = currentNode.getOutgoingFlows();
         for(SequenceFlow sequenceFlow : outLines ) {
+            //排他网关判断条件
+            if(currentNode instanceof ExclusiveGateway){
+                boolean exprResult = managementService.executeCommand(new EvaluateExpressionCmd(sequenceFlow,execution));
+                if (!exprResult) continue;
+            }
             FlowElement targetFlow = sequenceFlow.getTargetFlowElement();
+            //嵌入式子流程
             if(targetFlow instanceof SubProcess ){
                 Map<String,FlowElement> subNodes = WorkflowUtil.getSubProcessRejectableTask(hisTaskKeys, (SubProcess) targetFlow);
                 map.putAll(subNodes);
-                beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map);
+                beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map,execution);
             }
+            //调用活动
             else if(targetFlow instanceof CallActivity){
                 map.put(targetFlow.getId(),targetFlow);
-                beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map);
+                beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map,execution);
+            }
+            //排他网关
+            else if(targetFlow instanceof ExclusiveGateway){
+                beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map,execution);
             }
             else{
                 if(hisTaskKeys.contains(targetFlow.getId())){
                     if( targetFlow instanceof UserTask){
                         map.put(targetFlow.getId(),targetFlow);
-                        beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map);
+                        beforeGatewayHisTask(hisTaskKeys, (FlowNode) targetFlow,map,execution);
                     }
                 }
             }
@@ -622,7 +804,7 @@ public class FlowableTaskService {
 
 
     //同一分支线上的历史节点(网关节点之后)，逆向查找
-    private void afterGatewayHisTask(ArrayList<String> hisTaskKeys, FlowNode currentNode, Map<String, FlowElement> map){
+    private void afterGatewayHisTask(ArrayList<String> hisTaskKeys, FlowNode currentNode, Map<String, FlowElement> map,ExecutionEntity execution){
         List<SequenceFlow> inLines = currentNode.getIncomingFlows();
         for(SequenceFlow sequenceFlow : inLines ) {
             FlowElement sourceFlow = sequenceFlow.getSourceFlowElement();
@@ -630,19 +812,26 @@ public class FlowableTaskService {
             if(sourceFlow instanceof SubProcess ){
                 Map<String,FlowElement> subNodes = WorkflowUtil.getSubProcessRejectableTask(hisTaskKeys, (SubProcess) sourceFlow);
                 map.putAll(subNodes);
-                afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map);
+                afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map,execution);
             }
             //调用活动
             else if(sourceFlow instanceof CallActivity){
                 map.put(sourceFlow.getId(),sourceFlow);
-                afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map);
+                afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map,execution);
+            }
+            //排他网关
+            else if(sourceFlow instanceof ExclusiveGateway){
+                boolean exprResult = managementService.executeCommand(new EvaluateExpressionCmd(sequenceFlow,execution));
+                if (exprResult) {
+                    afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map,execution);
+                }
             }
             //普通任务
             else{
                 if(hisTaskKeys.contains(sourceFlow.getId())){
                     if( sourceFlow instanceof UserTask){
                         map.put(sourceFlow.getId(),sourceFlow);
-                        afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map);
+                        afterGatewayHisTask(hisTaskKeys, (FlowNode) sourceFlow,map,execution);
                     }
                 }
             }
@@ -650,18 +839,24 @@ public class FlowableTaskService {
     }
 
 
-    //查询父流程上可驳回的节点(子流程只能驳回到父流程上发起子流程时的节点，且该节点只能是用户任务节点)
-    private List<RejectTask.TaskNode> getParentRejectableNode(String processInstanceId){
+    //查询父流程上可驳回的节点(暂设计为子流程只能驳回到父流程上发起子流程时的节点，且该节点只能是用户任务节点)
+    private List<RejectTask.TaskNode> getParentRejectableNode(String subProcessInstanceId){
 
         ArrayList<RejectTask.TaskNode> list = new ArrayList();
         //子流程实例Execution
-        ExecutionEntity instanceExecution =  (ExecutionEntity) runtimeService.createExecutionQuery().executionId(processInstanceId).singleResult();
+        ExecutionEntity instanceExecution =  (ExecutionEntity) runtimeService.createExecutionQuery().executionId(subProcessInstanceId).singleResult();
         //存在父流程
         if(instanceExecution.getSuperExecutionId()!=null){
 
             ExecutionEntity superExecution =  (ExecutionEntity) runtimeService.createExecutionQuery().executionId(instanceExecution.getSuperExecutionId()).singleResult();
-            HistoricProcessInstance hisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+            HistoricProcessInstance hisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(subProcessInstanceId).singleResult();
             HistoricProcessInstance parentHisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(hisInstance.getSuperProcessInstanceId()).singleResult();
+
+            //查询流程配置是否允许子流程驳回到父流程
+            ProcessDefinitionConfigModel definitionConfig = processDefinitionService.getProcessConfig(parentHisInstance.getProcessDefinitionId());
+            if(definitionConfig.getRejectParentProcess()==null||!definitionConfig.getRejectParentProcess()){
+                return list;
+            }
 
             //父流程审批过的节点
             ArrayList<String> hisTaskKeys = new ArrayList<>();
@@ -687,6 +882,7 @@ public class FlowableTaskService {
                         node.setFlowElementName(sourceFlow.getName());
                         node.setFlowElementType(FlowElementType.USER_TASK);
                         node.setParentProcessInstanceId(parentHisInstance.getId());
+                        node.setRejectPosition(RejectPosition.AFTER_GATEWAY);
                         list.add(node);
                     }
                 }

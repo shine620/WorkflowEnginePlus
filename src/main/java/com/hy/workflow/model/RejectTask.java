@@ -1,6 +1,7 @@
 package com.hy.workflow.model;
 
 import com.hy.workflow.enums.FlowElementType;
+import com.hy.workflow.enums.RejectPosition;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -37,6 +38,9 @@ public class RejectTask {
         @ApiModelProperty(value="主流程实例ID",notes = "有值时说明为主流程节点", example="11000")
         private String parentProcessInstanceId;
 
+        @ApiModelProperty(value="驳回节点的位置",notes = "并行网关前、并行网关后、无并行网关", example= RejectPosition.NO_GATEWAY)
+        private String rejectPosition;
+
         public String getFlowElementId() {
             return flowElementId;
         }
@@ -68,6 +72,15 @@ public class RejectTask {
         public void setParentProcessInstanceId(String parentProcessInstanceId) {
             this.parentProcessInstanceId = parentProcessInstanceId;
         }
+
+        public String getRejectPosition() {
+            return rejectPosition;
+        }
+
+        public void setRejectPosition(String rejectPosition) {
+            this.rejectPosition = rejectPosition;
+        }
+
     }
 
     public String getTaskId() {

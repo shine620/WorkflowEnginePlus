@@ -69,6 +69,8 @@ public class ModelService {
         pdConfig.setUpdateTime(new Date());
         pdConfig.setDeploymentId(processDefinition.getDeploymentId());
         pdConfig.setSuspended(processDefinition.isSuspended());
+        pdConfig.setRejectGatewayBefore(false);
+        pdConfig.setRejectParentProcess(false);
         processDefinitionConfigRepository.save(pdConfig);
 
     }

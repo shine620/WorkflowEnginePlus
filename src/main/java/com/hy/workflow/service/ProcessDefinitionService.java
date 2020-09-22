@@ -259,7 +259,7 @@ public class ProcessDefinitionService {
                 root.get("createUserId"),root.get("createDeptId"),root.get("createUnitId"),
                 root.get("createTime"),root.get("updateTime"),root.get("businessType"),
                 root.get("departmentId"),root.get("unitId"),root.get("deploymentId"),
-                root.get("callable"),root.get("defaultProcess"));
+                root.get("callable"),root.get("defaultProcess"),root.get("rejectParentProcess"),root.get("rejectGatewayBefore"));
         Predicate[] predicates= generatePredicates(model,root,criteriaBuilder);
         Predicate predicate = criteriaBuilder.and( predicates );
         Order createTimeOrder = criteriaBuilder.desc(root.get("createTime"));

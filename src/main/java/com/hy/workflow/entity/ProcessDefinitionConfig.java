@@ -11,40 +11,63 @@ import java.util.Date;
 public class ProcessDefinitionConfig {
 
     @Id
+    //流程定义ID
     private String processDefinitionId;
 
+    //流程定义Key
     private String processDefinitionKey;
 
+    //流程定义名称
     private String processDefinitionName;
 
+    //流程定义版本
     private Integer version;
 
     @Column(length = 2000)
+    //描述信息
     private String description;
 
+    //流程定义挂起状态
     private Boolean suspended;
 
+    //创建人ID
     private String createUserId;
 
+    //创建部门ID
     private String createDeptId;
 
+    //创建单位ID
     private String createUnitId;
 
+    //创建时间
     private Date createTime;
 
+    //更新时间
     private Date updateTime;
 
+    //业务类型
     private String businessType;
 
+    //部门ID
     private String departmentId;
 
+    //单位ID
     private String unitId;
 
+    //流程部署ID
     private String deploymentId;
 
+    //是子流程
     private Boolean callable;
 
+    //是否默认流程
     private Boolean defaultProcess;
+
+    //允许子流程驳回到主流程
+    private Boolean rejectParentProcess;
+
+    //允许驳回到网关发起前
+    private Boolean rejectGatewayBefore;
 
     public ProcessDefinitionConfig(){ };
 
@@ -205,5 +228,20 @@ public class ProcessDefinitionConfig {
         this.defaultProcess = defaultProcess;
     }
 
+    public Boolean getRejectParentProcess() {
+        return rejectParentProcess;
+    }
+
+    public void setRejectParentProcess(Boolean rejectParentProcess) {
+        this.rejectParentProcess = rejectParentProcess;
+    }
+
+    public Boolean getRejectGatewayBefore() {
+        return rejectGatewayBefore;
+    }
+
+    public void setRejectGatewayBefore(Boolean rejectGatewayBefore) {
+        this.rejectGatewayBefore = rejectGatewayBefore;
+    }
 
 }

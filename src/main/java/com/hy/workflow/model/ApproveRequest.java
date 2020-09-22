@@ -2,6 +2,7 @@ package com.hy.workflow.model;
 
 import com.hy.workflow.enums.ApproveType;
 import com.hy.workflow.enums.FlowElementType;
+import com.hy.workflow.enums.RejectPosition;
 import com.hy.workflow.enums.RejectType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -37,6 +38,9 @@ public class ApproveRequest extends ApproveInfo{
 
         @ApiModelProperty(value="驳回节点类型", example=FlowElementType.USER_TASK)
         private String flowElementType;
+
+        @ApiModelProperty(value="驳回节点的位置",notes = "并行网关前、并行网关后、无并行网关", example= RejectPosition.NO_GATEWAY)
+        private String rejectPosition;
 
         @ApiModelProperty(value="主流程实例ID",notes = "有值时为主流程节点", example="11000")
         private String parentProcessInstanceId;
@@ -79,6 +83,14 @@ public class ApproveRequest extends ApproveInfo{
 
         public void setFlowElementType(String flowElementType) {
             this.flowElementType = flowElementType;
+        }
+
+        public String getRejectPosition() {
+            return rejectPosition;
+        }
+
+        public void setRejectPosition(String rejectPosition) {
+            this.rejectPosition = rejectPosition;
         }
     }
 

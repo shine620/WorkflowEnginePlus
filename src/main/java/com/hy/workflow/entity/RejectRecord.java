@@ -35,19 +35,22 @@ public class RejectRecord {
     private String rejectUser;
 
     //驳回时任务ID
-    private String rejectTaskId;
+    private String sourceTaskId;
 
     //驳回环节ID
-    private String rejectElementId;
+    private String sourceElementId;
 
     //驳回环节名称
-    private String rejectElementName;
+    private String sourceElementName;
 
     //被驳回环节ID
-    private String rejectedElementId;
+    private String targetElementId;
 
     //被驳回环节名称
-    private String rejectedElementName;
+    private String targetElementName;
+
+    //被驳回环节的流程实例ID
+    private String targetProcessInstanceId;
 
 
     public String getId() {
@@ -106,44 +109,52 @@ public class RejectRecord {
         this.rejectUser = rejectUser;
     }
 
-    public String getRejectTaskId() {
-        return rejectTaskId;
+    public String getSourceTaskId() {
+        return sourceTaskId;
     }
 
-    public void setRejectTaskId(String rejectTaskId) {
-        this.rejectTaskId = rejectTaskId;
+    public void setSourceTaskId(String sourceTaskId) {
+        this.sourceTaskId = sourceTaskId;
     }
 
-    public String getRejectElementId() {
-        return rejectElementId;
+    public String getSourceElementId() {
+        return sourceElementId;
     }
 
-    public void setRejectElementId(String rejectElementId) {
-        this.rejectElementId = rejectElementId;
+    public void setSourceElementId(String sourceElementId) {
+        this.sourceElementId = sourceElementId;
     }
 
-    public String getRejectElementName() {
-        return rejectElementName;
+    public String getSourceElementName() {
+        return sourceElementName;
     }
 
-    public void setRejectElementName(String rejectElementName) {
-        this.rejectElementName = rejectElementName;
+    public void setSourceElementName(String sourceElementName) {
+        this.sourceElementName = sourceElementName;
     }
 
-    public String getRejectedElementId() {
-        return rejectedElementId;
+    public String getTargetElementId() {
+        return targetElementId;
     }
 
-    public void setRejectedElementId(String rejectedElementId) {
-        this.rejectedElementId = rejectedElementId;
+    public void setTargetElementId(String targetElementId) {
+        this.targetElementId = targetElementId;
     }
 
-    public String getRejectedElementName() {
-        return rejectedElementName;
+    public String getTargetElementName() {
+        return targetElementName;
     }
 
-    public void setRejectedElementName(String rejectedElementName) {
-        this.rejectedElementName = rejectedElementName;
+    public void setTargetElementName(String targetElementName) {
+        this.targetElementName = targetElementName;
+    }
+
+    public String getTargetProcessInstanceId() {
+        return targetProcessInstanceId;
+    }
+
+    public void setTargetProcessInstanceId(String targetProcessInstanceId) {
+        this.targetProcessInstanceId = targetProcessInstanceId;
     }
 
 }

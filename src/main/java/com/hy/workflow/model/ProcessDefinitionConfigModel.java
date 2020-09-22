@@ -38,6 +38,11 @@ public class ProcessDefinitionConfigModel {
 
     private Boolean defaultProcess;
 
+    private Boolean rejectParentProcess;
+
+    private Boolean rejectGatewayBefore;
+
+
     public ProcessDefinitionConfigModel(){ }
 
     //构造器参数顺序要与findProcessDefinitionConfigLaterstList方法查询顺序一致
@@ -45,7 +50,7 @@ public class ProcessDefinitionConfigModel {
                 String processDefinitionId, String processDefinitionKey, String processDefinitionName,
                 Integer version, String description, Boolean suspended, String createUserId, String createDeptId, String createUnitId,
                 Date createTime, Date updateTime, String businessType, String departmentId, String unitId, String deploymentId,
-                Boolean callable, Boolean defaultProcess) {
+                Boolean callable, Boolean defaultProcess,Boolean rejectParentProcess,Boolean rejectGatewayBefore) {
         this.processDefinitionId = processDefinitionId;
         this.processDefinitionKey = processDefinitionKey;
         this.processDefinitionName = processDefinitionName;
@@ -63,6 +68,8 @@ public class ProcessDefinitionConfigModel {
         this.deploymentId = deploymentId;
         this.callable = callable;
         this.defaultProcess = defaultProcess;
+        this.rejectParentProcess = rejectParentProcess;
+        this.rejectGatewayBefore = rejectGatewayBefore;
     }
 
     public String getProcessDefinitionId() {
@@ -201,7 +208,21 @@ public class ProcessDefinitionConfigModel {
         this.defaultProcess = defaultProcess;
     }
 
+    public Boolean getRejectParentProcess() {
+        return rejectParentProcess;
+    }
 
+    public void setRejectParentProcess(Boolean rejectParentProcess) {
+        this.rejectParentProcess = rejectParentProcess;
+    }
+
+    public Boolean getRejectGatewayBefore() {
+        return rejectGatewayBefore;
+    }
+
+    public void setRejectGatewayBefore(Boolean rejectGatewayBefore) {
+        this.rejectGatewayBefore = rejectGatewayBefore;
+    }
 
 
 }
