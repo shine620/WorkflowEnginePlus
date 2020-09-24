@@ -5,11 +5,12 @@ import org.hibernate.annotations.GenericGenerator;
 import org.springframework.beans.BeanUtils;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Date;
 
 @Entity
 @Table
-public class FlowElementConfig {
+public class FlowElementConfig  implements Serializable {
 
     @Id
     @GenericGenerator(name="idGenerator", strategy="uuid") //这个是hibernate的注解/生成32位UUID

@@ -1,9 +1,17 @@
 package com.hy.workflow.service;
 
+import com.alibaba.fastjson.JSONArray;
 import com.hy.workflow.base.SpringContextUtil;
 import com.hy.workflow.entity.BusinessProcess;
+import com.hy.workflow.entity.MultiInstanceRecord;
+import com.hy.workflow.entity.TaskRecord;
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.repository.BusinessProcessRepository;
+import com.hy.workflow.repository.TaskRecordRepository;
+import com.hy.workflow.util.WorkflowUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.flowable.bpmn.model.FlowElement;
+import org.flowable.bpmn.model.UserTask;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEntityEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEventType;
 import org.flowable.common.engine.api.delegate.event.FlowableEvent;
@@ -16,16 +24,16 @@ import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntityImpl;
 import org.flowable.engine.impl.persistence.entity.HistoricProcessInstanceEntityImpl;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.task.service.impl.persistence.entity.HistoricTaskInstanceEntityImpl;
+import org.flowable.task.service.impl.persistence.entity.TaskEntity;
 import org.flowable.task.service.impl.persistence.entity.TaskEntityImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import javax.persistence.EntityManager;
+import java.util.*;
 
 
 /* *
@@ -41,6 +49,9 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
 
     @Autowired
     private BusinessProcessRepository businessProcessRepository;
+
+    @Autowired
+    private TaskRecordRepository taskRecordRepository;
 
 
     @Override
@@ -76,16 +87,19 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
         else if(FlowableEngineEventType.TASK_COMPLETED.equals(eventType)){
             taskCompleted( (TaskEntityImpl)flowEvent.getEntity() );
         }
-
+        //任务签收或设置处理人
+        else if(FlowableEngineEventType.TASK_ASSIGNED.equals(eventType)){
+            taskAssigned((TaskEntityImpl)flowEvent.getEntity());
+        }
     }
 
 
     private void taskCreated(TaskEntityImpl taskEntity){
-
         logger.info("任务生成监听事件执行 processInstanceId:{}  taskId:{}",taskEntity.getProcessInstanceId(),taskEntity.getId());
         //如果是并行发起其他任务和调用活动子流程，子流程中的第一个审批节点ID和父流程中并行发起的其他任务节点ID不能相同
         Map taskKeyVariable = taskEntity.getVariable(taskEntity.getTaskDefinitionKey(),Map.class);
         List<Map<String,Object>> callActivityList = taskEntity.getVariable("callActivityList",List.class);
+        TaskRecord taskRecord = new TaskRecord();
         //通过流程变量设置任务处理人
          if(taskKeyVariable!=null){  //普通任务节点(通过任务类型排除会签)
             if(FlowElementType.USER_TASK.equals(taskKeyVariable.get("flowElementType"))){
@@ -95,6 +109,13 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                 if(assignee!=null) taskEntity.setAssignee(assignee);
                 if(candidateUser!=null) taskEntity.addCandidateUsers(candidateUser);
                 if(candidateGroup!=null) taskEntity.addCandidateGroups(candidateGroup);
+                //记录处理人
+                taskRecord.setAssignee(assignee);
+                taskRecord.setCandidateUser(StringUtils.join(candidateUser,","));
+                taskRecord.setCandidateGroup(StringUtils.join(candidateGroup,","));
+                //任务创建后清空该变量，以免影响驳回操作
+                //TODO 完成后打开注释
+                //taskEntity.removeVariable(taskEntity.getTaskDefinitionKey());
             }
         }
          //调用活动多实例生成的任务节点
@@ -117,6 +138,10 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                             if (assignee != null) taskEntity.setAssignee(assignee);
                             if (candidateGroup != null) taskEntity.addCandidateGroups(candidateGroup);
                             if (candidateUser != null) taskEntity.addCandidateUsers(candidateUser);
+                            //记录处理人
+                            taskRecord.setAssignee(assignee);
+                            taskRecord.setCandidateUser(StringUtils.join(candidateUser,","));
+                            taskRecord.setCandidateGroup(StringUtils.join(candidateGroup,","));
                             it.remove();
                             break;
                         }
@@ -124,19 +149,26 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                 }
             }
         }
-
+        //生成任务记录
+        saveTaskRecord(taskRecord,taskEntity);
     }
 
 
     private void taskCompleted(TaskEntityImpl taskEntity){
         logger.info("任务完成监听事件执行 processInstanceId:{}  taskId:{}",taskEntity.getProcessInstanceId(),taskEntity.getId());
-        Map<String, Object>  variables = taskEntity.getVariables();
+        EntityManager entityManager = SpringContextUtil.getBeanByClass(EntityManager.class);
+        TaskRecord taskRecord = entityManager.find(TaskRecord.class,taskEntity.getId());
+        if(taskRecord!=null){ //任务记录表中的结束时间会与流程历史任务表相差1秒左右
+            taskRecord.setEndTime(new Date());
+            entityManager.merge(taskRecord);
+        }
     }
 
 
     private void multiInstanceActivityStarted(FlowableMultiInstanceActivityEventImpl multiIEvent){
         logger.info("多实例开始 processInstanceId:{}  activityId:{}",multiIEvent.getProcessInstanceId(),multiIEvent.getActivityId());
         DelegateExecution execution = multiIEvent.getExecution();
+        MultiInstanceRecord record = new MultiInstanceRecord();
         //调用活动多实例
         if(FlowElementType.CALL_ACTIVITY.equals(multiIEvent.getActivityType())){
             Map callActivityModelIdMap = execution.getVariable("callActivityModelKeyMap",Map.class);
@@ -144,6 +176,10 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                 List modelIdList = (List) callActivityModelIdMap.get(multiIEvent.getActivityId());
                 if(modelIdList!=null&&modelIdList.size()>0){
                     execution.setVariable("subProcessDefinitionKeyList",modelIdList);
+                    //记录调用活动子流程
+                    record.setSubProcessDefinitionKeyList( JSONArray.toJSON(modelIdList).toString() );
+                    //移除发起调用活动时所需变量
+                    callActivityModelIdMap.remove(multiIEvent.getActivityId());
                 }
             }
         }
@@ -153,8 +189,24 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
             if(userVariable!=null&&userVariable.size()>0){
                 List<String> assigneeList = (List)userVariable.get("assigneeList");
                 execution.setVariable("assigneeList",assigneeList);
+                //记录会签人信息
+                if( assigneeList!=null && assigneeList.size()>0 ) record.setAssigneeList( JSONArray.toJSON(assigneeList).toString() );
+                //设置会签处理人后清除该任务节点变量
+                execution.removeVariable(multiIEvent.getActivityId());
             }
         }
+        //生成会签记录
+        record.setProcessInstanceId(multiIEvent.getProcessInstanceId());
+        record.setProcessDefinitionId(multiIEvent.getProcessDefinitionId());
+        record.setActivityId(multiIEvent.getActivityId());
+        record.setActivityName(multiIEvent.getActivityName());
+        record.setActivityType(multiIEvent.getActivityType());
+        List<Map<String,Object>> callActivityList = execution.getVariable("callActivityList",List.class);
+        if( callActivityList!=null && callActivityList.size()>0 )
+            record.setCallActivityList( JSONArray.toJSON(callActivityList).toString() );
+        record.setCreateTime(new Date());
+        EntityManager entityManager = SpringContextUtil.getBeanByClass(EntityManager.class);
+        entityManager.merge(record);
     }
 
 
@@ -174,6 +226,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
         //TODO  此处应回调业务接口回写数据状态
     }
 
+
     private void processCompleted(ExecutionEntityImpl execution){
         logger.info("流程结束监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
         //TODO  此处应回调业务接口回写数据状态
@@ -191,6 +244,62 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
         }
     }
 
+
+    //签收或设置处理人
+    private void taskAssigned(TaskEntityImpl taskEntity ){
+        Optional<TaskRecord> optional = taskRecordRepository.findById( taskEntity.getId() );
+        if(optional.isPresent()){
+            TaskRecord taskRecord = optional.get();
+            taskRecord.setAssignee(taskEntity.getAssignee());
+            taskRecord.setClaimTime(taskEntity.getClaimTime());
+            taskRecordRepository.save(taskRecord);
+        }
+    }
+
+
+    //刪除任务记录
+    private void deleteTaskRecord(FlowableEngineEntityEvent flowEvent){
+        if(flowEvent.getEntity() instanceof HistoricTaskInstanceEntityImpl){
+            HistoricTaskInstanceEntityImpl taskEntity = (HistoricTaskInstanceEntityImpl) flowEvent.getEntity();
+            if(taskEntity.isDeleted()){
+                logger.info("任务删除：{},taskId={}，processInstanceId={}",taskEntity.getName(),taskEntity.getId(),taskEntity.getProcessInstanceId());
+                /*EntityManager entityManager = SpringContextUtil.getBeanByClass(EntityManager.class);
+                TaskRecord taskRecord = entityManager.find(TaskRecord.class,taskEntity.getId());
+                if(taskRecord!=null){
+                    entityManager.remove(taskRecord);
+                }*/
+                taskRecordRepository.deleteById(taskEntity.getId());
+            }
+        }
+    }
+
+
+    //生成任务记录
+    private void saveTaskRecord(TaskRecord taskRecord, TaskEntity taskEntity){
+        taskRecord.setTaskId(taskEntity.getId());
+        taskRecord.setTaskName(taskEntity.getName());
+        taskRecord.setTaskDefinitionKey(taskEntity.getTaskDefinitionKey());
+        taskRecord.setAssignee(taskEntity.getAssignee());
+        taskRecord.setOwner(taskEntity.getOwner());
+        taskRecord.setCreateTime(taskEntity.getCreateTime());
+        taskRecord.setClaimTime(taskEntity.getClaimTime());
+        RuntimeService runtimeService =SpringContextUtil.getBeanByClass(RuntimeService.class);
+        ProcessInstance currentInstance = runtimeService.createProcessInstanceQuery().processInstanceId(taskEntity.getProcessInstanceId()).singleResult();
+        taskRecord.setProcessInstanceId(currentInstance.getId());
+        taskRecord.setProcessInstanceName(currentInstance.getName());
+        taskRecord.setBusinessType(currentInstance.getBusinessKey().split(";")[0]);
+        taskRecord.setBusinessId(currentInstance.getBusinessKey().split(";")[1]);
+        taskRecord.setBusinessKey(currentInstance.getBusinessKey());
+        ExecutionEntity taskExecution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(taskEntity.getExecutionId()).singleResult();
+        taskRecord.setExecutionId(taskExecution.getId());
+        taskRecord.setParentExecutionId(taskExecution.getParentId());
+        taskRecord.setProcessDefinitionId(taskEntity.getProcessDefinitionId());
+        FlowElement flowElement = taskExecution.getCurrentFlowElement();
+        if(flowElement instanceof UserTask){
+            taskRecord.setTaskType(WorkflowUtil.getUserTaskType((UserTask) flowElement));
+        }
+        taskRecordRepository.save(taskRecord);
+    }
 
 
 }

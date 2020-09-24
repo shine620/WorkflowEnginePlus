@@ -3,11 +3,12 @@ package com.hy.workflow.entity;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Date;
 
 @Entity
 @Table
-public class BusinessProcess{
+public class BusinessProcess  implements Serializable {
 
     /*@Id
     @GenericGenerator(name="idGenerator", strategy="uuid")

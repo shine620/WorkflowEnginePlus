@@ -1,6 +1,7 @@
 package com.hy.workflow.service;
 
 
+import com.google.common.collect.Maps;
 import com.hy.workflow.base.EvaluateExpressionCmd;
 import com.hy.workflow.base.FindNextActivityCmd;
 import com.hy.workflow.base.PageBean;
@@ -8,6 +9,7 @@ import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.FlowElementConfig;
 import com.hy.workflow.entity.RejectRecord;
+import com.hy.workflow.entity.TaskRecord;
 import com.hy.workflow.enums.ApproveType;
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.enums.RejectPosition;
@@ -16,6 +18,7 @@ import com.hy.workflow.model.*;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.FlowElementConfigRepository;
 import com.hy.workflow.repository.RejectRecordRepository;
+import com.hy.workflow.repository.TaskRecordRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.WorkflowUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +27,7 @@ import org.flowable.bpmn.model.Process;
 import org.flowable.engine.*;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
+import org.flowable.engine.impl.runtime.ChangeActivityStateBuilderImpl;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ChangeActivityStateBuilder;
 import org.flowable.engine.runtime.Execution;
@@ -75,6 +79,9 @@ public class FlowableTaskService {
 
     @Autowired
     private RejectRecordRepository rejectRecordRepository;
+
+    @Autowired
+    private TaskRecordRepository taskRecordRepository;
 
 
     /**
@@ -185,28 +192,40 @@ public class FlowableTaskService {
         String processInstanceId = taskExe.getProcessInstanceId();
         String rootProcessInstanceId = taskExe.getRootProcessInstanceId();
 
-        ChangeActivityStateBuilder changeBuilder = runtimeService.createChangeActivityStateBuilder();
+        ChangeActivityStateBuilder changeBuilder =runtimeService.createChangeActivityStateBuilder();
         List<Execution> processList=  runtimeService.createExecutionQuery().parentId(rootProcessInstanceId).list();
         logger.info("流程驳回操作：processInstanceId:{}，taskId:{}，rejectNode:{}",task.getProcessInstanceId(),task.getId(),targetNodeId);
 
         /* 用户任务：无子流程、无会签 */
         if(StringUtils.equals(processInstanceId,rootProcessInstanceId)&&StringUtils.equals(processInstanceId,taskExe.getParentId())){
             /** ①普通用户任务 */
-            if(processList.size()==1)
-                changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo(task.getTaskDefinitionKey(),targetNodeId).changeState();
+            if(processList.size()==1) {
+                //设置驳回处理人
+                List<TaskRecord> taskRecords = taskRecordRepository.findByProcessInstanceIdAndTaskDefinitionKeyOrderByEndTimeDesc(task.getProcessInstanceId(),targetNodeId);
+                if(taskRecords.size()>0){
+                    Map<String,String> varMap = new HashMap();
+                    varMap.put("assignee",taskRecords.get(0).getAssignee());
+                    varMap.put("flowElementType",FlowElementType.USER_TASK);
+                    runtimeService.setVariable(task.getProcessInstanceId(),targetNodeId, varMap);
+                }
+                changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo( task.getTaskDefinitionKey(), targetNodeId ).changeState();
+            }
             /** ④并行分支上普通用户任务 */
-            else if(processList.size()>1)
+            else if(processList.size()>1){
                 innerReject(changeBuilder,task,targetNodeId,rejectPosition);
+            }
         }
         else{
             /* 用户任务会签 */
             if( StringUtils.equals(parentExe.getParentId(),parentExe.getRootProcessInstanceId()) ){
                 /** ②会签用户任务 */
-                if(processList.size()==1)
+                if(processList.size()==1){
                     changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo(task.getTaskDefinitionKey(),targetNodeId).changeState();
+                }
                 /** ⑤并行分支上会签用户任务 */
-                else if(processList.size()>1)
+                else if(processList.size()>1){
                     innerReject(changeBuilder,task,targetNodeId,rejectPosition);
+                }
             }
             /* 子流程会签 */
             else{
@@ -438,8 +457,7 @@ public class FlowableTaskService {
         List<String> flowIdList =  new ArrayList<>();
 
         //最后一个会签环实例才可以选择下一节点处理人信息(非固定人员时可选)
-        //TODO 还需处理 并行用户任务会签、子流程会签、并行子流程会签
-        Map<String,Object> variables = runtimeService.getVariables(task.getExecutionId());
+        Map<String,Object> variables = runtimeService.getVariablesLocal(execution.getParentId());
         if(variables.get("nrOfInstances")!=null){
             int nrOfInstances = (Integer) variables.get("nrOfInstances");
             int nrOfCompletedInstances = (Integer) variables.get("nrOfCompletedInstances");

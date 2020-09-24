@@ -172,4 +172,23 @@ public class WorkflowUtil {
     }
 
 
+    /**
+     * 获取任务节点类型(串行会签、并行会签、用户任务)
+     *
+     * @author  zhaoyao
+     * @param userTask 任务节点对象
+     */
+    public static String getUserTaskType(UserTask userTask){
+        String type;
+        MultiInstanceLoopCharacteristics multiInstance = userTask.getLoopCharacteristics();
+        if(multiInstance!=null){
+            if(multiInstance.isSequential()) type= FlowElementType.SEQUENTIAL_TASK;
+            else type= FlowElementType.PARALLEL_TASK;
+        }else{
+            type= FlowElementType.USER_TASK;
+        }
+        return type;
+    }
+
+
 }

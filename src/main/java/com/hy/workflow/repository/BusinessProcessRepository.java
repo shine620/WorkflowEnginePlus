@@ -9,6 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface BusinessProcessRepository extends JpaRepository<BusinessProcess, String>, JpaSpecificationExecutor<BusinessProcess> {
 
 
-
+    void deleteByProcessDefinitionId(String processDefinitionId);
 
 }

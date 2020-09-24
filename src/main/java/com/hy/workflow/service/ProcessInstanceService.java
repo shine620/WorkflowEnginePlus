@@ -6,6 +6,8 @@ import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.model.StartProcessRequest;
 import com.hy.workflow.repository.BusinessProcessRepository;
+import com.hy.workflow.repository.MultiInstanceRecordRepository;
+import com.hy.workflow.repository.TaskRecordRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.ValidateUtil;
 import com.hy.workflow.util.WorkflowUtil;
@@ -47,6 +49,12 @@ public class ProcessInstanceService {
 
     @Autowired
     private BusinessProcessRepository businessProcessRepository;
+
+    @Autowired
+    private TaskRecordRepository taskRecordRepository;
+
+    @Autowired
+    private MultiInstanceRecordRepository multiInstanceRecordRepository;
 
     @Autowired
     private RuntimeService runtimeService;
@@ -141,6 +149,8 @@ public class ProcessInstanceService {
         if( count==0 && historyCount==0 ) throw new WorkflowException("流程实例删除失败，该实例不存在："+processInstanceId);
         //必须同步删除BusinessProcess数据
         businessProcessRepository.deleteById(processInstanceId);
+        taskRecordRepository.deleteByProcessInstanceId(processInstanceId);
+        multiInstanceRecordRepository.deleteByProcessInstanceId(processInstanceId);
     }
 
 

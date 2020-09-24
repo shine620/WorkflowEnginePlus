@@ -4,11 +4,12 @@ package com.hy.workflow.entity;
 import com.hy.workflow.model.ProcessDefinitionConfigModel;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Date;
 
 @Entity
 @Table
-public class ProcessDefinitionConfig {
+public class ProcessDefinitionConfig  implements Serializable {
 
     @Id
     //流程定义ID
