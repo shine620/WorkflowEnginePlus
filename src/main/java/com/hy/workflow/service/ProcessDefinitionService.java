@@ -11,6 +11,7 @@ import com.hy.workflow.util.ValidateUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
+import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,9 @@ public class ProcessDefinitionService {
     private TaskRecordRepository taskRecordRepository;
 
     @Autowired
+    private RejectRecordRepository rejectRecordRepository;
+
+    @Autowired
     private MultiInstanceRecordRepository multiInstanceRecordRepository;
 
     @PersistenceContext
@@ -67,17 +71,19 @@ public class ProcessDefinitionService {
         if(processDefinition!=null){
             if(cascade) {
                 //查询该流程定义产生的流程实例
-                /*List<HistoricProcessInstance> instanceList = historyService.createHistoricProcessInstanceQuery().processDefinitionId(processDefinition.getId()).list();
+                List<HistoricProcessInstance> instanceList = historyService.createHistoricProcessInstanceQuery().processDefinitionId(processDefinition.getId()).list();
                 List<String> instanceIdList = new ArrayList<>();
                 instanceList.forEach(historicProcessInstance -> {
                     instanceIdList.add(historicProcessInstance.getId());
+                    List<HistoricProcessInstance> subInstanceList = historyService.createHistoricProcessInstanceQuery().superProcessInstanceId(historicProcessInstance.getId()).list();
+                    subInstanceList.forEach(subProcessInstance -> {
+                        instanceIdList.add(subProcessInstance.getId());
+                    });
                 });
-                //删除对应的BusinessProcess数据
-                List<BusinessProcess> bpList = businessProcessRepository.findAllById(instanceIdList);
-                businessProcessRepository.deleteInBatch(bpList);*/
-                businessProcessRepository.deleteByProcessDefinitionId(processDefinition.getId());
-                taskRecordRepository.deleteByProcessDefinitionId(processDefinition.getId());
-                multiInstanceRecordRepository.deleteByProcessDefinitionId(processDefinition.getId());
+                taskRecordRepository.deleteByProcessInstanceIdIn(instanceIdList); //任务记录
+                multiInstanceRecordRepository.deleteByProcessInstanceIdIn(instanceIdList); //多实例记录
+                rejectRecordRepository.deleteByProcessInstanceIdIn(instanceIdList); //驳回记录
+                businessProcessRepository.deleteByProcessInstanceIdIn(instanceIdList); //业务实例信息
             }
             repositoryService.deleteDeployment(deploymentId,cascade);
             processDefinitionConfigRepository.deleteByProcessDefinitionId(processDefinition.getId());

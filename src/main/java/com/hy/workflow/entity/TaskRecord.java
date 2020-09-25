@@ -69,6 +69,9 @@ public class TaskRecord implements Serializable{
     //父执行实例ID
     private String parentExecutionId;
 
+    //子流程部门(子流程任务存在该值)
+    private String suProcessDepartmentId;
+
 
     public String getTaskId() {
         return taskId;
@@ -221,4 +224,13 @@ public class TaskRecord implements Serializable{
     public void setProcessDefinitionId(String processDefinitionId) {
         this.processDefinitionId = processDefinitionId;
     }
+
+    public String getSuProcessDepartmentId() {
+        return suProcessDepartmentId;
+    }
+
+    public void setSuProcessDepartmentId(String suProcessDepartmentId) {
+        this.suProcessDepartmentId = suProcessDepartmentId;
+    }
+
 }

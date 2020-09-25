@@ -1,5 +1,6 @@
 package com.hy.workflow.util;
 
+import com.google.common.collect.Lists;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.ApproveInfo;
@@ -118,7 +119,7 @@ public class WorkflowUtil {
                 if(nextTask.getCandidateUser()!=null && nextTask.getCandidateUser().size()>0)
                     taskUserMap.put("assigneeList",nextTask.getCandidateUser());
                 else if(StringUtils.isNotBlank(nextTask.getAssignee()))
-                    taskUserMap.put("assigneeList",nextTask.getAssignee());
+                    taskUserMap.put("assigneeList", Lists.newArrayList(nextTask.getAssignee()));
                 taskUserMap.put("flowElementType",nextTask.getFlowElementType());
                 variables.put( nextTask.getFlowElementId(), taskUserMap );
             }

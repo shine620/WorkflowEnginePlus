@@ -114,8 +114,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                 taskRecord.setCandidateUser(StringUtils.join(candidateUser,","));
                 taskRecord.setCandidateGroup(StringUtils.join(candidateGroup,","));
                 //任务创建后清空该变量，以免影响驳回操作
-                //TODO 完成后打开注释
-                //taskEntity.removeVariable(taskEntity.getTaskDefinitionKey());
+                taskEntity.removeVariable(taskEntity.getTaskDefinitionKey());
             }
         }
          //调用活动多实例生成的任务节点
@@ -142,6 +141,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                             taskRecord.setAssignee(assignee);
                             taskRecord.setCandidateUser(StringUtils.join(candidateUser,","));
                             taskRecord.setCandidateGroup(StringUtils.join(candidateGroup,","));
+                            taskRecord.setSuProcessDepartmentId((String)map.get("suProcessDepartmentId"));
                             it.remove();
                             break;
                         }

@@ -7,6 +7,7 @@ import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.model.StartProcessRequest;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.MultiInstanceRecordRepository;
+import com.hy.workflow.repository.RejectRecordRepository;
 import com.hy.workflow.repository.TaskRecordRepository;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.ValidateUtil;
@@ -18,6 +19,7 @@ import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
+import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.engine.runtime.ProcessInstanceBuilder;
@@ -52,6 +54,9 @@ public class ProcessInstanceService {
 
     @Autowired
     private TaskRecordRepository taskRecordRepository;
+
+    @Autowired
+    private RejectRecordRepository rejectRecordRepository;
 
     @Autowired
     private MultiInstanceRecordRepository multiInstanceRecordRepository;
@@ -137,6 +142,19 @@ public class ProcessInstanceService {
      * @return
      */
     public void deleteProcessInstance(String processInstanceId, String deleteReason) {
+        //同步删除业务表数据信息
+        businessProcessRepository.deleteById(processInstanceId);
+        List<HistoricProcessInstance> subProcessList = historyService.createHistoricProcessInstanceQuery().superProcessInstanceId(processInstanceId).list();
+        List<String> processInstanceIds = new ArrayList<>();
+        processInstanceIds.add(processInstanceId);
+        subProcessList.forEach(historicProcessInstance -> {
+            processInstanceIds.add(historicProcessInstance.getId());
+        });
+        taskRecordRepository.deleteByProcessInstanceIdIn(processInstanceIds);
+        multiInstanceRecordRepository.deleteByProcessInstanceIdIn(processInstanceIds);
+        rejectRecordRepository.deleteByProcessInstanceIdIn(processInstanceIds);
+        businessProcessRepository.deleteByProcessInstanceIdIn(processInstanceIds);
+        //删除流程表数据
         long count = runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId).count();
         long historyCount = 0;
         if(count>0){
@@ -147,10 +165,7 @@ public class ProcessInstanceService {
             if(historyCount>0) historyService.deleteHistoricProcessInstance(processInstanceId);
         }
         if( count==0 && historyCount==0 ) throw new WorkflowException("流程实例删除失败，该实例不存在："+processInstanceId);
-        //必须同步删除BusinessProcess数据
-        businessProcessRepository.deleteById(processInstanceId);
-        taskRecordRepository.deleteByProcessInstanceId(processInstanceId);
-        multiInstanceRecordRepository.deleteByProcessInstanceId(processInstanceId);
+
     }
 
 

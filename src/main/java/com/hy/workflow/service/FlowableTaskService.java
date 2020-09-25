@@ -1,24 +1,20 @@
 package com.hy.workflow.service;
 
 
-import com.google.common.collect.Maps;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.TypeReference;
 import com.hy.workflow.base.EvaluateExpressionCmd;
 import com.hy.workflow.base.FindNextActivityCmd;
 import com.hy.workflow.base.PageBean;
 import com.hy.workflow.base.WorkflowException;
-import com.hy.workflow.entity.BusinessProcess;
-import com.hy.workflow.entity.FlowElementConfig;
-import com.hy.workflow.entity.RejectRecord;
-import com.hy.workflow.entity.TaskRecord;
+import com.hy.workflow.entity.*;
 import com.hy.workflow.enums.ApproveType;
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.enums.RejectPosition;
 import com.hy.workflow.enums.RejectType;
 import com.hy.workflow.model.*;
-import com.hy.workflow.repository.BusinessProcessRepository;
-import com.hy.workflow.repository.FlowElementConfigRepository;
-import com.hy.workflow.repository.RejectRecordRepository;
-import com.hy.workflow.repository.TaskRecordRepository;
+import com.hy.workflow.repository.*;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.WorkflowUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +23,6 @@ import org.flowable.bpmn.model.Process;
 import org.flowable.engine.*;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
-import org.flowable.engine.impl.runtime.ChangeActivityStateBuilderImpl;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ChangeActivityStateBuilder;
 import org.flowable.engine.runtime.Execution;
@@ -43,7 +38,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.util.*;
 
@@ -82,6 +76,9 @@ public class FlowableTaskService {
 
     @Autowired
     private TaskRecordRepository taskRecordRepository;
+
+    @Autowired
+    private MultiInstanceRecordRepository multiInstanceRecordRepository;
 
 
     /**
@@ -200,18 +197,12 @@ public class FlowableTaskService {
         if(StringUtils.equals(processInstanceId,rootProcessInstanceId)&&StringUtils.equals(processInstanceId,taskExe.getParentId())){
             /** ①普通用户任务 */
             if(processList.size()==1) {
-                //设置驳回处理人
-                List<TaskRecord> taskRecords = taskRecordRepository.findByProcessInstanceIdAndTaskDefinitionKeyOrderByEndTimeDesc(task.getProcessInstanceId(),targetNodeId);
-                if(taskRecords.size()>0){
-                    Map<String,String> varMap = new HashMap();
-                    varMap.put("assignee",taskRecords.get(0).getAssignee());
-                    varMap.put("flowElementType",FlowElementType.USER_TASK);
-                    runtimeService.setVariable(task.getProcessInstanceId(),targetNodeId, varMap);
-                }
+                setRejectTaskUser(task,targetNodeId,parentProcessInstanceId); //设置驳回处理人
                 changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo( task.getTaskDefinitionKey(), targetNodeId ).changeState();
             }
             /** ④并行分支上普通用户任务 */
             else if(processList.size()>1){
+                setRejectTaskUser(task,targetNodeId,parentProcessInstanceId);
                 innerReject(changeBuilder,task,targetNodeId,rejectPosition);
             }
         }
@@ -220,10 +211,13 @@ public class FlowableTaskService {
             if( StringUtils.equals(parentExe.getParentId(),parentExe.getRootProcessInstanceId()) ){
                 /** ②会签用户任务 */
                 if(processList.size()==1){
+                    setRejectTaskUser(task,targetNodeId,parentProcessInstanceId);
                     changeBuilder.processInstanceId(task.getProcessInstanceId()).moveActivityIdTo(task.getTaskDefinitionKey(),targetNodeId).changeState();
                 }
                 /** ⑤并行分支上会签用户任务 */
                 else if(processList.size()>1){
+                    logger.debug("从会签任务节点驳回");
+                    setRejectTaskUser(task,targetNodeId,parentProcessInstanceId);
                     innerReject(changeBuilder,task,targetNodeId,rejectPosition);
                 }
             }
@@ -235,6 +229,8 @@ public class FlowableTaskService {
                     List<Execution> executionList=  runtimeService.createExecutionQuery().parentId(parentExe.getId()).list();
                     //当前子流程会签任务对应其父流程上的调用活动节点执行实例
                     ExecutionEntity superExe = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(parentExe.getSuperExecutionId()).singleResult();
+                    //设置驳回环节处理人
+                    setRejectTaskUser(task,targetNodeId,parentProcessInstanceId);
                     //子流程的任务驳回
                     subProcessReject(changeBuilder,task,executionList,superExe,targetNodeId,rejectPosition,parentProcessInstanceId);
                 }
@@ -245,6 +241,8 @@ public class FlowableTaskService {
                     //当前子流程会签任务对应其父流程上的调用活动节点执行实例
                     ExecutionEntity grandpaExe = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(parentExe.getParentId()).singleResult();
                     ExecutionEntity superExe = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(grandpaExe.getSuperExecutionId()).singleResult();
+                    //设置驳回环节处理人
+                    setRejectTaskUser(task,targetNodeId,parentProcessInstanceId);
                     //子流程的任务驳回
                     subProcessReject(changeBuilder,task,executionList,superExe,targetNodeId,rejectPosition,parentProcessInstanceId);
                 }
@@ -271,6 +269,51 @@ public class FlowableTaskService {
         rejectRecord.setTargetProcessInstanceId(rejectInfo.getParentProcessInstanceId());
         rejectRecord.setCreateTime(new Date());
         rejectRecordRepository.save(rejectRecord);
+    }
+
+    //设置驳回处理人
+    private void setRejectTaskUser(Task task, String targetNodeId, String parentProcessInstanceId){
+
+        String processInstanceId = task.getProcessInstanceId();
+        if(StringUtils.isNotBlank(parentProcessInstanceId)) processInstanceId = parentProcessInstanceId;
+        Map<String,Object> varMap = new HashMap();
+
+        //判断驳回到的节点类型
+        List<TaskRecord> taskRecords = taskRecordRepository.findByProcessInstanceIdAndTaskDefinitionKeyAndTaskTypeOrderByEndTimeDesc(task.getProcessInstanceId(),targetNodeId,FlowElementType.USER_TASK);
+        //驳回到普通用户任务
+        if(taskRecords.size()>0){
+            Map assigneeMap = new HashMap();
+            assigneeMap.put("assignee",taskRecords.get(0).getAssignee());
+            assigneeMap.put("flowElementType",FlowElementType.USER_TASK);
+            varMap.put(targetNodeId, assigneeMap);
+        } else{
+            List<MultiInstanceRecord> multiUserTaskList = multiInstanceRecordRepository.findByProcessInstanceIdAndActivityIdAndAssigneeListIsNotNullOrderByCreateTimeDesc(processInstanceId,targetNodeId);
+            //驳回到用户会签环节
+            if(multiUserTaskList.size()>0){
+                List assigneeList = JSONArray.parseArray(multiUserTaskList.get(0).getAssigneeList()).toJavaList(List.class);
+                Map<String,Object> multiTaskMap = new HashMap<>();
+                multiTaskMap.put("assigneeList",assigneeList);
+                multiTaskMap.put("flowElementType",multiUserTaskList.get(0).getActivityType());
+                varMap.put(targetNodeId,multiTaskMap);
+            } else{
+                //驳回到子流程会签环节
+                List<MultiInstanceRecord> multiCallActivityList = multiInstanceRecordRepository.findByProcessInstanceIdAndActivityIdAndSubProcessDefinitionKeyListIsNotNullOrderByCreateTimeDesc(processInstanceId,targetNodeId);
+                if(multiCallActivityList.size()>0){
+                    //JSON字符转数组
+                    List subProcessDefinitionKeyList = JSON.parseObject(multiCallActivityList.get(0).getSubProcessDefinitionKeyList(), new TypeReference<List<String>>() {});
+                    List callActivityList = JSON.parseObject(multiCallActivityList.get(0).getCallActivityList(), new TypeReference<List<Map<String, Object>>>() {});
+                    //设置 callActivityModelKeyMap
+                    Map<String,List<String>>  callActivityModelKeyMap = runtimeService.getVariable(processInstanceId,"callActivityModelKeyMap",Map.class);
+                    if(callActivityModelKeyMap==null) callActivityModelKeyMap = new HashMap<>();
+                    callActivityModelKeyMap.put(targetNodeId,subProcessDefinitionKeyList);
+                    //设置会签发起时需要的流程变量
+                    varMap.put("callActivityList",callActivityList);
+                    varMap.put("callActivityModelKeyMap",callActivityModelKeyMap);
+                }
+            }
+        }
+        if(varMap.size()==0) logger.error("未找到历史审批人或者会签信息：processInstanceId ={}，taskId={}，targetNodeId={}",processInstanceId,task.getId(),targetNodeId);
+        runtimeService.setVariables(processInstanceId,varMap);
     }
 
 
@@ -339,6 +382,8 @@ public class FlowableTaskService {
         ProcessDefinitionConfigModel definitionConfig = processDefinitionService.getProcessConfig(parentInstance.getProcessDefinitionId());
         if(definitionConfig.getRejectParentProcess()!=null&&definitionConfig.getRejectParentProcess()){
             changeBuilder.moveExecutionsToSingleActivityId( Collections.singletonList(superExe.getParentId()), targetNodeId ).changeState();
+        }else{
+            throw new WorkflowException("该流程实例不允许驳回到主流程：parentProcessInstanceId="+parentProcessInstanceId);
         }
     }
 
@@ -358,7 +403,8 @@ public class FlowableTaskService {
             }else{ //rejectPosition=(null,AFTER_GATEWAY,NO_GATEWAY)
                 changeBuilder.moveExecutionsToSingleActivityId( Collections.singletonList(superExe.getParentId()), targetNodeId ).changeState();
             }
-
+        }else{
+            throw new WorkflowException("该流程实例不允许驳回到主流程：parentProcessInstanceId="+parentProcessInstanceId);
         }
     }
 
