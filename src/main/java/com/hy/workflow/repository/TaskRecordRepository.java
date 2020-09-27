@@ -17,6 +17,8 @@ public interface TaskRecordRepository extends JpaRepository<TaskRecord, String>,
 
     void deleteByProcessInstanceIdIn(Collection<String> processInstanceIds);
 
+    TaskRecord findByExecutionId(String executionId);
+
     List<TaskRecord> findByProcessInstanceIdAndTaskDefinitionKeyAndTaskTypeOrderByEndTimeDesc(String processInstanceId,String taskDefinitionKey,String taskType);
 
 }

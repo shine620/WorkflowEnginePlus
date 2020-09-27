@@ -17,8 +17,10 @@ import org.flowable.common.engine.api.delegate.event.FlowableEngineEventType;
 import org.flowable.common.engine.api.delegate.event.FlowableEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEventType;
 import org.flowable.engine.RuntimeService;
+import org.flowable.engine.TaskService;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.flowable.engine.delegate.event.AbstractFlowableEngineEventListener;
+import org.flowable.engine.delegate.event.impl.FlowableActivityCancelledEventImpl;
 import org.flowable.engine.delegate.event.impl.FlowableMultiInstanceActivityEventImpl;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntityImpl;
@@ -91,6 +93,11 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
         else if(FlowableEngineEventType.TASK_ASSIGNED.equals(eventType)){
             taskAssigned((TaskEntityImpl)flowEvent.getEntity());
         }
+        //节点取消(删除流程、驳回时调用)
+        else if(FlowableEngineEventType.ACTIVITY_CANCELLED.equals(eventType)){
+            FlowableActivityCancelledEventImpl activityCancelled = (FlowableActivityCancelledEventImpl) event;
+            activityCancelled(activityCancelled);
+        }
     }
 
 
@@ -106,7 +113,9 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                 String assignee = (String)taskKeyVariable.get("assignee");
                 List<String> candidateUser = (List)taskKeyVariable.get("candidateUser");
                 List<String> candidateGroup = (List)taskKeyVariable.get("candidateGroup");
-                if(assignee!=null) taskEntity.setAssignee(assignee);
+                //if(assignee!=null) taskEntity.setAssignee(assignee); 此种方式如果是驳回后重新提交的节点，一般记录中会缺失审批人信息
+                TaskService taskService = SpringContextUtil.getBeanByClass(TaskService.class);
+                if(assignee!=null) taskService.setAssignee(taskEntity.getId(),assignee);
                 if(candidateUser!=null) taskEntity.addCandidateUsers(candidateUser);
                 if(candidateGroup!=null) taskEntity.addCandidateGroups(candidateGroup);
                 //记录处理人
@@ -134,7 +143,9 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                             String assignee = (String) map.get("assignee");
                             List<String> candidateGroup = (List) map.get("candidateGroup");
                             List<String> candidateUser = (List) map.get("candidateUser");
-                            if (assignee != null) taskEntity.setAssignee(assignee);
+                            //if (assignee != null) taskEntity.setAssignee(assignee);
+                            TaskService taskService = SpringContextUtil.getBeanByClass(TaskService.class);
+                            if(assignee!=null) taskService.setAssignee(taskEntity.getId(),assignee);
                             if (candidateGroup != null) taskEntity.addCandidateGroups(candidateGroup);
                             if (candidateUser != null) taskEntity.addCandidateUsers(candidateUser);
                             //记录处理人
@@ -158,9 +169,23 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
         logger.info("任务完成监听事件执行 processInstanceId:{}  taskId:{}",taskEntity.getProcessInstanceId(),taskEntity.getId());
         EntityManager entityManager = SpringContextUtil.getBeanByClass(EntityManager.class);
         TaskRecord taskRecord = entityManager.find(TaskRecord.class,taskEntity.getId());
-        if(taskRecord!=null){ //任务记录表中的结束时间会与流程历史任务表相差1秒左右
+        if(taskRecord!=null){ //正常情况下任务记录表中的结束时间可能会与流程历史任务表结束时间相差1秒左右
             taskRecord.setEndTime(new Date());
             entityManager.merge(taskRecord);
+        }
+    }
+
+
+    private void activityCancelled(FlowableActivityCancelledEventImpl activityCancelled){
+        if(activityCancelled.getCause() instanceof UserTask){
+            TaskRecord taskRecord = taskRecordRepository.findByExecutionId(activityCancelled.getExecutionId());
+            if(taskRecord!=null){
+                taskRecord.setEndTime(new Date());
+                taskRecord.setCancelled(true);
+                taskRecordRepository.save(taskRecord);
+            }
+        }else{
+            logger.info("任务取消{}，processInstanceId={}，executionId={}",activityCancelled.getClass(),activityCancelled.getProcessInstanceId(),activityCancelled.getExecutionId());
         }
     }
 
