@@ -7,6 +7,7 @@ import com.hy.workflow.model.ApproveInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.bpmn.model.*;
 import org.flowable.engine.TaskService;
+import org.flowable.task.api.DelegationState;
 import org.flowable.task.api.Task;
 
 import java.util.*;
@@ -164,6 +165,10 @@ public class WorkflowUtil {
                     removedNodes.add(sequenceFlow);
                     it.remove();
                 }
+            }
+            //委托的任务要先处理委托
+            if(DelegationState.PENDING.equals(task.getDelegationState())){
+                taskService.resolveTask(task.getId());
             }
             //审批任务
             taskService.complete(task.getId(), variables);

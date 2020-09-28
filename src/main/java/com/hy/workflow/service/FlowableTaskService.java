@@ -29,6 +29,7 @@ import org.flowable.engine.runtime.Execution;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.identitylink.api.IdentityLink;
 import org.flowable.identitylink.api.IdentityLinkType;
+import org.flowable.task.api.DelegationState;
 import org.flowable.task.api.Task;
 import org.flowable.task.api.TaskQuery;
 import org.flowable.task.api.history.HistoricTaskInstance;
@@ -90,6 +91,9 @@ public class FlowableTaskService {
      */
     public void completeTask(ApproveRequest approveRequest) {
 
+        Task task = taskService.createTaskQuery().taskId(approveRequest.getTaskId()).singleResult();
+        if(task==null) throw new WorkflowException("该任务不存在：taskId="+approveRequest.getTaskId());
+
         ApproveType approveType = approveRequest.getApproveType();
         taskService.addComment(approveRequest.getTaskId(), approveRequest.getProcessInstanceId(), approveRequest.getOpinion());//生成审批意见
 
@@ -101,7 +105,6 @@ public class FlowableTaskService {
             WorkflowUtil.setNextTaskInfoVariables(variables,approveRequest);
 
             //会签非最后一个实例时不设置下环节处理人信息
-            Task task = taskService.createTaskQuery().taskId(approveRequest.getTaskId()).singleResult();
             Map<String,Object> processVariables = runtimeService.getVariables(task.getExecutionId());
             if(processVariables.get("nrOfInstances")!=null){
                 int nrOfInstances = (Integer) processVariables.get("nrOfInstances");
@@ -140,9 +143,29 @@ public class FlowableTaskService {
         }
         /** 转办 */
         else if(ApproveType.TURN.equals(approveType)){
+            if(DelegationState.PENDING.equals(task.getDelegationState())) throw new WorkflowException("该任务在委托处理中，不能转办！");
+            taskService.setOwner(task.getId(),task.getAssignee());
+            taskService.setAssignee(task.getId(),approveRequest.getTurnUserId());
+            Optional<TaskRecord> optional = taskRecordRepository.findById(task.getId());
+            if(optional.isPresent()){
+                TaskRecord taskRecord = optional.get();
+                taskRecord.setTurnUserId(approveRequest.getTurnUserId());
+                taskRecord.setTurnDate(new Date());
+                taskRecordRepository.save(taskRecord);
+            }
         }
         /** 委托 */
         else if(ApproveType.ENTRUST.equals(approveType)){
+            if(DelegationState.PENDING.equals(task.getDelegationState())) throw new WorkflowException("该任务已在委托处理中！");
+            if(DelegationState.RESOLVED.equals(task.getDelegationState())) throw new WorkflowException("该任务已进行过委托处理！");
+            taskService.delegateTask(task.getId(), approveRequest.getDelegateUserId());
+            Optional<TaskRecord> optional = taskRecordRepository.findById(task.getId());
+            if(optional.isPresent()){
+                TaskRecord taskRecord = optional.get();
+                taskRecord.setDelegateUserId(approveRequest.getDelegateUserId());
+                taskRecord.setDelegateDate(new Date());
+                taskRecordRepository.save(taskRecord);
+            }
         }
 
     }

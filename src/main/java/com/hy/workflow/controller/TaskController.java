@@ -16,6 +16,7 @@ import org.flowable.engine.RepositoryService;
 import org.flowable.engine.TaskService;
 import org.flowable.identitylink.api.IdentityLink;
 import org.flowable.identitylink.api.IdentityLinkType;
+import org.flowable.task.api.DelegationState;
 import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -119,6 +120,19 @@ public class TaskController {
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if(task==null) throw new WorkflowException("该任务不存在，无法结束："+taskId);
         taskService.complete(taskId);
+    }
+
+
+    @ApiOperation(value = "转办任务", tags = { "Tasks" })
+    @PostMapping(value = "/tasks/turnTask", produces = "application/json")
+    public void turnTask(@ApiParam(name = "taskId",value = "任务ID") @RequestParam String taskId, @ApiParam(name = "userId",value = "转办人ID") @RequestParam String userId) {
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if(task==null) throw new WorkflowException("该任务不存在，无法结束："+taskId);
+        if(DelegationState.PENDING.equals(task.getDelegationState())){
+            throw new WorkflowException("该任务在委托处理中，不能转办！");
+        }
+        taskService.setOwner(taskId,task.getAssignee());
+        taskService.setAssignee(taskId,userId);
     }
 
 

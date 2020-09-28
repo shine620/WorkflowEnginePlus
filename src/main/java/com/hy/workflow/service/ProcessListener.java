@@ -98,6 +98,10 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
             FlowableActivityCancelledEventImpl activityCancelled = (FlowableActivityCancelledEventImpl) event;
             activityCancelled(activityCancelled);
         }
+        //任务所属人(委托或者转办时)
+        else if(FlowableEngineEventType.TASK_OWNER_CHANGED.equals(eventType)){
+            taskOwnerChanged((TaskEntityImpl)flowEvent.getEntity());
+        }
     }
 
 
@@ -176,9 +180,20 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
     }
 
 
+    private void taskOwnerChanged(TaskEntityImpl taskEntity){
+        logger.info("任务所属人变更 processInstanceId:{}  taskId:{}",taskEntity.getProcessInstanceId(),taskEntity.getId());
+        EntityManager entityManager = SpringContextUtil.getBeanByClass(EntityManager.class);
+        TaskRecord taskRecord = entityManager.find(TaskRecord.class,taskEntity.getId());
+        if(taskRecord!=null){
+            taskRecord.setOwner(taskEntity.getOwner());
+            entityManager.merge(taskRecord);
+        }
+    }
+
+
     private void activityCancelled(FlowableActivityCancelledEventImpl activityCancelled){
         if(activityCancelled.getCause() instanceof UserTask){
-            TaskRecord taskRecord = taskRecordRepository.findByExecutionId(activityCancelled.getExecutionId());
+            TaskRecord taskRecord = taskRecordRepository.findByExecutionIdAndTaskDefinitionKey(activityCancelled.getExecutionId(),activityCancelled.getActivityId());
             if(taskRecord!=null){
                 taskRecord.setEndTime(new Date());
                 taskRecord.setCancelled(true);

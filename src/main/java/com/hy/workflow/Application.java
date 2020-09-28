@@ -70,6 +70,7 @@ public class Application {
                 typedListeners.put("MULTI_INSTANCE_ACTIVITY_STARTED", processCompleteList);
                 typedListeners.put("TASK_ASSIGNED", processCompleteList);
                 typedListeners.put("ACTIVITY_CANCELLED", processCompleteList);
+                typedListeners.put("TASK_OWNER_CHANGED", processCompleteList);
                 engineConfiguration.setTypedEventListeners(typedListeners);
             }
         };

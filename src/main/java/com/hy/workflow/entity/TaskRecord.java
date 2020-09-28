@@ -69,11 +69,23 @@ public class TaskRecord implements Serializable{
     //父执行实例ID
     private String parentExecutionId;
 
-    //子流程部门(子流程任务存在该值)
+    //子流程部门(子流程任务时存在该值)
     private String suProcessDepartmentId;
 
-    //是否被取消的任务(流程驳回和删除)
+    //是否被取消的任务(驳回的任务)
     private Boolean cancelled;
+
+    //转办人
+    private String turnUserId;
+
+    //转办时间
+    private Date turnDate;
+
+    //委托人
+    private String delegateUserId;
+
+    //委托时间
+    private Date delegateDate;
 
 
     public String getTaskId() {
@@ -244,5 +256,36 @@ public class TaskRecord implements Serializable{
         this.cancelled = cancelled;
     }
 
+    public String getTurnUserId() {
+        return turnUserId;
+    }
+
+    public void setTurnUserId(String turnUserId) {
+        this.turnUserId = turnUserId;
+    }
+
+    public Date getTurnDate() {
+        return turnDate;
+    }
+
+    public void setTurnDate(Date turnDate) {
+        this.turnDate = turnDate;
+    }
+
+    public String getDelegateUserId() {
+        return delegateUserId;
+    }
+
+    public void setDelegateUserId(String delegateUserId) {
+        this.delegateUserId = delegateUserId;
+    }
+
+    public Date getDelegateDate() {
+        return delegateDate;
+    }
+
+    public void setDelegateDate(Date delegateDate) {
+        this.delegateDate = delegateDate;
+    }
 
 }

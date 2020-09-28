@@ -25,6 +25,13 @@ public class ApproveRequest extends ApproveInfo{
     @ApiModelProperty(value="驳回信息")
     private RejectInfo rejectInfo;
 
+    @ApiModelProperty(value="转办人")
+    private String turnUserId;
+
+    @ApiModelProperty(value="委托人")
+    private String delegateUserId;
+
+
     public static class RejectInfo{
 
         @ApiModelProperty(value="驳回类型")
@@ -124,6 +131,22 @@ public class ApproveRequest extends ApproveInfo{
 
     public void setRejectInfo(RejectInfo rejectInfo) {
         this.rejectInfo = rejectInfo;
+    }
+
+    public String getTurnUserId() {
+        return turnUserId;
+    }
+
+    public void setTurnUserId(String turnUserId) {
+        this.turnUserId = turnUserId;
+    }
+
+    public String getDelegateUserId() {
+        return delegateUserId;
+    }
+
+    public void setDelegateUserId(String delegateUserId) {
+        this.delegateUserId = delegateUserId;
     }
 
 }
