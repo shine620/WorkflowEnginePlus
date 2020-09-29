@@ -1,31 +1,54 @@
 package com.hy.workflow.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.service.ModelService;
 import com.hy.workflow.util.EntityModelUtil;
+import com.hy.workflow.util.WorkflowUtil;
 import io.swagger.annotations.*;
 import org.apache.commons.lang3.StringUtils;
+import org.flowable.bpmn.BpmnAutoLayout;
+import org.flowable.bpmn.converter.BpmnXMLConverter;
+import org.flowable.bpmn.model.BpmnModel;
+import org.flowable.bpmn.model.Process;
 import org.flowable.common.engine.api.query.QueryProperty;
 import org.flowable.common.rest.api.DataResponse;
 import org.flowable.common.rest.api.PaginateRequest;
+import org.flowable.editor.language.json.converter.BpmnJsonConverter;
+import org.flowable.editor.language.json.converter.util.CollectionUtils;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.impl.ModelQueryProperty;
 import org.flowable.engine.repository.Model;
 import org.flowable.engine.repository.ModelQuery;
 import org.flowable.rest.service.api.repository.ModelResponse;
+import org.flowable.ui.common.service.exception.BadRequestException;
 import org.flowable.ui.common.service.exception.InternalServerErrorException;
+import org.flowable.ui.common.util.XmlUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.flowable.common.rest.api.PaginateListUtil.paginateList;
@@ -34,6 +57,8 @@ import static org.flowable.common.rest.api.PaginateListUtil.paginateList;
 @RequestMapping("/ModelController")
 @Api(value = "模型", tags = "Models", description = "流程模型接口")
 public class ModelController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ModelController.class);
 
     @Autowired
     private RepositoryService repositoryService;
@@ -178,7 +203,7 @@ public class ModelController {
             //未填写Key时自动设置模型ID为Key
             repositoryService.saveModel(model);
             if(StringUtils.isBlank(key)){
-                key = "Model"+ model.getId();
+                key = "M"+ model.getId();
                 propertiesNode.put("process_id",key);
             }
         }
@@ -209,7 +234,8 @@ public class ModelController {
         propNode.put("model_type", modeltype);
         propNode.put("process_author", acutor);
         propNode.put("description", description);
-        //单位部门信息需要更新
+
+        //TODO 单位部门信息需要更新
         propNode.put("department_id", "1000012");
         propNode.put("unit_id", "1000000");
         metaInfoNode.set("properties", propNode);
@@ -296,8 +322,11 @@ public class ModelController {
             modelNode.set("model", editorJsonNode);
         }
 
-        TextNode description = (TextNode)this.objectMapper.readTree(model.getMetaInfo()).get("properties").get("description");
-        if(description!=null) modelNode.put("description",description.asText());
+        JsonNode properties = this.objectMapper.readTree(model.getMetaInfo()).get("properties");
+        if(properties.has("description")){
+            JsonNode description = properties.get("description");
+            if(description!=null) modelNode.put("description",description.asText());
+        }
 
         return modelNode;
     }
@@ -345,6 +374,144 @@ public class ModelController {
         dataResponse.setData(EntityModelUtil.toModelResponseList(allModels));
         dataResponse.setTotal(allModels.size());
         return dataResponse;
+    }
+
+
+    @ApiOperation(value = "导入模型", tags = { "Models" })
+    @PostMapping(value = "/models/importModel")
+    public ModelResponse importModel(MultipartFile file, HttpServletRequest request) {
+
+        String fileName = file.getOriginalFilename();
+        String name,description,key;
+        ObjectNode modelNode,propertiesNode;
+
+        //导入格式为JSON
+        if(fileName.endsWith(".json")){
+            try {
+                modelNode =  (ObjectNode)this.objectMapper.readTree(file.getBytes());
+                propertiesNode = (ObjectNode)modelNode.get("properties");
+                key = propertiesNode.get("process_id")==null?null: propertiesNode.get("process_id").asText();
+                name = propertiesNode.get("name")==null?null: propertiesNode.get("name").asText();
+                description = propertiesNode.get("documentation")==null?null: propertiesNode.get("documentation").asText();
+            } catch (IOException e) {  throw new RuntimeException(e);  }
+        }
+        //导入格式为XML
+        else if(fileName.endsWith(".xml")||fileName.endsWith(".bpmn")){
+            try {
+                XMLInputFactory xif = XmlUtil.createSafeXmlInputFactory();
+                InputStreamReader xmlIn = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+                XMLStreamReader xtr = xif.createXMLStreamReader(xmlIn);
+                BpmnXMLConverter bpmnXMLConverter = new BpmnXMLConverter();
+                BpmnModel bpmnModel = bpmnXMLConverter.convertToBpmnModel(xtr);
+                if (CollectionUtils.isEmpty(bpmnModel.getProcesses())) {
+                    throw new BadRequestException("文件中未找到流程信息：" + fileName);
+                }
+                if (bpmnModel.getLocationMap().size() == 0) {
+                    BpmnAutoLayout bpmnLayout = new BpmnAutoLayout(bpmnModel);
+                    bpmnLayout.execute();
+                }
+                //XML数据转JSON
+                BpmnJsonConverter bpmnJsonConverter = new BpmnJsonConverter();
+                modelNode = bpmnJsonConverter.convertToJson(bpmnModel);
+                propertiesNode = (ObjectNode)modelNode.get("properties");
+                //name、key、description
+                Process process = bpmnModel.getMainProcess();
+                key = process.getId();
+                name = StringUtils.isNotEmpty(process.getName())?process.getName():process.getId();
+                description = process.getDocumentation();
+            } catch (IOException|XMLStreamException e) {throw new RuntimeException(e);}
+        }else{
+            throw new WorkflowException("不支持的文件类型！");
+        }
+
+        Model model =  repositoryService.newModel() ;
+        model.setName(name);
+        repositoryService.saveModel(model);
+        //Key已经存在或者为空时重新生成,保证唯一性
+        if(StringUtils.isNotBlank(key)){
+            Model existModel = repositoryService.createModelQuery().modelKey(key).singleResult();
+            if(existModel!=null) key += "_"+ model.getId();
+        } else if(StringUtils.isBlank(key)){ //Key为空时生成新值
+            key =  "M"+ model.getId();
+        }
+        model.setKey(key);
+        modelNode.put("modelId",model.getId());
+        propertiesNode.put("process_id",key);
+        propertiesNode.put("process_author","zhaosan"); //TODO 创建人应该是当前登录用户
+
+        //设置MetaInfo信息
+        ObjectNode metaInfoNode = new ObjectMapper().createObjectNode();
+        metaInfoNode.put("id", model.getId());
+        metaInfoNode.put("process_id", key);
+        ObjectNode stencilSetNode = this.objectMapper.createObjectNode();
+        stencilSetNode.put("namespace", "http://b3mn.org/stencilset/bpmn2.0#");
+        metaInfoNode.set("stencilset", stencilSetNode);
+        //MetaInfo的properties
+        ObjectNode propNode = this.objectMapper.createObjectNode();
+        propNode.put("name", name);
+        if(StringUtils.isNotBlank(description)) propNode.put("description", description);
+        propNode.put("model_type", "model");
+        //TODO 创建人、单位、部门 应该是当前登录用户所在的信息
+        propNode.put("process_author", "zhaosan");
+        propNode.put("department_id", "2000012");
+        propNode.put("unit_id", "2000000");
+        metaInfoNode.set("properties", propNode);
+        model.setMetaInfo(metaInfoNode.toString());
+
+        repositoryService.saveModel(model);
+        repositoryService.addModelEditorSource(model.getId(),modelNode.toString().getBytes());
+
+        return EntityModelUtil.toModelResponse(model);
+    }
+
+
+    @ApiOperation(value = "导出模型", tags = { "Models" })
+    @GetMapping(value = "/models/exportModel/{modelId}")
+    public void exportModel(    HttpServletRequest request, HttpServletResponse response,
+        @ApiParam(name = "modelId",value = "模型ID") @PathVariable String modelId,@RequestParam(defaultValue = "json",required = false) String type ){
+
+        Model model = repositoryService.createModelQuery().modelId(modelId).singleResult();
+        String name = model.getName().replaceAll(" ", "_");
+        try {
+
+            byte[] dataBytes;
+            if("xml".equalsIgnoreCase(type)){
+                name+=".bpmn20.xml";
+                response.setContentType("application/xml");
+                BpmnModel bpmnModel = WorkflowUtil.jsonConvertBnpmModel(repositoryService.getModelEditorSource(model.getId()));
+                dataBytes = WorkflowUtil.getBpmnXmlByte(bpmnModel,true);
+            }else{
+                name+=".json";
+                response.setContentType("application/json");
+                dataBytes = repositoryService.getModelEditorSource(model.getId());
+            }
+
+            //设置下载文件名（处理不同浏览器文件名乱码问题）
+            String agent = request.getHeader("user-agent").toLowerCase();
+            if (agent.contains("firefox")) {
+                name = new String(name.getBytes("UTF-8"), "iso-8859-1");
+            } else {
+                name = URLEncoder.encode(name, "UTF-8");
+            }
+            String contentDispositionValue = "attachment; filename=" + name;
+            response.setHeader("Content-Disposition", contentDispositionValue);
+
+            ServletOutputStream servletOutputStream = response.getOutputStream();
+            BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(dataBytes));
+            byte[] buffer = new byte[8096];
+            while (true) {
+                int count = in.read(buffer);
+                if (count == -1) {
+                    break;
+                }
+                servletOutputStream.write(buffer, 0, count);
+            }
+            // Flush and close stream
+            servletOutputStream.flush();
+            servletOutputStream.close();
+        } catch (IOException e) {
+            throw new InternalServerErrorException("文件读写失败");
+        }
     }
 
 

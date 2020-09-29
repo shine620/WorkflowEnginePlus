@@ -1,18 +1,28 @@
 package com.hy.workflow.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.hy.workflow.base.WorkflowException;
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.ApproveInfo;
 import org.apache.commons.lang3.StringUtils;
+import org.flowable.bpmn.converter.BpmnXMLConverter;
 import org.flowable.bpmn.model.*;
+import org.flowable.bpmn.model.Process;
+import org.flowable.editor.language.json.converter.BpmnJsonConverter;
 import org.flowable.engine.TaskService;
 import org.flowable.task.api.DelegationState;
 import org.flowable.task.api.Task;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.*;
 
 public class WorkflowUtil {
+
+    private static final Logger logger = LoggerFactory.getLogger(WorkflowUtil.class);
 
 
     /**
@@ -194,6 +204,50 @@ public class WorkflowUtil {
             type= FlowElementType.USER_TASK;
         }
         return type;
+    }
+
+
+    /**
+     * 将JSON数据转换成BpmnModel对象
+     *
+     * @author  zhaoyao
+     * @param jsonByte json数据
+     */
+    public static BpmnModel jsonConvertBnpmModel(byte[] jsonByte) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        BpmnJsonConverter bpmnJsonConverter = new BpmnJsonConverter();
+        ObjectNode editorJsonNode = null;
+        try {
+            editorJsonNode = (ObjectNode) objectMapper.readTree(jsonByte);
+        } catch (IOException e) {
+            logger.error("JSON数据读取异常");
+        }
+        return bpmnJsonConverter.convertToBpmnModel(editorJsonNode);
+    }
+
+
+    /**
+     * 从BpmnModel对象中获取xml数据
+     *
+     * @author  zhaoyao
+     * @param bpmnModel BpmnModel对象
+     * @param verifyKey 验证模型Key是否满足Flowable要求，并对其修正
+     */
+    public static byte[] getBpmnXmlByte(BpmnModel bpmnModel,Boolean verifyKey) {
+        if(verifyKey){
+            for (Process process : bpmnModel.getProcesses()) {
+                if (StringUtils.isNotEmpty(process.getId())) {
+                    char firstCharacter = process.getId().charAt(0);
+                    // 流程模型key不允许将数字作为第一个字符
+                    if (Character.isDigit(firstCharacter)) {
+                        process.setId("A" + process.getId());
+                    }
+                }
+            }
+        }
+        BpmnXMLConverter bpmnXMLConverter = new BpmnXMLConverter();
+        byte[] xmlBytes = bpmnXMLConverter.convertToXML(bpmnModel);
+        return xmlBytes;
     }
 
 
