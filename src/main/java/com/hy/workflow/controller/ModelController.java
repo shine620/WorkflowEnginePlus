@@ -9,7 +9,11 @@ import com.hy.workflow.service.ModelService;
 import com.hy.workflow.util.EntityModelUtil;
 import com.hy.workflow.util.WorkflowUtil;
 import io.swagger.annotations.*;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.DateUtils;
 import org.flowable.bpmn.BpmnAutoLayout;
 import org.flowable.bpmn.converter.BpmnXMLConverter;
 import org.flowable.bpmn.model.BpmnModel;
@@ -21,12 +25,14 @@ import org.flowable.editor.language.json.converter.BpmnJsonConverter;
 import org.flowable.editor.language.json.converter.util.CollectionUtils;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.impl.ModelQueryProperty;
+import org.flowable.engine.impl.el.DateUtil;
 import org.flowable.engine.repository.Model;
 import org.flowable.engine.repository.ModelQuery;
 import org.flowable.rest.service.api.repository.ModelResponse;
 import org.flowable.ui.common.service.exception.BadRequestException;
 import org.flowable.ui.common.service.exception.InternalServerErrorException;
 import org.flowable.ui.common.util.XmlUtil;
+import org.joda.time.DateTimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,13 +49,12 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.flowable.common.rest.api.PaginateListUtil.paginateList;
 
@@ -512,6 +517,87 @@ public class ModelController {
         } catch (IOException e) {
             throw new InternalServerErrorException("文件读写失败");
         }
+    }
+
+
+    @ApiOperation(value = "批量导出流程模型", tags = { "Models" })
+    @GetMapping(value = "/models/exportModels/{modelId}")
+    public void exportModels( HttpServletRequest request, @ApiParam(name = "modelIds",value = "模型ID") @RequestParam String[] modelIds,
+         HttpServletResponse response, @RequestParam(defaultValue = "json",required = false) String type ){
+
+        if(modelIds!=null&&modelIds.length>100) throw new WorkflowException("一次最多只能导出100条模型数据！");
+        /*// 创建临时文件夹
+        String dirName = DateUtils.formatDate(new Date(),"yyyyMMddHHmmssSSS")+ RandomStringUtils.randomAlphanumeric(5);
+        String tempPath = System.getProperty("java.io.tmpdir")+"/tempFile";
+        File tempDir= new File(tempPath + File.separator+dirName);
+        if (!tempDir.exists()) {
+            tempDir.mkdirs();
+        }
+        //导出的模型文件写入临时文件夹
+        for(String modelId : modelIds){
+            Model model = repositoryService.createModelQuery().modelId(modelId).singleResult();
+            String name = model.getName().replaceAll(" ", "_");
+            byte[] dataBytes;
+            if("xml".equalsIgnoreCase(type)){
+                name+=".bpmn20.xml";
+                response.setContentType("application/xml");
+                BpmnModel bpmnModel = WorkflowUtil.jsonConvertBnpmModel(repositoryService.getModelEditorSource(model.getId()));
+                dataBytes = WorkflowUtil.getBpmnXmlByte(bpmnModel,true);
+            }else{
+                name+=".json";
+                response.setContentType("application/json");
+                dataBytes = repositoryService.getModelEditorSource(model.getId());
+            }
+            File modelFile = new File(tempDir.getPath()+File.separator+name);
+            if(modelFile.exists()) modelFile = new File(tempDir.getPath()+File.separator+modelId+"_"+name);
+            FileOutputStream out = new FileOutputStream(modelFile);
+            IOUtils.write(dataBytes,out);
+            out.close();
+        }*/
+
+        //压缩文件
+        String zipName = DateUtils.formatDate(new Date(),"yyyyMMddHHmmssSSS")+ RandomStringUtils.randomAlphanumeric(5)+".zip";
+        String tempPath = System.getProperty("java.io.tmpdir")+"/tempFile";
+        File zipFile= new File(tempPath + File.separator+zipName+".zip");
+        try{
+            ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFile));
+            for(String modelId : modelIds){
+                Model model = repositoryService.createModelQuery().modelId(modelId).singleResult();
+                String name = model.getName().replaceAll(" ", "_");
+                byte[] dataBytes;
+                if("xml".equalsIgnoreCase(type)){
+                    name+=".bpmn20.xml";
+                    BpmnModel bpmnModel = WorkflowUtil.jsonConvertBnpmModel(repositoryService.getModelEditorSource(model.getId()));
+                    dataBytes = WorkflowUtil.getBpmnXmlByte(bpmnModel,true);
+                }else{
+                    name+=".json";
+                    dataBytes = repositoryService.getModelEditorSource(model.getId());
+                }
+                zipOut.putNextEntry(new ZipEntry(name));
+                zipOut.write(dataBytes);
+                zipOut.closeEntry();
+            }
+            zipOut.close();
+
+            //浏览器下载
+            String contentDispositionValue = "attachment; filename=" +URLEncoder.encode(zipName, "UTF-8");
+            response.setHeader("Content-Disposition", contentDispositionValue);
+            response.setContentType("application/x-download");
+            InputStream in = new FileInputStream(zipFile);
+            OutputStream out = response.getOutputStream();
+            //循环取出流中的数据
+            byte[] b = new byte[1024];
+            int len;
+            while ((len = in.read(b)) > 0){
+                out.write(b, 0, len);
+            }
+            in.close();
+            out.close();
+        }catch (IOException e){
+            throw new RuntimeException(e);
+        }
+        //删除生成的压缩文件
+        zipFile.delete();
     }
 
 
