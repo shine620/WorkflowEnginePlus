@@ -47,9 +47,11 @@ import javax.xml.stream.XMLStreamReader;
 
 import java.io.*;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import static org.flowable.common.rest.api.PaginateListUtil.paginateList;
@@ -380,16 +382,91 @@ public class ModelController {
 
     @ApiOperation(value = "导入模型", tags = { "Models" })
     @PostMapping(value = "/models/importModel")
-    public ModelResponse importModel(MultipartFile file, HttpServletRequest request) {
-
+    public ModelResponse importModel(MultipartFile file) {
         String fileName = file.getOriginalFilename();
+        try {
+            ModelResponse model = parseModelData(fileName,file.getInputStream());
+            return model;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @ApiOperation(value = "批量导入模型", tags = { "Models" })
+    @PostMapping(value = "/models/importModels")
+    public List<ModelResponse> importModels(MultipartFile uploadFile) throws IOException {
+
+        String fileName = uploadFile.getOriginalFilename();
+        if(!fileName.endsWith(".zip")) throw new WorkflowException("请上传ZIP格式的压缩文件");
+        //存储上传的文件
+        String tempPath = System.getProperty("java.io.tmpdir");
+        File zipFile = new File(tempPath+File.separator+fileName);
+        uploadFile.transferTo(zipFile);
+
+        //解压上传文件
+        /*File unZipDir= new File(tempPath +File.separator+RandomStringUtils.randomAlphanumeric(10));
+        if(unZipDir.exists()){
+            unZipDir.mkdirs();
+        }
+        ZipFile zip = new ZipFile(zipFile, Charset.forName("UTF-8"));
+        List<File> modelFiles = new ArrayList<>();
+        for (Enumeration entries = zip.entries(); entries.hasMoreElements();) {
+            ZipEntry entry = (ZipEntry) entries.nextElement();
+            String zipEntryName = entry.getName();
+            InputStream in = zip.getInputStream(entry);
+            String unzipFileName = (unZipDir + File.separator + zipEntryName);
+            File unzipFile = new File(unzipFileName);
+            logger.info("解压的模型文件：{}",unzipFileName);
+            // 判断是否为文件夹,是文件夹不需要解压,但要创建目录
+            if (entry.isDirectory()) {
+                if(!unzipFile.exists()) unzipFile.mkdirs();
+                continue;
+            }
+            //只解压.xml/.bpmn/.json格式的文件
+            if(!unzipFileName.endsWith(".xml")&&!unzipFileName.endsWith(".bpmn")&&!unzipFileName.endsWith(".json")) continue;
+            // 输出文件路径信息
+            OutputStream out = new FileOutputStream(unzipFile);
+            byte[] b = new byte[1024];
+            int len;
+            while ((len = in.read(b)) > 0) {
+                out.write(b, 0, len);
+            }
+            in.close();
+            out.close();
+            modelFiles.add(unzipFile);
+        }
+        zip.close();*/
+
+        List<ModelResponse> modelList = new ArrayList<>();
+        ZipFile zip = new ZipFile(zipFile, Charset.forName("UTF-8"));
+        for (Enumeration entries = zip.entries(); entries.hasMoreElements();) {
+            ZipEntry entry = (ZipEntry) entries.nextElement();
+            String zipEntryName = entry.getName();
+            // 判断是否为文件夹,是文件夹直接跳过
+            if (entry.isDirectory()) continue;
+            //只读取.xml/.bpmn/.json格式的文件
+            if(!zipEntryName.endsWith(".xml")&&!zipEntryName.endsWith(".bpmn")&&!zipEntryName.endsWith(".json")) continue;
+            logger.info("解析的模型文件：{}",zipEntryName);
+            InputStream in = zip.getInputStream(entry);
+            ModelResponse modelResponse = parseModelData(zipEntryName,in);
+            modelList.add(modelResponse);
+        }
+        zip.close();
+        zipFile.delete();
+        return modelList;
+    }
+
+
+    private ModelResponse parseModelData(String fileName, InputStream inputStream) {
+
         String name,description,key;
         ObjectNode modelNode,propertiesNode;
 
         //导入格式为JSON
         if(fileName.endsWith(".json")){
             try {
-                modelNode =  (ObjectNode)this.objectMapper.readTree(file.getBytes());
+                modelNode =  (ObjectNode)this.objectMapper.readTree(inputStream);
                 propertiesNode = (ObjectNode)modelNode.get("properties");
                 key = propertiesNode.get("process_id")==null?null: propertiesNode.get("process_id").asText();
                 name = propertiesNode.get("name")==null?null: propertiesNode.get("name").asText();
@@ -400,7 +477,7 @@ public class ModelController {
         else if(fileName.endsWith(".xml")||fileName.endsWith(".bpmn")){
             try {
                 XMLInputFactory xif = XmlUtil.createSafeXmlInputFactory();
-                InputStreamReader xmlIn = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+                InputStreamReader xmlIn = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
                 XMLStreamReader xtr = xif.createXMLStreamReader(xmlIn);
                 BpmnXMLConverter bpmnXMLConverter = new BpmnXMLConverter();
                 BpmnModel bpmnModel = bpmnXMLConverter.convertToBpmnModel(xtr);
@@ -420,7 +497,7 @@ public class ModelController {
                 key = process.getId();
                 name = StringUtils.isNotEmpty(process.getName())?process.getName():process.getId();
                 description = process.getDocumentation();
-            } catch (IOException|XMLStreamException e) {throw new RuntimeException(e);}
+            } catch (XMLStreamException e) {throw new RuntimeException(e);}
         }else{
             throw new WorkflowException("不支持的文件类型！");
         }
@@ -524,7 +601,7 @@ public class ModelController {
         if(modelIds!=null&&modelIds.length>100) throw new WorkflowException("一次最多只能导出100条模型数据！");
         //压缩文件
         String zipName = DateUtils.formatDate(new Date(),"yyyyMMddHHmmssSSS")+ RandomStringUtils.randomAlphanumeric(5)+".zip";
-        String tempPath = System.getProperty("java.io.tmpdir")+"/tempFile";
+        String tempPath = System.getProperty("java.io.tmpdir");
         File zipFile= new File(tempPath + File.separator+zipName+".zip");
         try{
             ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFile));
