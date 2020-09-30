@@ -517,7 +517,7 @@ public class ModelController {
 
 
     @ApiOperation(value = "批量导出流程模型", tags = { "Models" })
-    @GetMapping(value = "/models/exportModels/{modelId}")
+    @GetMapping(value = "/models/exportModels")
     public void exportModels( HttpServletRequest request, @ApiParam(name = "modelIds",value = "模型ID") @RequestParam String[] modelIds,
          HttpServletResponse response, @RequestParam(defaultValue = "json",required = false) String type ){
 
