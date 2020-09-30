@@ -403,41 +403,7 @@ public class ModelController {
         String tempPath = System.getProperty("java.io.tmpdir");
         File zipFile = new File(tempPath+File.separator+fileName);
         uploadFile.transferTo(zipFile);
-
-        //解压上传文件
-        /*File unZipDir= new File(tempPath +File.separator+RandomStringUtils.randomAlphanumeric(10));
-        if(unZipDir.exists()){
-            unZipDir.mkdirs();
-        }
-        ZipFile zip = new ZipFile(zipFile, Charset.forName("UTF-8"));
-        List<File> modelFiles = new ArrayList<>();
-        for (Enumeration entries = zip.entries(); entries.hasMoreElements();) {
-            ZipEntry entry = (ZipEntry) entries.nextElement();
-            String zipEntryName = entry.getName();
-            InputStream in = zip.getInputStream(entry);
-            String unzipFileName = (unZipDir + File.separator + zipEntryName);
-            File unzipFile = new File(unzipFileName);
-            logger.info("解压的模型文件：{}",unzipFileName);
-            // 判断是否为文件夹,是文件夹不需要解压,但要创建目录
-            if (entry.isDirectory()) {
-                if(!unzipFile.exists()) unzipFile.mkdirs();
-                continue;
-            }
-            //只解压.xml/.bpmn/.json格式的文件
-            if(!unzipFileName.endsWith(".xml")&&!unzipFileName.endsWith(".bpmn")&&!unzipFileName.endsWith(".json")) continue;
-            // 输出文件路径信息
-            OutputStream out = new FileOutputStream(unzipFile);
-            byte[] b = new byte[1024];
-            int len;
-            while ((len = in.read(b)) > 0) {
-                out.write(b, 0, len);
-            }
-            in.close();
-            out.close();
-            modelFiles.add(unzipFile);
-        }
-        zip.close();*/
-
+        //从压缩文件中读取模型数据
         List<ModelResponse> modelList = new ArrayList<>();
         ZipFile zip = new ZipFile(zipFile, Charset.forName("UTF-8"));
         for (Enumeration entries = zip.entries(); entries.hasMoreElements();) {
