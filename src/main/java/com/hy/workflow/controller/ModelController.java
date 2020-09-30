@@ -371,7 +371,7 @@ public class ModelController {
 
     @ApiOperation(value = "导入模型", tags = { "Models" })
     @PostMapping(value = "/models/importModel")
-    public List<ModelResponse> importModel(MultipartFile uploadFile) {
+    public List<ModelResponse> importModel(@RequestParam("modelfile")MultipartFile uploadFile) {
 
         String fileName = uploadFile.getOriginalFilename();
         List<ModelResponse> modelList = new ArrayList<>();

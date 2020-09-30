@@ -172,6 +172,19 @@
 		            table.reload('user-table',{where: data.field});
                     return false;
 		        });
+
+                upload.render({
+                    elem: '#importModel',
+                    url: MODULE_PATH+"importModel",
+                    accept: 'file',
+                    field: 'modelfile',
+                    exts: 'xml|bpmn|json|zip',
+                    headers:  {},
+                    done: function(res, index, upload){
+                        console.info(res);
+                        window.location.reload();
+                    }
+                })
 		
 		        window.edit = function(obj){
 		            let modelId = obj.data['id'];
@@ -246,7 +259,8 @@
 		                    type:'delete',
 		                    success:function(result){
 		                        layer.close(loading);
-								table.reload('user-table');
+                                window.location.reload();
+								//table.reload('user-table'); 此方式刷新列表时导入模型按钮点击无效，需要刷新页面才行
                                 layer.msg("删除成功",{icon:1,time:1000},function(){
                                     //table.reload('user-table');
                                 });
@@ -278,21 +292,6 @@
 					window.open(url,'_self');
 				}
 
-				upload.render({
-					elem: '#importModel',
-					url: MODULE_PATH+"importModel",
-					accept: 'file',
-					field: 'uploadMoedel',
-					exts: 'xml|bpmn|json|zip',
-					headers:  {},
-					done: function(res, index, upload){
-						let item = this.item;
-						console.info(item);
-						console.info(index);
-						console.info(upload);
-					}
-				})
-		
 		        window.refresh = function(param){
 		            table.reload('user-table');
 		        }
