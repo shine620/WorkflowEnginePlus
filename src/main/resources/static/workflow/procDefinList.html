@@ -172,7 +172,7 @@
 					//layer.tips(this.value + ' ' + this.name + '：'+ obj.elem.checked, obj.othis);
 					let loading = layer.load();
 					$.ajax({
-						url: MODULE_PATH+"suspend/"+this.value,
+						url: MODULE_PATH+"suspend/"+this.value+"?suspend="+(!obj.elem.checked),
 						type:'put',
 						success:function(result){
 							layer.msg('操作成功',{icon:1,time:1000});
