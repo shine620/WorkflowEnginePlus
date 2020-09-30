@@ -37,9 +37,6 @@
 		            <table id="user-table" lay-filter="user-table"></table>
 		        </div>
 		    </div>
-			<!--<button class="pear-btn pear-btn-primary pear-btn-md" id="importModel">
-				<i class="layui-icon layui-icon-upload"></i>导入模型
-			</button>-->
 		</body>
 
 		<script type="text/html" id="user-toolbar">
@@ -52,9 +49,9 @@
             <!--<button class="pear-btn pear-btn-primary pear-btn-md" data-id="addModelTab" data-title="新建模型" data-url="/flowable.html#/editor">
                 <i class="layui-icon layui-icon-add-1"></i>新建模型
             </button>-->
-			<!--<button class="pear-btn pear-btn-primary pear-btn-md" id="importModel">
+			<button class="pear-btn pear-btn-primary pear-btn-md" id="importModel">
 				<i class="layui-icon layui-icon-upload"></i>导入模型
-			</button>-->
+			</button>
 			<button class="pear-btn pear-btn-primary pear-btn-md" lay-event="batchExport">
 				<i class="layui-icon layui-icon-download-circle"></i>批量导出
 			</button>
@@ -133,18 +130,6 @@
                         title: '刷新',
 		            }, 'filter', 'print', 'exports']
 		        });
-
-				upload.render({
-					elem: '#importModel',
-					url: MODULE_PATH+"importModel",
-					accept: 'file',
-					done: function(res, index, upload){
-						var item = this.item;
-						console.info(item);
-						console.info(index);
-						console.info(upload);
-					}
-				})
 
 				//data-url属性的元素单击后打开新标签页
                 $("body").on("click", "[data-url]", function() {
@@ -293,20 +278,20 @@
 					window.open(url,'_self');
 				}
 
-				/*window.importModel = function(){
-					let url = MODULE_PATH+"importModel";
-					console.info(upload);
-					upload.render({
-						elem: '#uploadModel',
-						url: url,
-						done: function(res){
-							//上传完毕回调
-						}
-						,error: function(){
-
-						}
-					});
-				}*/
+				upload.render({
+					elem: '#importModel',
+					url: MODULE_PATH+"importModel",
+					accept: 'file',
+					field: 'uploadMoedel',
+					exts: 'xml|bpmn|json|zip',
+					headers:  {},
+					done: function(res, index, upload){
+						let item = this.item;
+						console.info(item);
+						console.info(index);
+						console.info(upload);
+					}
+				})
 		
 		        window.refresh = function(param){
 		            table.reload('user-table');
