@@ -37,6 +37,9 @@
 		            <table id="user-table" lay-filter="user-table"></table>
 		        </div>
 		    </div>
+			<!--<button class="pear-btn pear-btn-primary pear-btn-md" id="importModel">
+				<i class="layui-icon layui-icon-upload"></i>导入模型
+			</button>-->
 		</body>
 
 		<script type="text/html" id="user-toolbar">
@@ -49,9 +52,15 @@
             <!--<button class="pear-btn pear-btn-primary pear-btn-md" data-id="addModelTab" data-title="新建模型" data-url="/flowable.html#/editor">
                 <i class="layui-icon layui-icon-add-1"></i>新建模型
             </button>-->
-		    <button class="pear-btn pear-btn-danger pear-btn-md" lay-event="batchRemove">
-		        <i class="layui-icon layui-icon-delete"></i>批量删除
-		    </button>
+			<!--<button class="pear-btn pear-btn-primary pear-btn-md" id="importModel">
+				<i class="layui-icon layui-icon-upload"></i>导入模型
+			</button>-->
+			<button class="pear-btn pear-btn-primary pear-btn-md" lay-event="batchExport">
+				<i class="layui-icon layui-icon-download-circle"></i>批量导出
+			</button>
+			<button class="pear-btn pear-btn-danger pear-btn-md" lay-event="batchRemove">
+				<i class="layui-icon layui-icon-delete"></i>批量删除
+			</button>
 		</script>
 
         <!--编辑和删除按钮-->
@@ -59,6 +68,7 @@
 		    <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit" title="编辑"><i class="layui-icon layui-icon-edit"></i></button>
 		    <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i></button>
 			<button class="pear-btn pear-btn-success pear-btn-sm" lay-event="deploy" title="部署"><i class="layui-icon layui-icon-release" ></i></button>
+			<a class="pear-btn pear-btn-warming pear-btn-sm" href="/ModelController/models/exportModel/{{ d.id}}" title="导出"><i class="layui-icon layui-icon-download-circle" ></i></a>
 		</script>
 
         <!--列表日期格式化显示-->
@@ -71,14 +81,15 @@
 		
 		<script src="../component/layui/layui.js"></script>
 		<script>
-		    layui.use(['table','form','jquery','pearTab'],function () {
+		    layui.use(['table','form','jquery','upload','pearTab'],function () {
 
 		        let table = layui.table;
 		        let form = layui.form;
+		        let upload = layui.upload;
 		        let $ = layui.jquery;
 		        let pearTab = layui.pearTab;
 
-		        let MODULE_PATH = "/ModelController/models/";
+				let MODULE_PATH = "/ModelController/models/";
 		
 		        let cols = [
 		            [
@@ -88,7 +99,7 @@
 		                {title: '创建人', field: 'createUserName', align:'left',hide:true},
 		                {title: '创建时间', field: 'createTime', align:'left',templet:"#model-createTime",sort:true},
 		                {title: '最后修改时间', field: 'lastUpdateTime', align:'left',templet:"#model-lastUpdateTime"},
-		                {title: '操作', toolbar: '#user-bar', align:'center', width:150}
+		                {title: '操作', toolbar: '#user-bar', align:'center', width:200}
 		            ]
 		        ]
 
@@ -123,7 +134,19 @@
 		            }, 'filter', 'print', 'exports']
 		        });
 
-		        //data-url属性的元素单击后打开新标签页
+				upload.render({
+					elem: '#importModel',
+					url: MODULE_PATH+"importModel",
+					accept: 'file',
+					done: function(res, index, upload){
+						var item = this.item;
+						console.info(item);
+						console.info(index);
+						console.info(upload);
+					}
+				})
+
+				//data-url属性的元素单击后打开新标签页
                 $("body").on("click", "[data-url]", function() {
                     parent.layui.pearTab.addTabOnlyByElem("content", {
                         id: $(this).attr("data-id"),
@@ -152,7 +175,11 @@
 		                window.refresh();
 		            } else if(obj.event === 'batchRemove'){
 		                window.batchRemove(obj);
-		            }
+		            }else if(obj.event === 'batchExport'){
+						window.batchExport(obj);
+					}else if(obj.event === 'importModel'){
+						window.importModel();
+					}
 		        });
 
                 /*搜索框提交事件*/
@@ -213,7 +240,6 @@
 							console.info(XMLHttpRequest.responseText);
 						}
 					})
-
 				}
 		
 		        window.batchRemove = function(obj){
@@ -248,6 +274,39 @@
 		                })
 		            });
 		        }
+
+				window.batchExport = function(obj){
+					let data = table.checkStatus(obj.config.id).data;
+					if(data.length === 0){
+						layer.msg("未选中数据",{icon:3,time:1000});
+						return false;
+					}
+					let modelIds=[];
+					for(let i = 0;i<data.length;i++){
+						modelIds[i] = data[i].id;
+					}
+					let url = MODULE_PATH+"exportModels?modelIds="+modelIds;
+					console.info(url);
+					/*let form = $("<form></form>").attr("action", url).attr("method", "get");
+					form.append($("<input/>").attr("type", "hidden").attr("name", "modelIds").attr("value", modelIds));
+					form.appendTo('body').submit().remove();*/
+					window.open(url,'_self');
+				}
+
+				/*window.importModel = function(){
+					let url = MODULE_PATH+"importModel";
+					console.info(upload);
+					upload.render({
+						elem: '#uploadModel',
+						url: url,
+						done: function(res){
+							//上传完毕回调
+						}
+						,error: function(){
+
+						}
+					});
+				}*/
 		
 		        window.refresh = function(param){
 		            table.reload('user-table');

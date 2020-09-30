@@ -371,44 +371,48 @@ public class ModelController {
 
     @ApiOperation(value = "导入模型", tags = { "Models" })
     @PostMapping(value = "/models/importModel")
-    public ModelResponse importModel(MultipartFile file) {
-        String fileName = file.getOriginalFilename();
+    public List<ModelResponse> importModel(MultipartFile uploadFile) {
+
+        String fileName = uploadFile.getOriginalFilename();
+        List<ModelResponse> modelList = new ArrayList<>();
         try {
-            ModelResponse model = modelService.parseModelData(fileName,file.getInputStream());
-            return model;
+
+            //导入单个模型
+            if(fileName.endsWith(".xml")||fileName.endsWith(".bpmn")||fileName.endsWith(".json")){
+                ModelResponse model = modelService.parseModelData(fileName,uploadFile.getInputStream());
+                modelList.add(model);
+            }
+            //ZIP格式批量导入
+            else if(fileName.endsWith(".zip")){
+                //存储上传的文件
+                String tempPath = System.getProperty("java.io.tmpdir");
+                File zipFile = new File(tempPath+File.separator+fileName);
+                uploadFile.transferTo(zipFile);
+                //从压缩文件中读取模型数据
+                ZipFile zip = new ZipFile(zipFile, Charset.forName("UTF-8"));
+                for (Enumeration entries = zip.entries(); entries.hasMoreElements();) {
+                    ZipEntry entry = (ZipEntry) entries.nextElement();
+                    String zipEntryName = entry.getName();
+                    // 判断是否为文件夹,是文件夹直接跳过
+                    if (entry.isDirectory()) continue;
+                    //只读取.xml/.bpmn/.json格式的文件
+                    if(!zipEntryName.endsWith(".xml")&&!zipEntryName.endsWith(".bpmn")&&!zipEntryName.endsWith(".json")) continue;
+                    logger.info("解析的模型文件：{}",zipEntryName);
+                    InputStream in = zip.getInputStream(entry);
+                    ModelResponse modelResponse = modelService.parseModelData(zipEntryName,in);
+                    modelList.add(modelResponse);
+                }
+                zip.close();
+                zipFile.delete();
+            }
+            else{
+                throw new WorkflowException("请上传xml、bpmn、json、zip等符合导入格式的压缩文件");
+            }
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
 
-
-    @ApiOperation(value = "批量导入模型", tags = { "Models" })
-    @PostMapping(value = "/models/importModels")
-    public List<ModelResponse> importModels(MultipartFile uploadFile) throws IOException {
-
-        String fileName = uploadFile.getOriginalFilename();
-        if(!fileName.endsWith(".zip")) throw new WorkflowException("请上传ZIP格式的压缩文件");
-        //存储上传的文件
-        String tempPath = System.getProperty("java.io.tmpdir");
-        File zipFile = new File(tempPath+File.separator+fileName);
-        uploadFile.transferTo(zipFile);
-        //从压缩文件中读取模型数据
-        List<ModelResponse> modelList = new ArrayList<>();
-        ZipFile zip = new ZipFile(zipFile, Charset.forName("UTF-8"));
-        for (Enumeration entries = zip.entries(); entries.hasMoreElements();) {
-            ZipEntry entry = (ZipEntry) entries.nextElement();
-            String zipEntryName = entry.getName();
-            // 判断是否为文件夹,是文件夹直接跳过
-            if (entry.isDirectory()) continue;
-            //只读取.xml/.bpmn/.json格式的文件
-            if(!zipEntryName.endsWith(".xml")&&!zipEntryName.endsWith(".bpmn")&&!zipEntryName.endsWith(".json")) continue;
-            logger.info("解析的模型文件：{}",zipEntryName);
-            InputStream in = zip.getInputStream(entry);
-            ModelResponse modelResponse = modelService.parseModelData(zipEntryName,in);
-            modelList.add(modelResponse);
-        }
-        zip.close();
-        zipFile.delete();
         return modelList;
     }
 
@@ -465,7 +469,7 @@ public class ModelController {
 
     @ApiOperation(value = "批量导出流程模型", tags = { "Models" })
     @GetMapping(value = "/models/exportModels")
-    public void exportModels( HttpServletRequest request, @ApiParam(name = "modelIds",value = "模型ID") @RequestParam String[] modelIds,
+    public void exportModels( @ApiParam(name = "modelIds",value = "模型ID") @RequestParam String[] modelIds,
          HttpServletResponse response, @RequestParam(defaultValue = "json",required = false) String type ){
 
         if(modelIds!=null&&modelIds.length>100) throw new WorkflowException("一次最多只能导出100条模型数据！");
