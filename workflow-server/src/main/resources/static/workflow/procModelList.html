@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<link href="../component/layui/css/layui.css" rel="stylesheet" />
+		<link href="../admin/css/pearCommon.css" rel="stylesheet" />
+	</head>
+	<body>
+		<body class="pear-container">
+		    <div class="layui-card">
+		        <div class="layui-card-body">
+		            <form class="layui-form" action="/ModelController/models" method="get">
+		                <div class="layui-form-item">
+                            <label class="layui-form-label">模型名称</label>
+                            <div class="layui-input-inline">
+                                <input type="text" name="name" placeholder="" class="layui-input">
+                            </div>
+		                    <label class="layui-form-label">模型标识</label>
+		                    <div class="layui-input-inline">
+		                        <input type="text" name="modelKey" placeholder="" class="layui-input">
+		                    </div>
+		                    <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="model-query">
+		                        <i class="layui-icon layui-icon-search"></i>
+		                        查询
+		                    </button>
+		                    <button type="reset" class="pear-btn pear-btn-md">
+		                        <i class="layui-icon layui-icon-refresh"></i>
+		                        重置
+		                    </button>
+		                </div>
+		            </form>
+		        </div>
+		    </div>
+		    <div class="layui-card">
+		        <div class="layui-card-body">
+		            <table id="model-table" lay-filter="model-table"></table>
+		        </div>
+		    </div>
+		</body>
+
+		<script type="text/html" id="model-toolbar">
+            <a href="/flowable.html#/editor" target="_blank" class="pear-btn pear-btn-primary pear-btn-md">
+                <i class="layui-icon layui-icon-add-1"></i>新建模型
+            </a>
+            <!--当前tab页打开-->
+            <!--<a href="http://www.layui.com" class="layui-btn">新建模型</a>-->
+            <!--新页签打开-->
+            <!--<button class="pear-btn pear-btn-primary pear-btn-md" data-id="addModelTab" data-title="新建模型" data-url="/flowable.html#/editor">
+                <i class="layui-icon layui-icon-add-1"></i>新建模型
+            </button>-->
+			<button class="pear-btn pear-btn-primary pear-btn-md" id="importModel">
+				<i class="layui-icon layui-icon-upload"></i>导入模型
+			</button>
+			<button class="pear-btn pear-btn-primary pear-btn-md" lay-event="batchExport">
+				<i class="layui-icon layui-icon-download-circle"></i>批量导出
+			</button>
+			<button class="pear-btn pear-btn-danger pear-btn-md" lay-event="batchRemove">
+				<i class="layui-icon layui-icon-delete"></i>批量删除
+			</button>
+		</script>
+
+        <!--编辑和删除按钮-->
+		<script type="text/html" id="model-bar">
+		    <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit" title="编辑"><i class="layui-icon layui-icon-edit"></i></button>
+		    <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i></button>
+			<button class="pear-btn pear-btn-success pear-btn-sm" lay-event="deploy" title="部署"><i class="layui-icon layui-icon-release" ></i></button>
+			<a class="pear-btn pear-btn-warming pear-btn-sm" href="/FlowableModelController/models/exportModel/{{ d.id}}" title="导出"><i class="layui-icon layui-icon-download-circle" ></i></a>
+		</script>
+
+        <!--列表日期格式化显示-->
+		<script type="text/html" id="model-createTime">
+		    {{layui.util.toDateString(d.createTime, 'yyyy-MM-dd HH:mm:ss')}}
+		</script>
+        <script type="text/html" id="model-updateTime">
+            {{layui.util.toDateString(d.updateTime, 'yyyy-MM-dd HH:mm:ss')}}
+        </script>
+		
+		<script src="../component/layui/layui.js"></script>
+		<script>
+		    layui.use(['table','form','jquery','upload','pearTab'],function () {
+
+		        let table = layui.table;
+		        let form = layui.form;
+		        let upload = layui.upload;
+		        let $ = layui.jquery;
+		        let pearTab = layui.pearTab;
+
+				let MODULE_PATH = "/FlowableModelController/models/";
+		
+		        let cols = [
+		            [
+		                {type:'checkbox'},
+		                {title: '模型名称', field: 'name', align:'left',sort:true},
+		                {title: '模型key', field: 'modelKey', align:'left'},
+		                {title: '创建人', field: 'createUser', align:'left',hide:true},
+		                {title: '创建时间', field: 'createTime', align:'left',templet:"#model-createTime",sort:true},
+		                {title: '最后修改时间', field: 'updateTime', align:'left',templet:"#model-updateTime"},
+		                {title: '操作', toolbar: '#model-bar', align:'center', width:200}
+		            ]
+		        ]
+
+                 table.render({
+		            elem: '#model-table',
+		            url: MODULE_PATH+"findModelList",
+		            page: true ,
+		            cols: cols ,
+		            skin: 'line',
+                    limits: [5,10, 20, 30, 40, 50],
+                    method:'post',
+                    contentType: 'application/json',
+		            toolbar: '#model-toolbar',
+					initSort: {
+						 field: 'createTime' //排序字段，对应 cols 设定的各字段名
+						 ,type: 'desc' //排序方式  asc: 升序、desc: 降序、null: 默认排序
+					},
+                    request: {
+                        pageName: 'startPage' //页码的参数名称，默认：page
+                        ,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+                    },
+                    parseData: function(res){ //res 即为原始返回的数据
+                        return {
+                            "code": 0, //解析接口状态
+                            "msg": "", //解析提示文本
+                            "count": res.totalCount, //解析数据长度
+                            "data": res.data
+                        };
+                    },
+                    defaultToolbar: [{
+		                layEvent: 'refresh',
+		                icon: 'layui-icon-refresh',
+                        title: '刷新',
+		            }, 'filter', 'print', 'exports']
+		        });
+
+				//data-url属性的元素单击后打开新标签页
+                $("body").on("click", "[data-url]", function() {
+                    parent.layui.pearTab.addTabOnlyByElem("content", {
+                        id: $(this).attr("data-id"),
+                        title: $(this).attr("data-title"),
+                        url: $(this).attr("data-url"),
+                        close: true
+                    })
+                })
+
+		        /*绑定列表编辑和删除事件*/
+		        table.on('tool(model-table)', function(obj){
+		            if(obj.event === 'remove'){
+		                window.remove(obj);
+		            } else if(obj.event === 'edit'){
+		                window .edit(obj);
+		            }else if(obj.event === 'deploy'){
+						window .deploy(obj);
+					}
+		        });
+
+		        /*绑定新增模型和批量删除按钮事件*/
+		        table.on('toolbar(model-table)', function(obj){
+		            if(obj.event === 'add'){
+		                window.add();
+		            } else if(obj.event === 'refresh'){
+		                window.refresh();
+		            } else if(obj.event === 'batchRemove'){
+		                window.batchRemove(obj);
+		            }else if(obj.event === 'batchExport'){
+						window.batchExport(obj);
+					}else if(obj.event === 'importModel'){
+						window.importModel();
+					}
+		        });
+
+                /*搜索框提交事件*/
+		        form.on('submit(model-query)', function(data){
+		            table.reload('model-table',{where: data.field});
+                    return false;
+		        });
+
+                /*导入模型*/
+                upload.render({
+                    elem: '#importModel',
+                    url: MODULE_PATH+"importModel",
+                    accept: 'file',
+                    field: 'modelfile',
+                    exts: 'xml|bpmn|zip',
+                    headers:  {},
+                    done: function(res, index, upload){
+                        console.info(res);
+                        window.location.reload();
+                    }
+                })
+		
+		        window.edit = function(obj){
+		            let modelId = obj.data['id'];
+                    window.open('/flowable.html#/editor/'+modelId,'_blank');
+		            /*layer.open({
+		                type: 3,
+		                title: '修改',
+		                shade: 0.1,
+		                area: ['500px', '400px'],
+		                content: MODULE_PATH + 'edit?userId='+obj.data['userId']
+		            });*/
+		        }
+		
+		        window.remove = function(obj){
+		            layer.confirm('确定要删除该模型吗？', {icon: 3, title:'提示'}, function(index){
+		                layer.close(index);
+		                let loading = layer.load();
+		                $.ajax({
+		                    url: MODULE_PATH+"deleteModel/"+obj.data['id'],
+		                    dataType:'json',
+		                    type:'delete',
+		                    success:function(result){
+		                        layer.close(loading);
+								obj.del();
+                                layer.msg('删除成功',{icon:1,time:1000},function(){
+                                    //obj.del();
+                                });
+		                    },
+                            error:function(XMLHttpRequest){
+                                layer.msg("删除失败",{icon:2,time:1000});
+                                layer.close(loading);
+                                console.info(XMLHttpRequest.responseText);
+                            }
+		                })
+		            });
+		        }
+
+				window.deploy = function(obj){
+					let loading = layer.load();
+					$.ajax({
+						url: MODULE_PATH+"deploy/"+obj.data['id'],
+						//dataType:'json',
+						type:'GET',
+						success:function(result){
+							layer.msg('部署成功',{icon:1,time:1000});
+							layer.close(loading);
+						},
+						error:function(XMLHttpRequest){
+							layer.msg("部署失败",{icon:2,time:1000});
+							layer.close(loading);
+							console.info(XMLHttpRequest.responseText);
+						}
+					})
+				}
+		
+		        window.batchRemove = function(obj){
+		            let data = table.checkStatus(obj.config.id).data;
+		            if(data.length === 0){
+		                layer.msg("未选中数据",{icon:3,time:1000});
+		                return false;
+		            }
+		            let modelIds=[];
+		            for(let i = 0;i<data.length;i++){
+		                modelIds[i] = data[i].id;
+		            }
+		            layer.confirm('确定要删除这些模型吗？', {icon: 3, title:'提示'}, function(index){
+		                layer.close(index);
+		                let loading = layer.load();
+		                $.ajax({
+		                    url: MODULE_PATH+"batchDeleteModel?modelIds="+modelIds,
+		                    dataType:'json',
+		                    type:'delete',
+		                    success:function(result){
+		                        layer.close(loading);
+                                window.location.reload();
+								//table.reload('model-table'); 此方式刷新列表时导入模型按钮点击无效，需要刷新页面才行
+                                layer.msg("删除成功",{icon:1,time:1000},function(){
+                                    //table.reload('model-table');
+                                });
+		                    },
+                            error:function(XMLHttpRequest){
+                                layer.msg("删除失败",{icon:2,time:1000});
+                                layer.close(loading);
+                                console.info(XMLHttpRequest.responseText);
+                            }
+		                })
+		            });
+		        }
+
+				window.batchExport = function(obj){
+					let data = table.checkStatus(obj.config.id).data;
+					if(data.length === 0){
+						layer.msg("未选中数据",{icon:3,time:1000});
+						return false;
+					}
+					let modelIds=[];
+					for(let i = 0;i<data.length;i++){
+						modelIds[i] = data[i].id;
+					}
+					let url = MODULE_PATH+"exportModels?modelIds="+modelIds;
+					console.info(url);
+					/*let form = $("<form></form>").attr("action", url).attr("method", "get");
+					form.append($("<input/>").attr("type", "hidden").attr("name", "modelIds").attr("value", modelIds));
+					form.appendTo('body').submit().remove();*/
+					window.open(url,'_self');
+				}
+
+		        window.refresh = function(param){
+		            table.reload('model-table');
+		        }
+
+		    })
+		</script>
+	</body>
+</html>

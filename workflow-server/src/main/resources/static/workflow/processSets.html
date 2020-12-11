@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+	<head>
+
+		<meta charset="utf-8">
+		<title></title>
+		<link href="../component/layui/css/layui.css" rel="stylesheet" />
+		<link href="../admin/css/pearCommon.css" rel="stylesheet" />
+
+		<style>
+			.layui-table-view {
+				border: 1px solid #e6e6e6 !important;
+			}
+			.layui-table-header, .layui-table-header th {
+				background-color: #FDFCF9 !important;
+			}
+			.layui-table-header th .layui-table-cell {
+				height: 28px !important;
+				line-height: 28px !important;
+			}
+		</style>
+
+		<script src="../component/layui/layui.js"></script>
+
+		<script type="text/html" id="task-bar">
+			<button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit" title="配置{{d.name}}节点">编辑</button>
+		</script>
+
+		<script>
+
+			let processDefinitionId = decodeURIComponent(layui.url().search.processDefinitionId);
+			console.info(layui.url());
+			console.info(decodeURIComponent(layui.url().search.processDefinitionId));
+
+			//配置表单
+			layui.use(['form','jquery'], function(){
+				let form = layui.form;
+				let $ = layui.jquery;
+
+				//通用设置表单数据回显
+				$.ajax({
+					url:"/ProcessDefinitionController/process-definitions/getProcessConfig/"+processDefinitionId,
+					type:"GET",
+					contentType:"application/json",
+					success:function(data){
+					    console.info(data);
+						data.defaultProcess==true ? data.defaultProcess="true" : data.defaultProcess="false";
+						data.callable==true ? data.callable="true" : data.callable="false";
+						form.val("processConfigForm",data);
+					}
+				});
+				//监听流程配置表单提交
+				form.on('submit(processConfigSubmit)', function(data){
+					let formData = JSON.stringify(data.field);
+                    //layer.msg(formData);
+					let loading = layer.load();
+                    $.ajax({
+                        url:"/ProcessDefinitionController/process-definitions/saveProcessConfig",
+                        type:"POST",
+                        contentType:"application/json",
+                        dataType:'json',
+                        data: formData,
+                        success:function(data){
+							console.info(data);
+							layer.close(loading);
+							layer.msg('保存成功',{icon:1,time:1000});
+                        },
+						error:function(XMLHttpRequest){
+							layer.close(loading);
+							layer.msg("保存失败",{icon:2,time:1000});
+						}
+                    });
+					return false;
+				});
+
+				//监听任务配置表单提交
+				form.on('submit(taskConfigSubmit)', function(data){
+					let formData = JSON.stringify(data.field);
+					console.info(formData);
+					let loading = layer.load();
+					$.ajax({
+						url:"/ProcessDefinitionController/process-definitions/saveElementConfig",
+						type:"POST",
+						contentType:"application/json",
+						dataType:'json',
+						data: formData,
+						success:function(data){
+							console.info(data);
+							layer.close(loading);
+							layer.msg('保存成功',{icon:1,time:1000});
+						},
+						error:function(XMLHttpRequest){
+							layer.close(loading);
+							layer.msg("保存失败",{icon:2,time:1000});
+						}
+					});
+					return false;
+				});
+
+				//编辑任务节点取消按钮事件
+				window.cancel = function(obj){
+					$("#taskList").show();
+					$("#taskConfigFrom").hide();
+					$("#taskConfigFrom input[name='flowElementId']").val("");
+				}
+
+			});
+
+
+			//任务节点列表
+			layui.use(['table','jquery','element','treetable','form'], function(){
+
+				let $ = layui.jquery;
+				let table = layui.table;
+				let treetable = layui.treetable;
+				let form = layui.form;
+
+				$("#taskConfigFrom").hide();
+
+				let cols = [
+					[
+						{title: '环节名称', field: 'name', align:'left'},
+						{title: '环节编号', field: 'id', align:'left'},
+						{title: '操作', toolbar: '#task-bar', align:'center',width:80}
+					]
+				];
+				treetable.render({
+					elem: '#task-table',
+					url: "/WorkflowController/workflows/"+processDefinitionId,
+					cols: cols ,
+					skin: 'line',
+					page: false,
+					treeColIndex: 0,
+					treeSpid: '0',
+					treeIdName: 'id',
+					treePidName: 'parentId',
+					treeDefaultClose: true
+				});
+
+				window.edit = function(obj){
+					let flowElementId = obj.data['id'];
+					$("#taskList").hide();
+					$("#taskConfigFrom").show();
+					$("#taskConfigFrom input[name='processDefinitionId']").val(processDefinitionId);
+					$("#taskConfigFrom input[name='flowElementId']").val(flowElementId);
+					//通用设置表单数据回显
+					$.ajax({
+						url:"/ProcessDefinitionController/process-definitions/getElementConfig?processDefinitionId="+processDefinitionId+"&flowElementId="+flowElementId,
+						type:"GET",
+						contentType:"application/json",
+						success:function(data){
+							console.info(data);
+							if(data==null||data==""){
+								//无配置时设置默认值
+								data={
+									multiInstanceType:"NONE",
+									assigneeSelectOption:"NONE",
+									assigneeSelectScope:"USER_SCOPE",
+									candidateUsers:"",
+									candidateGroups:"",
+									candidateRoles:"",
+									candidateJob:"",
+									formField:"",
+									tip:"",
+									editForm:"false",
+									attachEditable:"false",
+									requireOpinion:"false",
+									showApproveRecord:"false",
+									rejectable:"false",
+									sendCopy:"false"
+								};
+							}else{
+								data.editForm==true ? data.editForm="true" : data.editForm="false";
+								data.attachEditable==true ? data.attachEditable="true" : data.attachEditable="false";
+								data.requireOpinion==true ? data.requireOpinion="true" : data.requireOpinion="false";
+								data.showApproveRecord==true ? data.showApproveRecord="true" : data.showApproveRecord="false";
+								data.rejectable==true ? data.rejectable="true" : data.rejectable="false";
+								data.sendCopy==true ? data.sendCopy="true" : data.sendCopy="false";
+							}
+							form.val("taskConfigFrom",data);
+						}
+					});
+
+				}
+
+				//任务节点列表绑定编辑事件
+				table.on('tool(task-table)', function(obj){
+					if(obj.event === 'edit'){
+						window.edit(obj);
+					}
+				});
+
+			});
+
+
+		</script>
+
+	</head>
+
+	<body class="pear-container">
+
+		<!--通用配置-->
+		<div class="layui-card">
+			<div class="layui-card-header" style="font-weight: bold">通用设置</div>
+			<div class="layui-card-body" style="margin-left:10px;">
+			<!---------------通用设置项------------->
+				<form class="layui-form" action="" lay-filter="processConfigForm" method="post">
+					<input name="processDefinitionId" type="hidden">
+					<div class="layui-row">
+						<div class="layui-col-md11">
+							<div class="layui-form-item">
+								<label class="layui-form-label">流程名称</label>
+								<div class="layui-input-block">
+									<input type="text" class="layui-input" name="processDefinitionName" style="border: none;" disabled>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="layui-row">
+						<div class="layui-col-md11">
+							<div class="layui-form-item">
+								<label class="layui-form-label layui-required">业务类型</label>
+								<div class="layui-input-block">
+									<select name="businessType" lay-verify="required">
+										<option value=""></option>
+										<option value="CONTRACT">合同起草</option>
+										<option value="CONTRACT_SIGN">合同签订</option>
+										<option value="CONTRACT_CANCEL">合同解除</option>
+										<option value="DISPUTE">案件起草</option>
+										<option value="LAS_CENTER">法务中心</option>
+									</select>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="layui-row">
+						<div class="layui-col-md11">
+							<div class="layui-form-item">
+								<label class="layui-form-label layui-required">单位</label>
+								<div class="layui-input-block">
+									<input type="text" name="unitId"  lay-verify="required" placeholder="请选择单位" autocomplete="off" class="layui-input">
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="layui-row">
+						<div class="layui-col-md11 layui-col-md11 layui-col-sm12 layui-col-xs12">
+							<div class="layui-form-item">
+								<label class="layui-form-label">部门</label>
+								<div class="layui-input-block">
+									<input type="text" name="departmentId" placeholder="请选择部门" autocomplete="off" class="layui-input">
+								</div>
+							</div>
+						</div>
+						<i class="layui-icon layui-icon-close" style="position:relative;line-height:44px;margin-left:-20px;cursor:pointer;" onclick="alert('点我干嘛')"></i>
+					</div>
+					<div class="layui-row">
+						<div class="layui-col-md3">
+							<div class="layui-form-item">
+								<label class="layui-form-label">默认流程</label>
+								<div class="layui-input-block">
+									<input type="radio" name="defaultProcess" value="true" title="是">
+									<input type="radio" name="defaultProcess" value="false" title="否">
+								</div>
+							</div>
+						</div>
+						<div class="layui-col-md3">
+							<div class="layui-form-item">
+								<label class="layui-form-label">是否子流程</label>
+								<div class="layui-input-block">
+									<input type="radio" name="callable" value="true" title="是">
+									<input type="radio" name="callable" value="false" title="否" checked>
+								</div>
+							</div>
+						</div>
+					</div>
+                    <div class="layui-row">
+                        <div class="layui-col-md3">
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">允许子流程驳回到主流程</label>
+                                <div class="layui-input-block">
+                                    <input type="radio" name="rejectParentProcess" value="true" title="是">
+                                    <input type="radio" name="rejectParentProcess" value="false" title="否">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="layui-col-md3">
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">允许驳回到网关发起前</label>
+                                <div class="layui-input-block">
+                                    <input type="radio" name="rejectGatewayBefore" value="true" title="是">
+                                    <input type="radio" name="rejectGatewayBefore" value="false" title="否" checked>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+					<div class="layui-row">
+						<div class="layui-col-md11">
+							<div class="layui-form-item">
+								<label class="layui-form-label">描述信息</label>
+								<div class="layui-input-block">
+									<textarea name="description" placeholder="请输入描述信息" class="layui-textarea" style="margin-bottom:10px;min-height:50px!important;"></textarea>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="layui-form-item">
+						<div class="layui-input-block">
+							<button class="layui-btn layui-btn-sm" lay-submit lay-filter="processConfigSubmit" style="padding: 0 20px;">保 存</button>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+
+
+		<!--节点设置-->
+		<div class="layui-card" style="margin-bottom: 30px;">
+			<div class="layui-card-header" style="font-weight: bold">环节设置</div>
+			<div class="layui-card-body">
+
+				<!---------------任务节点列表------------->
+				<div class="layui-row" id="taskList">
+					<div class="layui-col-md11" style="margin-left:10px;">
+						<table id="task-table" lay-filter="task-table"></table>
+					</div>
+				</div>
+
+				<!---------------任务节点配置------------->
+				<form class="layui-form" action="" id="taskConfigFrom"  lay-filter="taskConfigFrom" >
+					<div class="layui-tab layui-tab-brief">
+
+						<ul class="layui-tab-title">
+							<li class="layui-this">人员设置</li>
+							<li>审批设置</li>
+						</ul>
+
+						<div class="layui-tab-content">
+
+							<input type="hidden" name="processDefinitionId">
+							<input type="hidden" name="flowElementId">
+
+							<!--基本设置-->
+							<div class="layui-tab-item layui-show">
+								<div class="layui-row">
+									<div class="layui-col-md11">
+										<div class="layui-form-item">
+											<label class="layui-form-label">是否多人</label>
+											<div class="layui-input-block">
+												<input type="radio" name="multUser" value="true" title="是" checked>
+												<input type="radio" name="multUser" value="false" title="否">
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="layui-row">
+									<div class="layui-col-md11">
+										<div class="layui-form-item">
+											<label class="layui-form-label">分配方式</label>
+											<div class="layui-input-block">
+												<input type="radio" name="assigneeOption" value="USER_SCOPE" title="人员" checked>
+												<input type="radio" name="assigneeOption" value="GROUP_SCOPE" title="机构">
+												<input type="radio" name="assigneeOption" value="ROLE_SCOPE" title="角色">
+												<input type="radio" name="assigneeOption" value="POSITION_SCOPE" title="职位">
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="layui-row">
+									<div class="layui-col-md11">
+										<div class="layui-form-item">
+											<!--<label class="layui-form-label layui-required">处理人员</label>
+											<div class="layui-input-block">
+												<input type="text" name="assigneeValue"  lay-verify="required" placeholder="请选择人员" autocomplete="off" class="layui-input">
+											</div>-->
+                                            <label class="layui-form-label">处理人员</label>
+                                            <div class="layui-input-block">
+                                                <input type="text" name="assigneeValue" placeholder="请选择人员" autocomplete="off" class="layui-input">
+                                            </div>
+										</div>
+									</div>
+								</div>
+                                <div class="layui-row" style="margin-bottom: 20px;">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">是否固定</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="fixed" value="true" title="是" checked>
+                                                <input type="radio" name="fixed" value="false" title="否">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+							</div>
+
+							<!--审批设置-->
+							<div class="layui-tab-item">
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label" style="width: 120px !important;">允许编辑表单</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="editForm" value="true" title="是" checked>
+                                                <input type="radio" name="editForm" value="false" title="否">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label" style="width: 120px !important;">审批意见必填</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="requireOpinion" value="true" title="是" checked>
+                                                <input type="radio" name="requireOpinion" value="false" title="否">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label" style="width: 120px !important;">显示审批记录</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="showApproveRecord" value="true" title="是" checked>
+                                                <input type="radio" name="showApproveRecord" value="false" title="否">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label" style="width: 120px !important;">审批允许驳回</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="rejectable" value="true" title="是" checked>
+                                                <input type="radio" name="rejectable" value="false" title="否">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label"  style="width: 120px !important;">审批允许抄送</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="sendCopy" value="true" title="是" checked>
+                                                <input type="radio" name="sendCopy" value="false" title="否">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+							</div>
+						</div>
+					</div>
+
+					<div class="layui-form-item">
+						<div class="layui-input-block">
+							<button class="layui-btn layui-btn-sm" lay-submit lay-filter="taskConfigSubmit" style="padding: 0 20px;">保 存</button>
+							<a class="layui-btn layui-btn-sm" href="javascript:;" style="padding: 0 20px;" onclick="cancel()">取 消</a>
+						</div>
+					</div>
+
+				</form>
+
+			</div>
+		</div>
+
+
+
+	</body>
+</html>
