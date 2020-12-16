@@ -119,8 +119,8 @@
 
 				let cols = [
 					[
-						{title: '环节名称', field: 'name', align:'left'},
-						{title: '环节编号', field: 'id', align:'left'},
+						{title: '环节名称', field: 'flowElementName', align:'left'},
+						{title: '环节编号', field: 'flowElementId', align:'left'},
 						{title: '操作', toolbar: '#task-bar', align:'center',width:80}
 					]
 				];
@@ -132,8 +132,8 @@
 					page: false,
 					treeColIndex: 0,
 					treeSpid: '0',
-					treeIdName: 'id',
-					treePidName: 'parentId',
+					treeIdName: 'flowElementId',
+					treePidName: 'parentFlowElementId',
 					treeDefaultClose: true
 				});
 
