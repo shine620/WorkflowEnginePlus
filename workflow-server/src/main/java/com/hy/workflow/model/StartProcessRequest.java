@@ -9,9 +9,6 @@ public class StartProcessRequest extends ApproveInfo{
     @ApiModelProperty(value="流程定义ID",required = true, example="Model100:2:120052")
     private String processDefinitionId;
 
-    @ApiModelProperty(value="流程发起人ID",required = true,example="zhangsan")
-    private String startUserId;
-
     @ApiModelProperty(value="业务ID",required = true, example="1000")
     private String businessId;
 
@@ -31,14 +28,6 @@ public class StartProcessRequest extends ApproveInfo{
 
     public void setProcessDefinitionId(String processDefinitionId) {
         this.processDefinitionId = processDefinitionId;
-    }
-
-    public String getStartUserId() {
-        return startUserId;
-    }
-
-    public void setStartUserId(String startUserId) {
-        this.startUserId = startUserId;
     }
 
     public String getBusinessId() {

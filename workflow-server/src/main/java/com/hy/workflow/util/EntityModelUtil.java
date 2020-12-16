@@ -147,7 +147,7 @@ public class EntityModelUtil {
         });
         //填充节点配置信息
         flowList.forEach(flowElementModel -> {
-            flowElementModel.setConfig( configMap.get(flowElementModel.getId()) );
+            flowElementModel.setConfig( configMap.get(flowElementModel.getFlowElementId()) );
         });
     }
 

@@ -177,9 +177,19 @@ public class WorkflowUtil {
             while (it.hasNext() && selectOutNode.size() > 0) {
                 SequenceFlow sf = it.next();
                 FlowElement target = sf.getTargetFlowElement();
-                if (!selectOutNode.contains(target.getId())) {
-                    removedNodes.add(sf);
-                    it.remove();
+                if (target instanceof Gateway) {
+                    List<FlowElement> containsNode = new ArrayList<>();
+                    findContainsNode(target,selectOutNode,containsNode);
+                    if(containsNode.isEmpty()){
+                        removedNodes.add(sf);
+                        it.remove();
+                    }
+                }
+                else{
+                    if (!selectOutNode.contains(target.getId())) {
+                        removedNodes.add(sf);
+                        it.remove();
+                    }
                 }
             }
             //委托的任务要先处理委托
@@ -190,6 +200,24 @@ public class WorkflowUtil {
             taskService.complete(task.getId(), variables);
             //审批完成后还原原来的分支流向
             outLines.addAll(removedNodes);
+        }
+    }
+
+
+    //查找在网关节点之后且包含在已选节点中的节点
+    private static void findContainsNode(FlowElement flowElement,List<String> selectOutNode,List<FlowElement> containsNode){
+        List<SequenceFlow> outLines = ((FlowNode)flowElement).getOutgoingFlows();
+        Iterator<SequenceFlow> it = outLines.listIterator();
+        while (it.hasNext()) {
+            FlowElement target = it.next().getTargetFlowElement();
+            if (target instanceof Gateway) {
+                findContainsNode(flowElement,selectOutNode,containsNode);
+            }
+            else{
+                if (selectOutNode.contains(target.getId())) {
+                    containsNode.add(target);
+                }
+            }
         }
     }
 

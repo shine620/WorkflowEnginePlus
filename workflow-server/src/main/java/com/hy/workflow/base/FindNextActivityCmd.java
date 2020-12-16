@@ -54,13 +54,13 @@ public class FindNextActivityCmd implements Command<List<FlowNode>> {
                     break;
                 }
             }
-            //源节点为包含网关时 查找 无分支条件或者有分支条件并且为true的节点
+            //源节点为包含网关时 查找 无分支条件 或者 有分支条件并且为true的节点
             else if(sourceFlow instanceof InclusiveGateway){
                 if ( expr==null || (expr!=null && ConditionUtil.hasTrueCondition(outgoingFlow, execution)) ) {
                     addActivityNode(targetFlow);
                 }
             }
-            //源节点为并行网关或者任务节点时 不判断分支条件
+            //源节点为普通任务节点或者并行网关时 不判断分支条件
             else{
                 addActivityNode(targetFlow);
             }

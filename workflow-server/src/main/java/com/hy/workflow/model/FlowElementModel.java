@@ -4,18 +4,21 @@ package com.hy.workflow.model;
 public class FlowElementModel {
 
     //节点ID
-    private String id;
+    private String flowElementId;
 
     //节点名称
-    private String name;
+    private String flowElementName;
 
     //节点类型
     private String flowElementType;
 
-    //内部子流程节点时对应的子流程容器ID
-    private String parentId;
+    //内外部子流程节点时对应的子流程容器ID或者调用活动节点ID
+    private String parentFlowElementId ;
 
-    //部门ID
+    //内部子流程或者外部子流程
+    private String parentFlowElementType;
+
+    //部门ID(外部子流程时的发起部门)
     private String  departmentId;
 
     //模型Key
@@ -28,20 +31,36 @@ public class FlowElementModel {
     private FlowElementConfigModel  config;
 
 
-    public String getId() {
-        return id;
+    public String getFlowElementId() {
+        return flowElementId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setFlowElementId(String flowElementId) {
+        this.flowElementId = flowElementId;
     }
 
-    public String getName() {
-        return name;
+    public String getFlowElementName() {
+        return flowElementName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setFlowElementName(String flowElementName) {
+        this.flowElementName = flowElementName;
+    }
+
+    public String getParentFlowElementId() {
+        return parentFlowElementId;
+    }
+
+    public void setParentFlowElementId(String parentFlowElementId) {
+        this.parentFlowElementId = parentFlowElementId;
+    }
+
+    public String getParentFlowElementType() {
+        return parentFlowElementType;
+    }
+
+    public void setParentFlowElementType(String parentFlowElementType) {
+        this.parentFlowElementType = parentFlowElementType;
     }
 
     public String getFlowElementType() {
@@ -50,14 +69,6 @@ public class FlowElementModel {
 
     public void setFlowElementType(String flowElementType) {
         this.flowElementType = flowElementType;
-    }
-
-    public String getParentId() {
-        return parentId;
-    }
-
-    public void setParentId(String parentId) {
-        this.parentId = parentId;
     }
 
     public String getDepartmentId() {

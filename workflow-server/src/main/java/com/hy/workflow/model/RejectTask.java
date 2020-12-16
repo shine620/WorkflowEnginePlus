@@ -35,7 +35,7 @@ public class RejectTask {
         @ApiModelProperty(value="节点名称",example= FlowElementType.USER_TASK)
         private String flowElementType;
 
-        @ApiModelProperty(value="主流程实例ID",notes = "有值时说明为主流程节点", example="11000")
+        @ApiModelProperty(value="父流程实例ID",notes = "有值时说明子流程驳回到父流程节点", example="11000")
         private String parentProcessInstanceId;
 
         @ApiModelProperty(value="驳回节点的位置",notes = "并行网关前、并行网关后、无并行网关", example= RejectPosition.NO_GATEWAY)

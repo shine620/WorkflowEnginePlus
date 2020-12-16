@@ -83,7 +83,7 @@ public class ProcessInstanceService {
      */
     public ProcessInstanceModel startProcess(ProcessDefinition processDefinition, StartProcessRequest startRequest) {
 
-        Authentication.setAuthenticatedUserId(startRequest.getStartUserId());
+        Authentication.setAuthenticatedUserId(startRequest.getUserId());
         ProcessInstanceBuilder processInstanceBuilder = runtimeService.createProcessInstanceBuilder()
                 .processDefinitionId(processDefinition.getId())
                 .businessKey(startRequest.getBusinessType()+";"+startRequest.getBusinessId())
@@ -103,11 +103,10 @@ public class ProcessInstanceService {
         List<String> selectOutNode = new ArrayList<>();
         if(startRequest.getNextTaskList()!=null){
             startRequest.getNextTaskList().forEach(nextTask ->{
-                if(FlowElementType.CALL_ACTIVITY.equals(nextTask.getParentFlowElementId())){
+                if(nextTask.getParentFlowElementId()!=null)
                     selectOutNode.add(nextTask.getParentFlowElementId());
-                }else {
+                else
                     selectOutNode.add(nextTask.getFlowElementId());
-                }
             });
         }
 
@@ -118,7 +117,7 @@ public class ProcessInstanceService {
         FlowNode firstNode =(FlowNode) ((StartEvent) startNode).getOutgoingFlows().get(0).getTargetFlowElement();
 
         Task firstTask = taskService.createTaskQuery().processInstanceId(instance.getId()).singleResult();
-        taskService.setAssignee(firstTask.getId(),startRequest.getStartUserId());
+        taskService.setAssignee(firstTask.getId(),startRequest.getUserId());
 
         //第一个节点要自动审批(承办人发起环节)
         WorkflowUtil.completeTaskBySelectNode(selectOutNode,firstNode,taskService,firstTask,variables);

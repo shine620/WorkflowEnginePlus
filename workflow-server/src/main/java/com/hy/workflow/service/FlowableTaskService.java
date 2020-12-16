@@ -115,19 +115,21 @@ public class FlowableTaskService {
                 }
             }
 
-            //所选择的流程分支节点
-            List<String> selectOutNode = new ArrayList<>();
-            if(approveRequest.getNextTaskList()!=null){
-                approveRequest.getNextTaskList().forEach(nextTask ->{
-                    selectOutNode.add(nextTask.getFlowElementId());
-                });
-            }
-
-
             //当前节点信息
             ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
             BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
             FlowNode currentNode = (FlowNode) bpmnModel.getFlowElement(execution.getActivityId());
+
+            //所选择的流程分支节点
+            List<String> selectOutNode = new ArrayList<>();
+            if(approveRequest.getNextTaskList()!=null){
+                approveRequest.getNextTaskList().forEach(nextTask ->{
+                    if(nextTask.getParentFlowElementId()!=null)
+                        selectOutNode.add(nextTask.getParentFlowElementId());
+                    else
+                        selectOutNode.add(nextTask.getFlowElementId());
+                });
+            }
 
             //任务未签收时先进行签收
             if(task.getAssignee()==null&&approveRequest.getUserId()!=null){
@@ -312,7 +314,7 @@ public class FlowableTaskService {
             varMap.put(targetNodeId, assigneeMap);
         } else{
             List<MultiInstanceRecord> multiUserTaskList = multiInstanceRecordRepository.findByProcessInstanceIdAndActivityIdAndAssigneeListIsNotNullOrderByCreateTimeDesc(processInstanceId,targetNodeId);
-            //驳回到用户会签环节
+            //驳回到会签用户环节
             if(multiUserTaskList.size()>0){
                 List assigneeList = JSONArray.parseArray(multiUserTaskList.get(0).getAssigneeList()).toJavaList(List.class);
                 Map<String,Object> multiTaskMap = new HashMap<>();
@@ -320,7 +322,7 @@ public class FlowableTaskService {
                 multiTaskMap.put("flowElementType",multiUserTaskList.get(0).getActivityType());
                 varMap.put(targetNodeId,multiTaskMap);
             } else{
-                //驳回到子流程会签环节
+                //驳回到外部子流程会签环节(调用活动)
                 List<MultiInstanceRecord> multiCallActivityList = multiInstanceRecordRepository.findByProcessInstanceIdAndActivityIdAndSubProcessDefinitionKeyListIsNotNullOrderByCreateTimeDesc(processInstanceId,targetNodeId);
                 if(multiCallActivityList.size()>0){
                     //JSON字符转数组
@@ -455,8 +457,8 @@ public class FlowableTaskService {
         for (SequenceFlow outgoingFlow : outgoingFlows) {
             FlowElement targetNode = outgoingFlow.getTargetFlowElement();
             FlowElementModel flow = new FlowElementModel();
-            flow.setId(targetNode.getId());
-            flow.setName(targetNode.getName());
+            flow.setFlowElementId(targetNode.getId());
+            flow.setFlowElementName(targetNode.getName());
             //用户任务（包含会签）
             if (targetNode instanceof UserTask) {
                 UserTask userTask =  (UserTask)targetNode;
@@ -467,9 +469,11 @@ public class FlowableTaskService {
                 SubProcess subProcess = (SubProcess)targetNode;
                 UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess,true);
                 if(userTask!=null){
-                    flow.setId(userTask.getId());
-                    flow.setName(userTask.getName());
+                    flow.setFlowElementId(userTask.getId());
+                    flow.setFlowElementName(userTask.getName());
                     flow.setFlowElementType(FlowElementType.USER_TASK);
+                    flow.setParentFlowElementId( subProcess.getId() );
+                    flow.setParentFlowElementType(FlowElementType.SUB_PROCESS);
                 }
             }
             //调用活动
@@ -481,7 +485,7 @@ public class FlowableTaskService {
                 throw new WorkflowException("第二节点只能为用户任务节点或者子流程！");
             }
             flowList.add(flow);
-            flowIdList.add(flow.getId());
+            flowIdList.add(flow.getFlowElementId());
         }
 
         //设置节点配置信息
@@ -520,13 +524,19 @@ public class FlowableTaskService {
         activityList.forEach( flowNode -> {
 
             FlowElementModel model =  new FlowElementModel();
-            model.setId(flowNode.getId());
-            model.setName(flowNode.getName());
+            model.setFlowElementId(flowNode.getId());
+            model.setFlowElementName(flowNode.getName());
 
             //普通任务及内部子流程任务
             if(flowNode instanceof UserTask){
                 UserTask userTask = (UserTask)flowNode;
                 model.setFlowElementType(getUserTaskType(userTask));
+                //属于子流程任务节点时设置Parent
+                FlowElementsContainer container = flowNode.getParentContainer();
+                if(container instanceof SubProcess){
+                    model.setParentFlowElementId( ((SubProcess)container).getId() );
+                    model.setParentFlowElementType( FlowElementType.SUB_PROCESS );
+                }
             }
             //调用活动
             else if(flowNode instanceof CallActivity){
@@ -535,7 +545,7 @@ public class FlowableTaskService {
             //结束
             else if(flowNode instanceof EndEvent){
                 model.setFlowElementType(FlowElementType.END_EVENT);
-                if(StringUtils.isBlank(model.getName())) model.setName("结束");
+                if(StringUtils.isBlank(model.getFlowElementName())) model.setFlowElementName("结束");
             }
             else {
                 throw new WorkflowException("不支持的节点类型：processDefinitionId="+task.getProcessDefinitionId()+"  flowElementId="+task.getTaskDefinitionKey());
@@ -577,8 +587,8 @@ public class FlowableTaskService {
             FlowElementConfigModel configModel = EntityModelUtil.toFlowElementConfigMode(subFirstNodeConfig);
             //封装任务节点
             FlowElementModel node = new FlowElementModel();
-            node.setId(subFirstNode.getId());
-            node.setName(subFirstNode.getName());
+            node.setFlowElementId(subFirstNode.getId());
+            node.setFlowElementName(subFirstNode.getName());
             node.setFlowElementType( getUserTaskType((UserTask)subFirstNode) );
             node.setConfig(configModel);
             node.setModelKey(processDefinition.getKey());

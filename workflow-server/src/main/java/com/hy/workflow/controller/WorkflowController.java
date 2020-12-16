@@ -78,12 +78,12 @@ public class WorkflowController {
                 //flowElement.setFlowElementType(FlowElementType.END_EVENT);
             }
             if(flowElement.getFlowElementType()!=null){
-                flowElement.setId(e.getId());
-                flowElement.setName(e.getName());
+                flowElement.setFlowElementId(e.getId());
+                flowElement.setFlowElementName(e.getName());
                 if(e.getParentContainer() instanceof SubProcess){
-                    flowElement.setParentId(((SubProcess) e.getParentContainer()).getId());
+                    flowElement.setParentFlowElementId(((SubProcess) e.getParentContainer()).getId());
                 }else{
-                    flowElement.setParentId("0");
+                    flowElement.setParentFlowElementId("0");
                 }
                 flowElementList.add(flowElement);
             }
