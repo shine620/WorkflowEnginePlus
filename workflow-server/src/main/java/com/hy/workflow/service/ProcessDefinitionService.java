@@ -194,10 +194,15 @@ public class ProcessDefinitionService {
         }
         //修改
         else{
-            flowElementConfig.setMultUser(model.getMultUser());
+            flowElementConfig.setMultiUser(model.getMultiUser());
             flowElementConfig.setFixed(model.getFixed());
             flowElementConfig.setAssigneeOption(model.getAssigneeOption());
-            flowElementConfig.setAssigneeValue(model.getAssigneeValue());
+            flowElementConfig.setOrgScope(model.getOrgScope());
+            flowElementConfig.setOrgValue(model.getOrgValue());
+            flowElementConfig.setUserValue(model.getUserValue());
+            flowElementConfig.setRoleValue(model.getRoleValue());
+            flowElementConfig.setPositionValue(model.getPositionValue());
+            flowElementConfig.setAutoSelect(model.getAutoSelect());
             flowElementConfig.setEditForm(model.getEditForm());
             flowElementConfig.setRequireOpinion(model.getRequireOpinion());
             flowElementConfig.setShowApproveRecord(model.getShowApproveRecord());

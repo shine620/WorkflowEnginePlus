@@ -259,8 +259,8 @@ public class FlowableModelService {
             elementConfig.setProcessDefinitionId(processDefinitionId);
             if(e instanceof UserTask){
                 Map<String, List<ExtensionElement>> extensionElements = e.getExtensionElements();
-                if(extensionElements.containsKey("multUser")){
-                    elementConfig.setMultUser(Boolean.valueOf(extensionElements.get("multUser").get(0).getElementText()));
+                if(extensionElements.containsKey("multiUser")){
+                    elementConfig.setMultiUser(Boolean.valueOf(extensionElements.get("multiUser").get(0).getElementText()));
                 }
                 if(extensionElements.containsKey("fixed")){
                     elementConfig.setFixed(Boolean.valueOf(extensionElements.get("fixed").get(0).getElementText()));
@@ -268,8 +268,23 @@ public class FlowableModelService {
                 if(extensionElements.containsKey("assigneeOption")){
                     elementConfig.setAssigneeOption(extensionElements.get("assigneeOption").get(0).getElementText());
                 }
-                if(extensionElements.containsKey("assigneeValue")){
-                    elementConfig.setAssigneeValue(extensionElements.get("assigneeValue").get(0).getElementText());
+                if(extensionElements.containsKey("orgScope")){
+                    elementConfig.setOrgScope(extensionElements.get("orgScope").get(0).getElementText());
+                }
+                if(extensionElements.containsKey("orgValue")){
+                    elementConfig.setOrgValue(extensionElements.get("orgValue").get(0).getElementText());
+                }
+                if(extensionElements.containsKey("userValue")){
+                    elementConfig.setUserValue(extensionElements.get("userValue").get(0).getElementText());
+                }
+                if(extensionElements.containsKey("positionValue")){
+                    elementConfig.setPositionValue(extensionElements.get("positionValue").get(0).getElementText());
+                }
+                if(extensionElements.containsKey("roleValue")){
+                    elementConfig.setRoleValue(extensionElements.get("roleValue").get(0).getElementText());
+                }
+                if(extensionElements.containsKey("autoSelect")){
+                    elementConfig.setAutoSelect(Boolean.valueOf(extensionElements.get("autoSelect").get(0).getElementText()));
                 }
                 if(extensionElements.containsKey("editForm")){
                     elementConfig.setEditForm(Boolean.valueOf(extensionElements.get("editForm").get(0).getElementText()));

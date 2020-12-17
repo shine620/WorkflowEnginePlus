@@ -18,7 +18,7 @@ public class FlowElementConfigModel extends BaseRequest {
     private String flowElementType;
 
     //是否多人
-    private Boolean multUser;
+    private Boolean multiUser;
 
     //是否固定
     private Boolean fixed;
@@ -26,8 +26,23 @@ public class FlowElementConfigModel extends BaseRequest {
     //候选方式
     private String assigneeOption;
 
-    //候选值
-    private String assigneeValue;
+    //机构范围（发起人所在部门 START_DEPARTMENT、发起人所在公司 START_UNIT 、指定机构 GIVEN_ORG）
+    private String orgScope;
+
+    //选择的机构
+    private String orgValue;
+
+    //选择的用户
+    private String userValue;
+
+    //选择的角色
+    private String roleValue;
+
+    //选择的岗位
+    private String positionValue;
+
+    //自动带出
+    private Boolean autoSelect;
 
     //是否允许编辑表单
     private Boolean editForm;
@@ -81,12 +96,12 @@ public class FlowElementConfigModel extends BaseRequest {
         this.flowElementType = flowElementType;
     }
 
-    public Boolean getMultUser() {
-        return multUser;
+    public Boolean getMultiUser() {
+        return multiUser;
     }
 
-    public void setMultUser(Boolean multUser) {
-        this.multUser = multUser;
+    public void setMultiUser(Boolean multiUser) {
+        this.multiUser = multiUser;
     }
 
     public Boolean getFixed() {
@@ -105,12 +120,44 @@ public class FlowElementConfigModel extends BaseRequest {
         this.assigneeOption = assigneeOption;
     }
 
-    public String getAssigneeValue() {
-        return assigneeValue;
+    public String getOrgScope() {
+        return orgScope;
     }
 
-    public void setAssigneeValue(String assigneeValue) {
-        this.assigneeValue = assigneeValue;
+    public void setOrgScope(String orgScope) {
+        this.orgScope = orgScope;
+    }
+
+    public String getOrgValue() {
+        return orgValue;
+    }
+
+    public void setOrgValue(String orgValue) {
+        this.orgValue = orgValue;
+    }
+
+    public String getUserValue() {
+        return userValue;
+    }
+
+    public void setUserValue(String userValue) {
+        this.userValue = userValue;
+    }
+
+    public String getPositionValue() {
+        return positionValue;
+    }
+
+    public void setPositionValue(String positionValue) {
+        this.positionValue = positionValue;
+    }
+
+    public Boolean getAutoSelect() {
+        return autoSelect;
+    }
+
+    public void setAutoSelect(Boolean autoSelect) {
+        this.autoSelect = autoSelect;
     }
 
     public Boolean getEditForm() {
@@ -159,6 +206,14 @@ public class FlowElementConfigModel extends BaseRequest {
 
     public void setTip(String tip) {
         this.tip = tip;
+    }
+
+    public String getRoleValue() {
+        return roleValue;
+    }
+
+    public void setRoleValue(String roleValue) {
+        this.roleValue = roleValue;
     }
 
 

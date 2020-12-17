@@ -153,14 +153,15 @@
 							if(data==null||data==""){
 								//无配置时设置默认值
 								data={
-									multiInstanceType:"NONE",
-									assigneeSelectOption:"NONE",
-									assigneeSelectScope:"USER_SCOPE",
-									candidateUsers:"",
-									candidateGroups:"",
-									candidateRoles:"",
-									candidateJob:"",
-									formField:"",
+                                    multiUser:"false",
+                                    fixed:"false",
+                                    //assigneeOption:"",
+                                    userValue:"",
+									orgScope:"START_DEPARTMENT",
+                                    roleValue:"",
+                                    positionValue:"",
+                                    orgValue:"",
+                                    autoSelect:"false",
 									tip:"",
 									editForm:"false",
 									attachEditable:"false",
@@ -170,6 +171,9 @@
 									sendCopy:"false"
 								};
 							}else{
+                                data.multiUser==true ? data.multiUser="true" : data.multiUser="false";
+                                data.fixed==true ? data.fixed="true" : data.fixed="false";
+                                data.autoSelect==true ? data.autoSelect="true" : data.autoSelect="false";
 								data.editForm==true ? data.editForm="true" : data.editForm="false";
 								data.attachEditable==true ? data.attachEditable="true" : data.attachEditable="false";
 								data.requireOpinion==true ? data.requireOpinion="true" : data.requireOpinion="false";
@@ -345,41 +349,91 @@
 								<div class="layui-row">
 									<div class="layui-col-md11">
 										<div class="layui-form-item">
-											<label class="layui-form-label">是否多人</label>
-											<div class="layui-input-block">
-												<input type="radio" name="multUser" value="true" title="是" checked>
-												<input type="radio" name="multUser" value="false" title="否">
-											</div>
-										</div>
-									</div>
-								</div>
-								<div class="layui-row">
-									<div class="layui-col-md11">
-										<div class="layui-form-item">
 											<label class="layui-form-label">分配方式</label>
 											<div class="layui-input-block">
-												<input type="radio" name="assigneeOption" value="USER_SCOPE" title="人员" checked>
-												<input type="radio" name="assigneeOption" value="GROUP_SCOPE" title="机构">
-												<input type="radio" name="assigneeOption" value="ROLE_SCOPE" title="角色">
-												<input type="radio" name="assigneeOption" value="POSITION_SCOPE" title="职位">
+												<input type="radio" name="assigneeOption" value="USER" title="人员">
+												<input type="radio" name="assigneeOption" value="ORG" title="机构">
+												<input type="radio" name="assigneeOption" value="ROLE" title="角色">
+												<input type="radio" name="assigneeOption" value="POSITION" title="职位">
 											</div>
 										</div>
 									</div>
 								</div>
-								<div class="layui-row">
-									<div class="layui-col-md11">
-										<div class="layui-form-item">
-											<!--<label class="layui-form-label layui-required">处理人员</label>
-											<div class="layui-input-block">
-												<input type="text" name="assigneeValue"  lay-verify="required" placeholder="请选择人员" autocomplete="off" class="layui-input">
-											</div>-->
-                                            <label class="layui-form-label">处理人员</label>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">是否多人</label>
                                             <div class="layui-input-block">
-                                                <input type="text" name="assigneeValue" placeholder="请选择人员" autocomplete="off" class="layui-input">
+                                                <input type="radio" name="multiUser" value="true" title="是" checked>
+                                                <input type="radio" name="multiUser" value="false" title="否">
                                             </div>
-										</div>
-									</div>
-								</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">选择用户</label>
+                                            <div class="layui-input-block">
+                                                <!--<input type="text" name="assigneeValue"  lay-verify="required" placeholder="请选择人员" autocomplete="off" class="layui-input">-->
+                                                <input type="text" name="userValue" placeholder="请选择人员" autocomplete="off" class="layui-input">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">机构范围</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="orgScope" value="START_DEPARTMENT" title="发起人所在部门" checked>
+                                                <input type="radio" name="orgScope" value="START_UNIT" title="发起人所在公司">
+                                                <input type="radio" name="orgScope" value="GIVEN_ORG" title="指定机构">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">选择机构</label>
+                                            <div class="layui-input-block">
+                                                <input type="text" name="orgValue" placeholder="请选择机构" autocomplete="off" class="layui-input">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">选择角色</label>
+                                            <div class="layui-input-block">
+                                                <input type="text" name="roleValue" placeholder="请选择角色" autocomplete="off" class="layui-input">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">选择岗位</label>
+                                            <div class="layui-input-block">
+                                                <input type="text" name="positionValue" placeholder="请选择岗位" autocomplete="off" class="layui-input">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">自动带出</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="autoSelect" value="true" title="是" checked>
+                                                <input type="radio" name="autoSelect" value="false" title="否">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="layui-row" style="margin-bottom: 20px;">
                                     <div class="layui-col-md11">
                                         <div class="layui-form-item">
