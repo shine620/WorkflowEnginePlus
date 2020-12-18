@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <link href="../component/layui/css/layui.css" rel="stylesheet" />
+    <link href="../admin/css/pearCommon.css" rel="stylesheet" />
+</head>
+<body class="pear-container">
+    <div class="layui-card">
+        <div class="layui-card-body">
+            <form class="layui-form" action="">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">类型编号</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="code" placeholder="" class="layui-input">
+                    </div>
+                    <label class="layui-form-label">类型名称</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="name" placeholder="" class="layui-input">
+                    </div>
+                    <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="businessType-query">
+                        <i class="layui-icon layui-icon-search"></i>
+                        查询
+                    </button>
+                    <button type="reset" class="pear-btn pear-btn-md">
+                        <i class="layui-icon layui-icon-refresh"></i>
+                        重置
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="layui-card">
+        <div class="layui-card-body">
+            <table id="businessType-table" lay-filter="businessType-table"></table>
+        </div>
+    </div>
+</body>
+
+<script type="text/html" id="businessType-toolbar">
+    <button class="pear-btn pear-btn-primary pear-btn-md" lay-event="add">
+        <i class="layui-icon layui-icon layui-icon-add-1"></i>新建
+    </button>
+    <button class="pear-btn pear-btn-danger pear-btn-md" lay-event="batchRemove">
+        <i class="layui-icon layui-icon-delete"></i>批量删除
+    </button>
+</script>
+
+<!--列表日期格式化显示-->
+<script type="text/html" id="businessType-createTime">
+    {{layui.util.toDateString(d.createTime, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+<script type="text/html" id="businessType-updateTime">
+    {{layui.util.toDateString(d.lastUpdateTime, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+
+<!--编辑和删除按钮-->
+<script type="text/html" id="businessType-bar">
+    <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit" title="编辑"><i class="layui-icon layui-icon-edit"></i></button>
+    <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i></button>
+</script>
+<script src="../component/layui/layui.js"></script>
+<script>
+
+    layui.use(['table','form','jquery','pearTab'],function () {
+        let table = layui.table;
+        let form = layui.form;
+        let $ = layui.jquery;
+        let pearTab = layui.pearTab;
+        let MODULE_PATH = "/WorkflowController/workflows/";
+        let cols = [
+            [
+                {type:'checkbox'},
+                {title: 'ID', field: 'id', align:'left',sort:true,width:'10%',hide:true},
+                {title: '业务类型编号', field: 'code', align:'left',sort:true},
+                {title: '业务类型名称', field: 'name', align:'left'},
+                {title: '创建时间', field: 'createTime', align:'left',templet:"#businessType-createTime",sort:true},
+                {title: '最后修改时间', field: 'lastUpdateTime', align:'left',templet:"#businessType-updateTime"},
+                {title: '操作', toolbar: '#businessType-bar', align:'center',width:150}
+            ]
+        ]
+
+        table.render({
+            elem: '#businessType-table',
+            url: MODULE_PATH+"findBusinessTypes",
+            page: true ,
+            where:{"sortMap":{"createTime":"desc"}},
+            cols: cols,
+            skin: 'line',
+            limits: [5,10, 20, 30, 40, 50],
+            method:'post',
+            contentType: 'application/json',
+            toolbar: '#businessType-toolbar',
+            //initSort: {field: 'createTime',type: 'desc'},
+            request: {pageName: 'startPage',limitName: 'pageSize'},
+            parseData: function(res){
+                return {"code": 0, "msg": "", "count": res.totalCount,"data": res.data};
+            },
+            defaultToolbar: [{
+                layEvent: 'refresh',
+                icon: 'layui-icon-refresh',
+                title: '刷新',
+            }, 'filter', 'print', 'exports']
+        });
+
+
+        /*绑定列表删除、查看和配置事件*/
+        table.on('tool(businessType-table)', function(obj){
+            if(obj.event === 'remove'){
+                window.remove(obj);
+            } else if(obj.event === 'edit'){
+                window .edit(obj);
+            }
+        });
+
+        /*刷新和批量删除按钮事件*/
+        table.on('toolbar(businessType-table)', function(obj){
+            if(obj.event === 'add'){
+                window.add();
+            } else if(obj.event === 'refresh'){
+                window.refresh();
+            } else if(obj.event === 'batchRemove'){
+                window.batchRemove(obj);
+            }
+        });
+
+        /*搜索框提交事件*/
+        form.on('submit(businessType-query)', function(data){
+            fieldParams = {"fields":{"name":data.field.name,"code":data.field.code}};
+            table.reload('businessType-table',{where: fieldParams});
+            return false;
+        });
+
+        window.add = function(){
+            layer.open({
+                type: 2,
+                title: '新增业务类型',
+                shade: 0.1,
+                area: ['500px', '320px'],
+                content:  'editBusinessType.html'
+            });
+        }
+
+        window.edit = function(obj){
+            layer.open({
+                type: 2,
+                title: '修改业务类型',
+                shade: 0.1,
+                area: ['500px', '320px'],
+                content: 'editBusinessType.html?id='+obj.data['id']
+            });
+        }
+
+        window.remove = function(obj){
+            layer.confirm('确定要删除该业务类型吗？', {icon: 3, title:'提示'}, function(index){
+                layer.close(index);
+                let loading = layer.load();
+                $.ajax({
+                    url:MODULE_PATH+ "deleteBusinessType/"+obj.data['id'],
+                    dataType:'json',
+                    type:'get',
+                    success:function(result){
+                        layer.close(loading);
+                        table.reload('businessType-table');
+                        layer.msg('删除成功',{icon:1,time:1000});
+                    },
+                    error:function(XMLHttpRequest){
+                        layer.msg("删除失败",{icon:2,time:1000});
+                        layer.close(loading);
+                        console.info(XMLHttpRequest.responseText);
+                    }
+                })
+            });
+        }
+
+        window.batchRemove = function(obj){
+            let data = table.checkStatus(obj.config.id).data;
+            if(data.length === 0){
+                layer.msg("未选中数据",{icon:3,time:1000});
+                return false;
+            }
+            let ids=[];
+            for(let i = 0;i<data.length;i++){
+                ids[i] = data[i].id;
+            }
+            layer.confirm('确定要删除这些业务类型吗？', {icon: 3, title:'提示'}, function(index){
+                layer.close(index);
+                let loading = layer.load();
+                $.ajax({
+                    url: MODULE_PATH+ "batchDeleteBusinessType?ids="+ids,
+                    dataType:'json',
+                    type:'get',
+                    success:function(result){
+                        layer.close(loading);
+                        table.reload('businessType-table');
+                        layer.msg("删除成功",{icon:1,time:1000});
+                    },
+                    error:function(XMLHttpRequest){
+                        layer.msg("删除失败",{icon:2,time:1000});
+                        layer.close(loading);
+                        console.info(XMLHttpRequest.responseText);
+                    }
+                })
+            });
+        }
+
+        window.refresh = function(param){
+            table.reload('businessType-table');
+        }
+
+    })
+
+</script>
+</body>
+</html>

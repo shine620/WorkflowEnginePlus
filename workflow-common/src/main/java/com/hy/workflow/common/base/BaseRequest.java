@@ -18,6 +18,8 @@ public class BaseRequest {
 
     private Map<String,String> sortMap;
 
+    private Map<String,Object> fields;
+
     public Date getCreateTime() {
         return createTime;
     }
@@ -40,6 +42,14 @@ public class BaseRequest {
 
     public void setSortMap(Map<String, String> sortMap) {
         this.sortMap = sortMap;
+    }
+
+    public Map<String, Object> getFields() {
+        return fields;
+    }
+
+    public void setFields(Map<String, Object> fields) {
+        this.fields = fields;
     }
 
 

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en"  xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link href="../component/layui/css/layui.css" rel="stylesheet" />
+    <link href="../admin/css/pearCommon.css" rel="stylesheet" />
+</head>
+
+<body>
+
+<form class="layui-form" lay-filter="businessTypeForm" action="">
+    <div class="mainBox">
+        <div class="main-container">
+            <div class="main-container">
+                <input name="id" type="hidden">
+                <div class="layui-form-item">
+                    <label class="layui-form-label layui-required">类型编号</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="code"  lay-verify="required" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label layui-required">类型名称</label>
+                    <div class="layui-input-block">
+                        <input type="text"  name="name" lay-verify="required" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">类型描述</label>
+                    <div class="layui-input-block">
+                        <textarea name="description" class="layui-textarea" style="min-height:80px!important;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="bottom">
+        <div class="button-container">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit="" lay-filter="businessType-save">
+                <i class="layui-icon layui-icon-ok"></i>
+                提交
+            </button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">
+                <i class="layui-icon layui-icon-refresh"></i>
+                重置
+            </button>
+        </div>
+    </div>
+</form>
+
+<script src="../component/layui/layui.js"></script>
+<script>
+    layui.use(['form','jquery'],function(){
+        let form = layui.form;
+        let $ = layui.jquery;
+
+        let id = decodeURIComponent(layui.url().search.id);
+        console.info(decodeURIComponent(layui.url().search.id));
+
+        //数据回显
+        if(id!="undefined"){
+            $.ajax({
+                url:"/WorkflowController/workflows/getBusinessType/"+id,
+                type:"GET",
+                contentType:"application/json",
+                success:function(data){
+                    console.info(data);
+                    form.val("businessTypeForm",data);
+                }
+            });
+        }
+
+        form.on('submit(businessType-save)', function(data){
+            $.ajax({
+                url:'/WorkflowController/workflows/saveBusinessType',
+                data:JSON.stringify(data.field),
+                dataType:'json',
+                contentType:'application/json',
+                type:'post',
+                success:function(result){
+                    console.info(result);
+                    layer.msg('保存成功',{icon:1,time:1000},function(){
+                        parent.layer.close(parent.layer.getFrameIndex(window.name));//关闭当前页
+                        parent.layui.table.reload("businessType-table");
+                    });
+                },
+                error:function(XMLHttpRequest){
+                    layer.msg("保存失败",{icon:2,time:1000},function () {
+                        parent.layer.close(parent.layer.getFrameIndex(window.name));
+                        parent.layui.table.reload("businessType-table");
+                    });
+                    console.info(XMLHttpRequest.responseText);
+                }
+            })
+            return false;
+        });
+    })
+</script>
+
+</body>
+</html>

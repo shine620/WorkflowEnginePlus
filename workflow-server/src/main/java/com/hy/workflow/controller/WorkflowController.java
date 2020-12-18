@@ -1,7 +1,12 @@
 package com.hy.workflow.controller;
 
+import com.hy.workflow.common.base.BaseRequest;
+import com.hy.workflow.common.base.PageBean;
+import com.hy.workflow.entity.BusinessType;
+import com.hy.workflow.entity.FlowableModel;
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.FlowElementModel;
+import com.hy.workflow.model.ModelRequest;
 import com.hy.workflow.service.WorkflowService;
 import io.swagger.annotations.*;
 import org.flowable.bpmn.model.*;
@@ -10,16 +15,16 @@ import org.flowable.engine.ProcessEngine;
 import org.flowable.engine.RepositoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
 @RestController
 @RequestMapping("/WorkflowController")
-@Api(value = "流程引擎", tags = "Workflows", description = "流程引擎接口")
+@Api(value = "流程引擎", tags = "Workflows", description = "流程相关接口")
 public class WorkflowController {
 
     @Autowired
@@ -91,7 +96,51 @@ public class WorkflowController {
         return flowElementList;
     }
 
+    @ApiOperation(value = "获取业务类型列表", tags = { "Workflows" })
+    @PostMapping("/workflows/findBusinessTypes")
+    public PageBean<BusinessType> findBusinessTypes(@ApiParam @RequestParam(defaultValue = "1") Integer startPage,
+            @ApiParam @RequestParam(defaultValue = "10") Integer pageSize,@RequestBody BaseRequest baseRequest) {
+        PageRequest pageRequest = PageBean.getPageRequest(baseRequest,startPage,pageSize);
+        return workflowService.findBusinessType(baseRequest,pageRequest);
+    }
 
+
+    @ApiOperation(value = "获取所有业务类型", tags = { "Workflows" })
+    @PostMapping("/workflows/getAllBusinessType")
+    public List<BusinessType> getAllBusinessType(){
+        return workflowService.getAllBusinessType();
+    }
+
+
+    @ApiOperation(value = "根据ID查询业务类型", tags = {"Workflows" })
+    @GetMapping(value = "/workflows/getBusinessType/{id}",consumes ="application/json" )
+    public BusinessType getBusinessType(@PathVariable String id){
+        return workflowService.getBusinessType(id);
+    }
+
+
+    @ApiOperation(value = "保存业务类型(创建或修改)", tags = {"Workflows" })
+    @PostMapping(value = "/workflows/saveBusinessType",consumes ="application/json" )
+    public BusinessType saveBusinessType(@RequestBody BusinessType businessType){
+        return workflowService.saveBusinessType(businessType);
+    }
+
+
+    @ApiOperation(value = "删除业务类型", tags = { "Workflows" })
+    @GetMapping("/workflows/deleteBusinessType/{id}")
+    public void deleteBusinessType(@ApiParam(name = "id") @PathVariable String id, HttpServletResponse response) {
+        workflowService.deleteBusinessType(id);
+        response.setStatus(HttpStatus.NO_CONTENT.value());
+
+    }
+
+
+    @ApiOperation(value = "批量删除业务类型", tags = { "Workflows" })
+    @GetMapping("/workflows/batchDeleteBusinessType")
+    public void batchDeleteBusinessType(@ApiParam(name = "ids") @RequestParam String[] ids, HttpServletResponse response) {
+        workflowService.batchDeleteBusinessType(ids);
+        response.setStatus(HttpStatus.NO_CONTENT.value());
+    }
 
 
 
