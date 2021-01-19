@@ -52,6 +52,16 @@ public class TaskController {
     }
 
 
+    @ApiOperation(value = "查询已经列表", tags = { "Tasks" })
+    @GetMapping(value = "/tasks/doneTaskList", produces = "application/json")
+    public PageBean<TaskModel> getDoneTaskList(@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,
+                                               @ApiParam @RequestParam(defaultValue = "1") Integer pageNum, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize,
+                                               @ApiParam(value = "用户ID") @RequestParam String userId ) {
+        PageBean<TaskModel> taskPage = flowableTaskService.getDoneTaskList(loadAll,pageNum,pageSize,userId);
+        return  taskPage;
+    }
+
+
     @ApiOperation(value = "查询待办详情", tags = { "Tasks" })
     @GetMapping(value = "/tasks/todoTaskInfo", produces = "application/json")
     public TaskModel todoTaskInfo(@ApiParam(value = "任务ID") @RequestParam String taskId ) {

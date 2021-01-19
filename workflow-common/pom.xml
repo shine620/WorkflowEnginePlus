@@ -11,5 +11,13 @@
 
     <artifactId>workflow-common</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.hy.workflow</groupId>
+            <artifactId>workflow-api</artifactId>
+            <version>${worrkflow.version}</version>
+        </dependency>
+    </dependencies>
+
 
 </project>

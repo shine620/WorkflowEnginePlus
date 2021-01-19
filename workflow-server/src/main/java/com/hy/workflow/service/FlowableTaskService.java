@@ -33,6 +33,7 @@ import org.flowable.task.api.DelegationState;
 import org.flowable.task.api.Task;
 import org.flowable.task.api.TaskQuery;
 import org.flowable.task.api.history.HistoricTaskInstance;
+import org.flowable.task.api.history.HistoricTaskInstanceQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -620,7 +621,7 @@ public class FlowableTaskService {
         if(loadAll==true){
             todoTaskList = taskQuery.list();
         }else{
-            int startIndex = (pageNum-1)*20;
+            int startIndex = (pageNum-1)*pageSize;
             todoTaskList = taskQuery.listPage(startIndex,pageSize);
         }
 
@@ -649,6 +650,70 @@ public class FlowableTaskService {
         });
 
        //设置流程实例名称
+        taskList.forEach(taskModel -> {
+            businessList.forEach(businessProcess -> {
+                BusinessProcess bp = bsMap.get(taskModel.getProcessInstanceId());
+                taskModel.setProcessInstanceName(bp.getProcessInstanceName());
+            });
+        });
+
+        PageBean taskPage = new PageBean(pageNum,pageSize,totalCount);
+        taskPage.setData(taskList);
+
+        return taskPage;
+    }
+
+
+    /**
+     * 根据用户ID查询待办信息列表
+     *
+     * @author  zhaoyao
+     * @param loadAll 是否查询全部
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @param userId 用户ID
+     * @return PageBean<TaskModel>
+     */
+    @Transactional(propagation= Propagation.NOT_SUPPORTED)
+    public PageBean<TaskModel> getDoneTaskList(Boolean loadAll, Integer pageNum, Integer pageSize, String userId) {
+        ArrayList<TaskModel> taskList =  new ArrayList();
+        HistoricTaskInstanceQuery historicTaskQuery = historyService.createHistoricTaskInstanceQuery().taskAssignee(userId).finished().orderByHistoricTaskInstanceEndTime().desc();
+        Long totalCount = historicTaskQuery.count();
+
+        List<HistoricTaskInstance> todoTaskList ;
+        if(loadAll==true){
+            todoTaskList = historicTaskQuery.list();
+        }else{
+            int startIndex = (pageNum-1)*pageSize;
+            todoTaskList = historicTaskQuery.listPage(startIndex,pageSize);
+        }
+
+        Set<String> instanceIds = new HashSet<>();
+        todoTaskList.forEach(task -> {
+            TaskModel taskModel = new TaskModel();
+            taskModel.setTaskId(task.getId());
+            taskModel.setTaskName(task.getName());
+            taskModel.setTaskDefinitionKey(task.getTaskDefinitionKey());
+            taskModel.setProcessInstanceId(task.getProcessInstanceId());
+            taskModel.setProcessDefinitionId(task.getProcessDefinitionId());
+            taskModel.setCreateTime(task.getCreateTime());
+            taskModel.setClaimTime(task.getClaimTime());
+            taskModel.setEndTime(task.getEndTime());
+            taskModel.setAssignee(task.getAssignee());
+            taskModel.setOwner(task.getOwner());
+            taskModel.setExecutionId(task.getExecutionId());
+            taskList.add(taskModel);
+            instanceIds.add(task.getProcessInstanceId());
+        });
+
+        //查询流程实例相关信息
+        List<BusinessProcess> businessList = businessProcessRepository.findAllById(instanceIds);
+        Map<String,BusinessProcess> bsMap = new HashMap<>();
+        businessList.forEach(businessProcess -> {
+            bsMap.put(businessProcess.getProcessInstanceId(),businessProcess);
+        });
+
+        //设置流程实例名称
         taskList.forEach(taskModel -> {
             businessList.forEach(businessProcess -> {
                 BusinessProcess bp = bsMap.get(taskModel.getProcessInstanceId());
