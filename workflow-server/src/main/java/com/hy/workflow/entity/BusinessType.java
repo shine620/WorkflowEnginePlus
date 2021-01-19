@@ -10,7 +10,7 @@ import javax.persistence.*;
 public class BusinessType extends BaseEntity {
 
     @Id
-    @GenericGenerator(name="idGenerator", strategy="uuid")
+    @GenericGenerator(name="idGenerator", strategy = "org.hibernate.id.UUIDGenerator")
     @GeneratedValue(generator="idGenerator")
     private String id;
 
