@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -198,6 +199,19 @@ public class ProcessDefinitionController {
         response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 
+
+    @ApiOperation(value = "批量挂起流程定义", tags = { "Process Definitions" })
+    @PostMapping(value = "/process-definitions/batchSuspend/processDefinitionIds",consumes = "application/json")
+    public void batchSuspendProcessDefinition(HttpServletResponse response,@ApiParam(examples = @Example(value = @ExampleProperty(value = "{'user':'id'}", mediaType = "application/json"))) @RequestBody Map content) {
+        List<String> processDefinitionIds = (List<String>) content.get("processDefinitionIds");  //流程定义ID集合(processDefinitionIds)
+        Boolean suspend = Boolean.valueOf(content.get("suspend").toString()); //是否挂起(suspend)
+        if(processDefinitionIds!=null&&suspend!=null){
+            for(String id : processDefinitionIds){
+                processDefinitionService.suspendProcessDefinitionById(id,suspend);
+            }
+        }
+        response.setStatus(HttpStatus.NO_CONTENT.value());
+    }
 
     @ApiOperation(value = "查看流程定义资源文件", tags = { "Process Definitions" })
     @GetMapping(value = "/process-definitions/xml/{processDefinitionId}")

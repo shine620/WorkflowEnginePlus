@@ -96,7 +96,8 @@ public class WorkflowUtil {
 
         approveInfo.getNextTaskList().forEach(nextTask ->{
 
-            if( StringUtils.isBlank(nextTask.getAssignee()) && (nextTask.getCandidateUser()==null||nextTask.getCandidateUser().size()==0) ){
+            if( StringUtils.isBlank(nextTask.getAssignee()) && (nextTask.getCandidateUser()==null||nextTask.getCandidateUser().size()==0)
+                    && !nextTask.getFlowElementType().equals(FlowElementType.END_EVENT)){
                 throw new WorkflowException("审批人和候选人必须有一个不为空");
             }
 

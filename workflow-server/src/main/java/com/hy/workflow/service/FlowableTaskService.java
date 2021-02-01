@@ -116,6 +116,8 @@ public class FlowableTaskService {
                 }
             }
 
+            runtimeService.setVariables(task.getProcessInstanceId(),variables);
+
             //当前节点信息
             ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
             BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());

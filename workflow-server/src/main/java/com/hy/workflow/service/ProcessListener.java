@@ -8,6 +8,7 @@ import com.hy.workflow.entity.TaskRecord;
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.TaskRecordRepository;
+import com.hy.workflow.util.HttpUtil;
 import com.hy.workflow.util.WorkflowUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.bpmn.model.FlowElement;
@@ -32,6 +33,7 @@ import org.flowable.task.service.impl.persistence.entity.TaskEntityImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
@@ -55,6 +57,8 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
     @Autowired
     private TaskRecordRepository taskRecordRepository;
 
+    @Value("${callback.address}")
+    private String callbackAddress;
 
     @Override
     public void onEvent(FlowableEvent event) {
@@ -177,6 +181,24 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
             taskRecord.setEndTime(new Date());
             entityManager.merge(taskRecord);
         }
+        //TODO 任务完成回调
+        RuntimeService runtimeService =SpringContextUtil.getBeanByClass(RuntimeService.class);
+        ProcessInstance currentInstance = runtimeService.createProcessInstanceQuery().processInstanceId(taskEntity.getProcessInstanceId()).singleResult();
+        if(currentInstance!=null){
+            Map params = new HashMap();
+            params.put("taskId",taskEntity.getId());
+            params.put("taskDefinitionKey",taskEntity.getTaskDefinitionKey());
+            params.put("taskName",taskEntity.getName());
+            params.put("assignee",taskEntity.getAssignee());
+            params.put("processInstanceId",currentInstance.getId());
+            params.put("processInstanceName",currentInstance.getName());
+            params.put("processDefinitionId",currentInstance.getProcessDefinitionId());
+            params.put("startUserId",currentInstance.getStartUserId());
+            params.put("processStartTime",currentInstance.getStartTime());
+            params.put("businessKey",currentInstance.getBusinessKey());
+            params.put("eventType",FlowableEngineEventType.TASK_COMPLETED.name());
+            callback(params);
+        }
     }
 
 
@@ -192,6 +214,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
 
 
     private void activityCancelled(FlowableActivityCancelledEventImpl activityCancelled){
+        logger.info("任务取消{}，processInstanceId={}，executionId={}",activityCancelled.getClass(),activityCancelled.getProcessInstanceId(),activityCancelled.getExecutionId());
         if(activityCancelled.getCause() instanceof UserTask){
             TaskRecord taskRecord = taskRecordRepository.findByExecutionIdAndTaskDefinitionKey(activityCancelled.getExecutionId(),activityCancelled.getActivityId());
             if(taskRecord!=null){
@@ -199,8 +222,6 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                 taskRecord.setCancelled(true);
                 taskRecordRepository.save(taskRecord);
             }
-        }else{
-            logger.info("任务取消{}，processInstanceId={}，executionId={}",activityCancelled.getClass(),activityCancelled.getProcessInstanceId(),activityCancelled.getExecutionId());
         }
     }
 
@@ -263,13 +284,37 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
             RuntimeService runtimeService =SpringContextUtil.getBeanByClass(RuntimeService.class);
             runtimeService.setProcessInstanceName(subProcessInstance.getId(),subProcessName);
         }
-        //TODO  此处应回调业务接口回写数据状态
+        //TODO  此处应回调业务接口回写数据状态-
+        else{
+            ExecutionEntity root = execution.getRootProcessInstance();
+            Map<String,Object> params = new HashMap<>();
+            params.put("processInstanceId",root.getId());
+            params.put("processInstanceName",root.getName());
+            params.put("processDefinitionId",root.getProcessDefinitionId());
+            params.put("processStartTime",root.getStartTime());
+            params.put("processStartUserId",root.getStartUserId());
+            params.put("businessKey",root.getBusinessKey());
+            params.put("eventType",FlowableEngineEventType.PROCESS_STARTED.name());
+            callback(params);
+        }
     }
 
 
     private void processCompleted(ExecutionEntityImpl execution){
         logger.info("流程结束监听事件执行 processInstanceId: "+execution.getProcessInstanceId());
         //TODO  此处应回调业务接口回写数据状态
+        if(execution.getSuperExecution()==null){
+            ExecutionEntity root = execution.getRootProcessInstance();
+            Map<String,Object> params = new HashMap<>();
+            params.put("processInstanceId",root.getId());
+            params.put("processInstanceName",root.getName());
+            params.put("processDefinitionId",root.getProcessDefinitionId());
+            params.put("processStartTime",root.getStartTime());
+            params.put("processStartUserId",root.getStartUserId());
+            params.put("businessKey",root.getBusinessKey());
+            params.put("eventType",FlowableEngineEventType.PROCESS_COMPLETED.name());
+            callback(params);
+        }
     }
 
 
@@ -287,6 +332,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
 
     //签收或设置处理人
     private void taskAssigned(TaskEntityImpl taskEntity ){
+        logger.info("任务签收及指定处理人事件执行 processInstanceId:{}，taskId:{}",taskEntity.getProcessInstanceId(),taskEntity.getId());
         Optional<TaskRecord> optional = taskRecordRepository.findById( taskEntity.getId() );
         if(optional.isPresent()){
             TaskRecord taskRecord = optional.get();
@@ -339,6 +385,16 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
             taskRecord.setTaskType(WorkflowUtil.getUserTaskType((UserTask) flowElement));
         }
         taskRecordRepository.save(taskRecord);
+    }
+
+
+    private void callback(Map<String,Object> params){
+        if(StringUtils.isNotBlank(callbackAddress)){
+            System.out.println(callbackAddress);
+            logger.info(params.toString());
+            String result = HttpUtil.post(callbackAddress,params.toString(),null);
+            logger.info(result);
+        }
     }
 
 
