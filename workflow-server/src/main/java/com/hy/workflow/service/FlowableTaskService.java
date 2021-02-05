@@ -27,6 +27,7 @@ import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ChangeActivityStateBuilder;
 import org.flowable.engine.runtime.Execution;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.engine.task.Comment;
 import org.flowable.identitylink.api.IdentityLink;
 import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.DelegationState;
@@ -1011,6 +1012,44 @@ public class FlowableTaskService {
         return type;
     }
 
+
+    /**
+     * 查询审批历史信息
+     *
+     * @author  zhaoyao
+     * @param porcessInstanceId 流程实例ID
+     * @return List<TaskModel>
+     */
+    public List<TaskModel> getApprovedHistory(String porcessInstanceId) {
+        List<TaskModel> taskList = new ArrayList<>();
+        HistoricProcessInstance hisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(porcessInstanceId).singleResult();
+        if(hisInstance==null) return taskList;
+        List<HistoricTaskInstance> approvedList = historyService.createHistoricTaskInstanceQuery().processInstanceId(porcessInstanceId).orderByHistoricTaskInstanceEndTime().desc().list();
+        for(HistoricTaskInstance task : approvedList){
+            TaskModel model = new TaskModel();
+            model.setTaskId(task.getId());
+            model.setTaskName(task.getName());
+            model.setTaskDefinitionKey(task.getTaskDefinitionKey());
+            model.setProcessInstanceId(task.getProcessInstanceId());
+            model.setProcessInstanceName(hisInstance.getName());
+            model.setProcessDefinitionId(task.getProcessDefinitionId());
+            model.setAssignee(task.getAssignee());
+            model.setCreateTime(task.getCreateTime());
+            model.setClaimTime(task.getClaimTime());
+            model.setEndTime(task.getEndTime());
+            List<TaskModel.Comment> comments = new ArrayList<>();
+            for(Comment c : taskService.getTaskComments(task.getId()) ){
+                TaskModel.Comment comment = new TaskModel.Comment();
+                comment.setId(c.getId());
+                comment.setTime(c.getTime());
+                comment.setMessage(c.getFullMessage());
+                comments.add(comment);
+            }
+            model.setComments(comments);
+            taskList.add(model);
+        }
+        return taskList;
+    }
 
 
 }

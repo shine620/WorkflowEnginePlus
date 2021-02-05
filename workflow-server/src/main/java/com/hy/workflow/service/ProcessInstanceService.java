@@ -302,6 +302,9 @@ public class ProcessInstanceService {
         if (StringUtils.isNotBlank(model.getProcessInstanceId())) {
             predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("processInstanceId"),  model.getProcessInstanceId()) )  );
         }
+        if (StringUtils.isNotBlank(model.getStartUserId())) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("startUserId"),  model.getStartUserId()) )  );
+        }
         if (model.getStartTime() != null) {
             Predicate startTime =  criteriaBuilder.greaterThanOrEqualTo(root.get("startTime").as(Date.class), model.getStartTime());
             predicatesList.add(startTime);

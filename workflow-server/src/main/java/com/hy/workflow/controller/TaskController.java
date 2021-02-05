@@ -44,19 +44,17 @@ public class TaskController {
 
     @ApiOperation(value = "查询待办列表", tags = { "Tasks" })
     @GetMapping(value = "/tasks/todoTaskList", produces = "application/json")
-    public PageBean<TaskModel> getTodoTaskList(@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,
-                                               @ApiParam @RequestParam(defaultValue = "1") Integer pageNum, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize,
-                                               @ApiParam(value = "用户ID") @RequestParam String userId ) {
+    public PageBean<TaskModel> getTodoTaskList(@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll, @ApiParam(value = "用户ID") @RequestParam String userId,
+             @ApiParam @RequestParam(defaultValue = "1") Integer pageNum, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
         PageBean<TaskModel> taskPage = flowableTaskService.getTodoTaskList(loadAll,pageNum,pageSize,userId);
         return  taskPage;
     }
 
 
-    @ApiOperation(value = "查询已经列表", tags = { "Tasks" })
+    @ApiOperation(value = "查询已办列表", tags = { "Tasks" })
     @GetMapping(value = "/tasks/doneTaskList", produces = "application/json")
-    public PageBean<TaskModel> getDoneTaskList(@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,
-                                               @ApiParam @RequestParam(defaultValue = "1") Integer pageNum, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize,
-                                               @ApiParam(value = "用户ID") @RequestParam String userId ) {
+    public PageBean<TaskModel> getDoneTaskList(@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,@ApiParam(value = "用户ID") @RequestParam String userId,
+             @ApiParam @RequestParam(defaultValue = "1") Integer pageNum, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
         PageBean<TaskModel> taskPage = flowableTaskService.getDoneTaskList(loadAll,pageNum,pageSize,userId);
         return  taskPage;
     }
@@ -177,6 +175,11 @@ public class TaskController {
     }
 
 
+    @ApiOperation(value = "查询审批历史", tags = { "Tasks" })
+    @GetMapping(value = "/tasks/getApprovedHistory", produces = "application/json")
+    public List<TaskModel> getApprovedHistory(@ApiParam(value = "流程实例ID") @RequestParam String porcessInstanceId ) {
+        return flowableTaskService.getApprovedHistory(porcessInstanceId);
+    }
 
 
 }

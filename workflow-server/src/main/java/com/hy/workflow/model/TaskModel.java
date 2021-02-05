@@ -64,6 +64,44 @@ public class TaskModel {
     @ApiModelProperty(value="已完成会签数")
     private int nrOfCompletedInstances;
 
+    @ApiModelProperty(value="审批意见信息")
+    private List<Comment> comments;
+
+
+    public static class Comment{
+
+        private String id;
+
+        private Date time;
+
+        private String message;
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public Date getTime() {
+            return time;
+        }
+
+        public void setTime(Date time) {
+            this.time = time;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+    }
+
 
     public String getTaskId() {
         return taskId;
@@ -207,6 +245,14 @@ public class TaskModel {
 
     public void setNrOfCompletedInstances(int nrOfCompletedInstances) {
         this.nrOfCompletedInstances = nrOfCompletedInstances;
+    }
+
+    public List<Comment> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<Comment> comments) {
+        this.comments = comments;
     }
 
 

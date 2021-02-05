@@ -202,7 +202,8 @@ public class ProcessDefinitionController {
 
     @ApiOperation(value = "批量挂起流程定义", tags = { "Process Definitions" })
     @PostMapping(value = "/process-definitions/batchSuspend/processDefinitionIds",consumes = "application/json")
-    public void batchSuspendProcessDefinition(HttpServletResponse response,@ApiParam(examples = @Example(value = @ExampleProperty(value = "{'user':'id'}", mediaType = "application/json"))) @RequestBody Map content) {
+    //请求参数数据格式：{"processDefinitionIds":["1201","1202"],"suspend":true}
+    public void batchSuspendProcessDefinition(HttpServletResponse response,@RequestBody Map content) {
         List<String> processDefinitionIds = (List<String>) content.get("processDefinitionIds");  //流程定义ID集合(processDefinitionIds)
         Boolean suspend = Boolean.valueOf(content.get("suspend").toString()); //是否挂起(suspend)
         if(processDefinitionIds!=null&&suspend!=null){
