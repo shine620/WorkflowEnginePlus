@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/flowable.iml" filepath="$PROJECT_DIR$/flowable.iml" />
+      <module fileurl="file://$PROJECT_DIR$/workflow-api/workflow-api.iml" filepath="$PROJECT_DIR$/workflow-api/workflow-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/workflow-common/workflow-common.iml" filepath="$PROJECT_DIR$/workflow-common/workflow-common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/workflow-server/workflow-server.iml" filepath="$PROJECT_DIR$/workflow-server/workflow-server.iml" />
+    </modules>
+  </component>
+</project>
