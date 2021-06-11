@@ -3,6 +3,7 @@ package com.hy.workflow.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hy.workflow.common.base.WorkflowException;
+import com.hy.workflow.entity.FlowableModel;
 import com.hy.workflow.service.DemoService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 import org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamReader;
 import java.io.InputStreamReader;
@@ -68,7 +70,6 @@ public class DemoController {
     public String sayHello(@ApiParam(required = true, name = "userName") @RequestParam String userName) {
         return "你好: "+userName;
     }
-
 
     @ApiOperation(value = "导入模型", tags = { "Models" })
     @PostMapping(value = "/models/importModel")
@@ -162,8 +163,6 @@ public class DemoController {
         return modelList;
     }
 
-
-
     @GetMapping(value = "/rejectTask/{taskId}")
     public String rejectTask(@RequestParam String taskId,@RequestParam String targetNodeId) {
 
@@ -218,9 +217,6 @@ public class DemoController {
 
         return "SUCCESS";
     }
-
-
-
 
     @GetMapping(value="/startProcess")
     public void startProcess(String processKey) {
@@ -351,10 +347,206 @@ public class DemoController {
     }
 
 
+    //---------------------------数据测试接口---------------------------
 
+    @ApiOperation(value = "获取系统角色接口")
+    @GetMapping(value = "/getSystemRole", produces = "application/json")
+    public String getSystemRole(@RequestParam(value = "ids",required = false)String ids,@RequestParam(value = "name",required = false)String name) {
 
+        String json ="[\n" +
+                "   {\n" +
+                "      \"id\" : \"AGREEMENT_ADMIN\",\n" +
+                "      \"name\" : \"合同管理员\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"BUSINESS_AREA_ADMIN\",\n" +
+                "      \"name\" : \"集团各业务领域管理员\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"DEPARTMENT_MANAGER\",\n" +
+                "      \"name\" : \"部门领导\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"DISPUTE_ADMIN\",\n" +
+                "      \"name\" : \"纠纷案件管理员\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"LEGAL_ADMIN\",\n" +
+                "      \"name\" : \"普法管理员\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"UNIT_SYSTEM_MANAGER\",\n" +
+                "      \"name\" : \"各单位系统管理员\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"SUPPER_ADMIN\",\n" +
+                "      \"name\" : \"超级管理员\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"ENTERPRISE_LEGAL\",\n" +
+                "      \"name\" : \"企法人员\"\n" +
+                "   }\n" +
+                "]\n";
+        return json;
+    }
 
+    @ApiOperation(value = "获取系统岗位")
+    @GetMapping(value = "/getSystemPosition", produces = "application/json")
+    public String getSystemPosition(@RequestParam(value = "ids",required = false)String ids,@RequestParam(value = "name",required = false)String name) {
 
+        String json ="[\n" +
+                "   {\n" +
+                "      \"id\" : \"DIVISION_MANAGER\",\n" +
+                "      \"name\" : \"部门经理\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"DEPARTMENT_SECRETARY\",\n" +
+                "      \"name\" : \"部门文书\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"RESPONSIBLE_MANAGER\",\n" +
+                "      \"name\" : \"部门分管领导\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"DEPUTY_DEPARTMENT_MANAGER\",\n" +
+                "      \"name\" : \"副部门负责人\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"RECEIVE_USER\",\n" +
+                "      \"name\" : \"接收人\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"OTHER_USER\",\n" +
+                "      \"name\" : \"其他人员\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"GENERAL_MANAGER\",\n" +
+                "      \"name\" : \"总经理\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"id\" : \"DEPARTMENT_ASSISTANT\",\n" +
+                "      \"name\" : \"部门助理\"\n" +
+                "   }\n" +
+                "]\n";
+        return json;
+    }
+
+    @ApiOperation(value = "查询下级组织机构")
+    @GetMapping(value = "/getChildOrganizations", produces = "application/json")
+    public String getChildOrganizations(@RequestParam(value = "id",required = false)String id,@RequestParam(value = "orgType",required = false)String orgType) {
+
+        String json ="[\n" +
+                "    {\n" +
+                "        \"orgType\": \"UNIT\",\n" +
+                "        \"name\": \"管网集团华南分公司\",\n" +
+                "        \"id\": \"1001\"\n" +
+                "    },\n" +
+                "    {\n" +
+                "        \"orgType\": \"UNIT\",\n" +
+                "        \"name\": \"管网集团华北分公司\",\n" +
+                "        \"id\": \"1002\"\n" +
+                "    },\n" +
+                "\t{\n" +
+                "        \"orgType\": \"UNIT\",\n" +
+                "        \"name\": \"国家管网集团西气东输公司\",\n" +
+                "        \"id\": \"1003\"\n" +
+                "    },\n" +
+                "    {\n" +
+                "        \"orgType\": \"UNIT\",\n" +
+                "        \"name\": \"国家管网集团广东省管网有限公司\",\n" +
+                "        \"id\": \"1004\"\n" +
+                "    }\n" +
+                "\t,\n" +
+                "    {\n" +
+                "        \"orgType\": \"DEPARTMENT\",\n" +
+                "        \"name\": \"党组领导\",\n" +
+                "        \"id\": \"1005\"\n" +
+                "    },\n" +
+                "\t{\n" +
+                "        \"orgType\": \"DEPARTMENT\",\n" +
+                "        \"name\": \"人力资源部\",\n" +
+                "        \"id\": \"1006\"\n" +
+                "    },\n" +
+                "    {\n" +
+                "        \"orgType\": \"DEPARTMENT\",\n" +
+                "        \"name\": \"法律合规部\",\n" +
+                "        \"id\": \"DS22546\"\n" +
+                "    }\n" +
+                "]\n";
+        return json;
+    }
+
+    @ApiOperation(value = "查询机构信息")
+    @GetMapping(value = "/getOrganizationInfo", produces = "application/json")
+    public String getOrganizationInfo(@RequestParam("ids")String ids) {
+
+        String json ="[\n" +
+                "   {\n" +
+                "      \"orgType\" : \"DEPARTMENT\",\n" +
+                "      \"parentName\" : \"信息中心\",\n" +
+                "      \"name\" : \"财务科\",\n" +
+                "      \"id\" : \"02150004\",\n" +
+                "      \"parentId\" : \"02150000\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"orgType\" : \"UNIT\",\n" +
+                "      \"name\" : \"国家管网集团\",\n" +
+                "      \"id\" : \"00000000\"\n" +
+                "   }\n" +
+                "]";
+        return json;
+    }
+
+    @ApiOperation(value = "查询机构下人员信息")
+    @GetMapping(value = "/getOrgUser", produces = "application/json")
+    public String getOrgUser(@RequestParam("orgId")String orgId) {
+
+        String json ="[\n" +
+                "   {\n" +
+                "      \"departmentName\" : \"法律合规部\",\n" +
+                "      \"departmentId\" : \"DS22546\",\n" +
+                "      \"name\" : \"西昕\",\n" +
+                "      \"id\" : \"xix\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"departmentName\" : \"法律合规部\",\n" +
+                "      \"departmentId\" : \"DS22546\",\n" +
+                "      \"name\" : \"曲传祥\",\n" +
+                "      \"id\" : \"qucx\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"departmentName\" : \"法律合规部\",\n" +
+                "      \"departmentId\" : \"DS22546\",\n" +
+                "      \"name\" : \"张恒晨\",\n" +
+                "      \"id\" : \"zhanghc\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"departmentName\" : \"法律合规部\",\n" +
+                "      \"departmentId\" : \"DS22546\",\n" +
+                "      \"name\" : \"毕晓峰\",\n" +
+                "      \"id\" : \"bixf\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"departmentName\" : \"法律合规部\",\n" +
+                "      \"departmentId\" : \"DS22546\",\n" +
+                "      \"name\" : \"李庆生\",\n" +
+                "      \"id\" : \"liqs\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"departmentName\" : \"法律合规部\",\n" +
+                "      \"departmentId\" : \"DS22546\",\n" +
+                "      \"name\" : \"杨芳\",\n" +
+                "      \"id\" : \"yangfang03\"\n" +
+                "   },\n" +
+                "   {\n" +
+                "      \"departmentName\" : \"法律合规部\",\n" +
+                "      \"departmentId\" : \"DS22546\",\n" +
+                "      \"name\" : \"胡善炜\",\n" +
+                "      \"id\" : \"husw\"\n" +
+                "   }\n" +
+                "]\n";
+        return json;
+    }
 
 
 }

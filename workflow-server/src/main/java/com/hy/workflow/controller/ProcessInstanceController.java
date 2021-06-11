@@ -2,6 +2,7 @@ package com.hy.workflow.controller;
 
 import com.hy.workflow.common.base.PageBean;
 import com.hy.workflow.common.base.WorkflowException;
+import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.model.StartProcessRequest;
 import com.hy.workflow.service.ProcessInstanceService;
@@ -14,9 +15,13 @@ import org.flowable.common.rest.api.PaginateRequest;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
+import org.flowable.engine.TaskService;
+import org.flowable.engine.history.HistoricActivityInstance;
+import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.impl.ProcessInstanceQueryProperty;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstanceQuery;
+import org.flowable.engine.task.Comment;
 import org.flowable.rest.service.api.runtime.process.ProcessInstanceQueryRequest;
 import org.flowable.rest.service.api.runtime.process.ProcessInstanceResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +51,9 @@ public class ProcessInstanceController {
 
     @Autowired
     private ProcessInstanceService processInstanceService;
+
+    @Autowired
+    private TaskService taskService;
 
 
     @ApiOperation(value = "查询流程实例列表", notes = "流程原始数据", tags = {"Process Instances"})
@@ -204,6 +212,85 @@ public class ProcessInstanceController {
         processInstanceService.suspendProcessInstance(processInstanceId,suspend);
         response.setStatus(HttpStatus.NO_CONTENT.value());
     }
+
+
+    @ApiOperation(value = "流程图标记审批节点信息", notes="流程图标记审批节点信息", tags = { "Process Instances" })
+    @GetMapping(value = "/process-instances/highlights", produces = "application/json")
+    public Map<String,Object>  highlights(@ApiParam(name = "processInstanceId",value = "流程实例ID") @RequestParam String processInstanceId) {
+
+        Map<String,Object> result = new HashMap<>();
+        HistoricProcessInstance hisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+        if(hisInstance==null) return result;
+
+        List<Map<String,Object>> doneActivities = new ArrayList();
+        List<Map<String,Object>> sequenceFlows = new ArrayList();
+        //查询历史审批节点
+        List<HistoricActivityInstance>   historicActivityInstances =    historyService.createHistoricActivityInstanceQuery().processInstanceId(processInstanceId).orderByHistoricActivityInstanceEndTime().asc().list();
+        for(HistoricActivityInstance activity : historicActivityInstances){
+            Map<String,Object> node = new HashMap<>();
+            //相同节点只存一次
+            for(Map<String,Object> nodeMap : doneActivities){
+                if(nodeMap.get("activityId").toString().equals(activity.getActivityId())){
+                    node = nodeMap;
+                }
+            }
+            for(Map<String,Object> nodeMap : sequenceFlows){
+                if(nodeMap.get("activityId").toString().equals(activity.getActivityId())){
+                    node = nodeMap;
+                }
+            }
+            //调用活动时
+            String activityType = activity.getActivityType();
+            if(activityType.equals(FlowElementType.CALL_ACTIVITY)){
+                if(activity.getCalledProcessInstanceId()!=null){
+                    List subProcess = node.containsKey("subProcess") ? (List) node.get("subProcess") : new ArrayList();
+                    Map<String,Object> map = new HashMap<>();
+                    HistoricProcessInstance subInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(activity.getCalledProcessInstanceId()).finished().singleResult();
+                    map.put("processInstanceId",subInstance.getId());
+                    map.put("processInstanceName",subInstance.getName());
+                    subProcess.add(map);
+                    node.put("subProcess",subProcess);
+                }
+            }
+            String taskId = activity.getTaskId();
+            //查询审批意见
+            if(taskId!=null){
+                List comments = node.containsKey("comments") ? (List) node.get("comments") : new ArrayList();
+                for(Comment c : taskService.getTaskComments(taskId) ){
+                    Map<String,Object> comment = new HashMap<>();
+                    comment.put("id",c.getId());
+                    comment.put("time",c.getTime());
+                    comment.put("opinion",c.getFullMessage());
+                    comments.add(comment);
+                }
+                node.put("comments",comments);
+            }
+            node.put("activityId",activity.getActivityId());
+            node.put("activityName",activity.getActivityName());
+            node.put("activityType",activityType);
+
+            if(activityType.equals("sequenceFlow")){
+                sequenceFlows.add(node);
+            }else{
+                node.put("endTime",activity.getEndTime());
+                node.put("assignee",activity.getAssignee());
+                doneActivities.add(node);
+            }
+
+        }
+
+        Map<String,Object> processDefinition = new HashMap<>();
+        processDefinition.put("processDefinitionId",hisInstance.getProcessDefinitionId());
+        processDefinition.put("processDefinitionName",hisInstance.getProcessDefinitionName());
+        result.put("processDefinition",processDefinition);
+
+        result.put("doneActivities",doneActivities);
+        result.put("sequenceFlows",sequenceFlows);
+
+        return result;
+    }
+
+
 
 
 

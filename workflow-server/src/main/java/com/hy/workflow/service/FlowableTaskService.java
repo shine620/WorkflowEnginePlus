@@ -510,6 +510,7 @@ public class FlowableTaskService {
     public List<FlowElementModel> getNextFlowNode(String taskId) {
 
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if(task==null) throw new WorkflowException("任务不存在：taskId="+taskId);
         ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(task.getExecutionId()).singleResult();
         BpmnModel bpmnModel = repositoryService.getBpmnModel(task.getProcessDefinitionId());
         List<FlowNode> activityList = managementService.executeCommand(new FindNextActivityCmd(execution, bpmnModel));
@@ -1017,14 +1018,14 @@ public class FlowableTaskService {
      * 查询审批历史信息
      *
      * @author  zhaoyao
-     * @param porcessInstanceId 流程实例ID
+     * @param processInstanceId 流程实例ID
      * @return List<TaskModel>
      */
-    public List<TaskModel> getApprovedHistory(String porcessInstanceId) {
+    public List<TaskModel> getApprovedHistory(String processInstanceId) {
         List<TaskModel> taskList = new ArrayList<>();
-        HistoricProcessInstance hisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(porcessInstanceId).singleResult();
+        HistoricProcessInstance hisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
         if(hisInstance==null) return taskList;
-        List<HistoricTaskInstance> approvedList = historyService.createHistoricTaskInstanceQuery().processInstanceId(porcessInstanceId).orderByHistoricTaskInstanceEndTime().desc().list();
+        List<HistoricTaskInstance> approvedList = historyService.createHistoricTaskInstanceQuery().processInstanceId(processInstanceId).orderByHistoricTaskInstanceEndTime().desc().list();
         for(HistoricTaskInstance task : approvedList){
             TaskModel model = new TaskModel();
             model.setTaskId(task.getId());
