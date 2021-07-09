@@ -167,7 +167,7 @@ public class ProcessDefinitionService {
             repositoryService.activateProcessDefinitionById(processDefinitionId);
         }
         Optional<ProcessDefinitionConfig>  sourceConfigOptional = processDefinitionConfigRepository.findById(processDefinitionId);
-        if(!sourceConfigOptional.isPresent()){
+        if(sourceConfigOptional.isPresent()){
             ProcessDefinitionConfig sourceConfig = sourceConfigOptional.get();
             sourceConfig.setSuspended(suspend);
         }
@@ -314,6 +314,9 @@ public class ProcessDefinitionService {
     //动态查询条件
     private Predicate[] generatePredicates(ProcessDefinitionConfigModel model, Root<ProcessDefinitionConfig> root, CriteriaBuilder criteriaBuilder){
         List<Predicate> predicatesList = new ArrayList<>();
+        if (StringUtils.isNotBlank(model.getProcessDefinitionId())) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("processDefinitionId"),  model.getProcessDefinitionId()) )  );
+        }
         if (StringUtils.isNotBlank(model.getProcessDefinitionName())) {
             Predicate predicate = criteriaBuilder.and( criteriaBuilder.like( root.get("processDefinitionName"), "%" + model.getProcessDefinitionName() + "%"));
             predicatesList.add(predicate);

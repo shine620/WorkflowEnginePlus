@@ -40,6 +40,7 @@ import static org.flowable.common.rest.api.PaginateListUtil.paginateList;
 
 @RestController
 @RequestMapping("/ProcessDefinitionController")
+@CrossOrigin
 @Api(value = "流程定义", tags = "Process Definitions", description = "流程定义接口")
 public class ProcessDefinitionController {
 
@@ -161,11 +162,10 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "流程定义配置列表多条件查询", tags = { "Process Definitions" })
-    @PostMapping("/process-definitions/processDefinitionConfigs")
-    public PageBean<ProcessDefinitionConfigModel> listProcessDefinitionConfig(@RequestBody ProcessDefinitionConfigModel configModel,
-            @ApiParam @RequestParam(defaultValue = "1") Integer startPage, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
-        PageRequest pageRequest = PageBean.getPageRequest(configModel,startPage,pageSize);
+    @ApiOperation(value = "流程定义配置列表(多条件查询)", tags = { "Process Definitions" })
+    @PostMapping("/process-definitions/definitionConfigs")
+    public PageBean<ProcessDefinitionConfigModel> listProcessDefinitionConfig(@RequestBody ProcessDefinitionConfigModel configModel) {
+        PageRequest pageRequest = PageBean.getPageRequest(configModel);
         return processDefinitionService.findProcessDefinitionConfigList(configModel,pageRequest);
     }
 
@@ -271,21 +271,11 @@ public class ProcessDefinitionController {
 
 
     protected byte[] getDeploymentResourceData(String deploymentId, String resourceName, HttpServletResponse response) {
-
-        if (deploymentId == null) {
-            throw new FlowableIllegalArgumentException("No deployment id provided");
-        }
-        if (resourceName == null) {
-            throw new FlowableIllegalArgumentException("No resource name provided");
-        }
-
         Deployment deployment = repositoryService.createDeploymentQuery().deploymentId(deploymentId).singleResult();
         if (deployment == null) {
             throw new FlowableObjectNotFoundException("Could not find a deployment with id '" + deploymentId + "'.", Deployment.class);
         }
-
         List<String> resourceList = repositoryService.getDeploymentResourceNames(deploymentId);
-
         if (resourceList.contains(resourceName)) {
             final InputStream resourceStream = repositoryService.getResourceAsStream(deploymentId, resourceName);
 

@@ -16,6 +16,10 @@ public class BaseRequest {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone="GMT+8")
     private Date updateTime;
 
+    private Integer startPage;
+
+    private Integer pageSize;
+
     private Map<String,String> sortMap;
 
     private Map<String,Object> fields;
@@ -50,6 +54,22 @@ public class BaseRequest {
 
     public void setFields(Map<String, Object> fields) {
         this.fields = fields;
+    }
+
+    public Integer getStartPage() {
+        return startPage;
+    }
+
+    public void setStartPage(Integer startPage) {
+        this.startPage = startPage;
+    }
+
+    public Integer getPageSize() {
+        return pageSize;
+    }
+
+    public void setPageSize(Integer pageSize) {
+        this.pageSize = pageSize;
     }
 
 

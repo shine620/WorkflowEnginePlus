@@ -12,7 +12,7 @@
 		        <div class="layui-card-body">
 		            <form class="layui-form" action="/ProcessDefinitionController/process-definitions" method="get">
 		                <div class="layui-form-item">
-                            <label class="layui-form-label">流程名称</label>
+                            <label class="layui-form-label">流程定义名称</label>
                             <div class="layui-input-inline">
                                 <input type="text" name="name" placeholder="" class="layui-input">
                             </div>
@@ -85,8 +85,8 @@
 		        let cols = [
 		            [
 		                {type:'checkbox'},
-		                {title: '流程名称', field: 'name', align:'left',sort:true},
-						{title: '流程定义编号', field: 'id', align:'left',sort:true},
+		                {title: '流程定义名称', field: 'name', align:'left',sort:true},
+						{title: '流程定义ID', field: 'id', align:'left',sort:true},
 						{title: '版本号', field: 'version', align:'center'},
 						{title: '状态', field: 'suspended', align:'center',templet:'#procDef-suspended'},
 						{title: '流程部署编号', field: 'deploymentId'},

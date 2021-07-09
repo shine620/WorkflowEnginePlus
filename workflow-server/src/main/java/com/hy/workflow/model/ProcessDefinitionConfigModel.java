@@ -4,7 +4,7 @@ import com.hy.workflow.common.base.BaseRequest;
 
 import java.util.Date;
 
-public class DefinitionConfigModel extends BaseRequest {
+public class ProcessDefinitionConfigModel extends BaseRequest {
 
     private String processDefinitionId;
 
@@ -43,10 +43,10 @@ public class DefinitionConfigModel extends BaseRequest {
     private Boolean rejectGatewayBefore;
 
 
-    public DefinitionConfigModel(){ }
+    public ProcessDefinitionConfigModel(){ }
 
     //构造器参数顺序要与findProcessDefinitionConfigLaterstList方法查询顺序一致
-    public DefinitionConfigModel(
+    public ProcessDefinitionConfigModel(
                 String processDefinitionId, String processDefinitionKey, String processDefinitionName,
                 Integer version, String description, Boolean suspended, String createUser, String updateUser,
                 Date createTime, Date updateTime, String businessType, String departmentId, String unitId, String deploymentId,

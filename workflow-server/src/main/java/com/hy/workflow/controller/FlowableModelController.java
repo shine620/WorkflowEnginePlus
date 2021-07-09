@@ -32,6 +32,7 @@ import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/FlowableModelController")
+@CrossOrigin
 @Api(value = "Flowable流程模型", tags = "ModelController", description = "流程模型接口")
 public class FlowableModelController {
 
@@ -43,11 +44,11 @@ public class FlowableModelController {
 
     @ApiOperation(value = "获取流程模型列表(多条件查询)", tags = { "ModelController" })
     @PostMapping("/models/findModelList")
-    public PageBean<FlowableModel> findModelList(@ApiParam @RequestParam(defaultValue = "1") Integer startPage,
-              @ApiParam @RequestParam(defaultValue = "10") Integer pageSize,
-              @RequestBody ModelRequest modelRequest) {
+    public PageBean<FlowableModel> findModelList(/*@ApiParam @RequestParam(defaultValue = "1") Integer startPage,
+              @ApiParam @RequestParam(defaultValue = "10") Integer pageSize,*/
+            @RequestBody ModelRequest modelRequest) {
         //PageRequest pageRequest = PageRequest.of(startPage-1, pageSize, Sort.by(Sort.Order.desc("createTime")));
-        PageRequest pageRequest = PageBean.getPageRequest(modelRequest,startPage,pageSize);
+        PageRequest pageRequest = PageBean.getPageRequest(modelRequest);
         return flowableModelService.findModelList(modelRequest,pageRequest);
     }
 

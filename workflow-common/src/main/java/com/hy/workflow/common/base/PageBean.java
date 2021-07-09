@@ -102,4 +102,21 @@ public class PageBean<T> implements Serializable {
         }
     }
 
+    public static PageRequest getPageRequest(BaseRequest baseRequest){
+        Map<String,String> sortMap = baseRequest.getSortMap();
+        if(sortMap!=null&&sortMap.size()>0){
+            List<Sort.Order> orders = new ArrayList<>();
+            for(Map.Entry<String,String> entry: sortMap.entrySet()){
+                if("DESC".equalsIgnoreCase(entry.getValue())){
+                    orders.add(Sort.Order.desc(entry.getKey()));
+                }else if("ASC".equalsIgnoreCase(entry.getValue())){
+                    orders.add(Sort.Order.asc(entry.getKey()));
+                }
+            }
+            return  PageRequest.of(baseRequest.getStartPage()-1, baseRequest.getPageSize(), Sort.by(orders));  //Sort.by(Sort.Order.desc("createTime"))
+        }else{
+            return  PageRequest.of(baseRequest.getStartPage()-1, baseRequest.getPageSize());
+        }
+    }
+
 }

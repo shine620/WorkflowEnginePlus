@@ -37,6 +37,7 @@ import static org.flowable.common.rest.api.PaginateListUtil.paginateList;
 
 @RestController
 @RequestMapping("/ProcessInstanceController")
+@CrossOrigin
 @Api(value = "流程实例", tags = "Process Instances", description = "流程实例接口")
 public class ProcessInstanceController {
 
