@@ -28,6 +28,13 @@
             <groupId>org.flowable</groupId>
             <artifactId>flowable-spring-boot-starter-process-rest</artifactId>
             <version>6.5.0</version>
+            <exclusions>
+               <!-- jsr250-api可能与javax.annotation-api产生冲突-->
+                <exclusion>
+                    <groupId>javax.annotation</groupId>
+                    <artifactId>jsr250-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.flowable</groupId>
