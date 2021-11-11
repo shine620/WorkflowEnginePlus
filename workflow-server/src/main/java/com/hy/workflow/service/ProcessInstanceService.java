@@ -179,11 +179,8 @@ public class ProcessInstanceService {
      * @return ProcessInstanceModel 流程实例封装对象
      */
     public ProcessInstanceModel getProcessInstance(String processInstanceId) {
-        long count = runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId).count();
-        if(count ==0){
-            long historyCount = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).count();
-            if(historyCount == 0) return null;
-        }
+        long count = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).count();
+        if(count == 0) return null;
         Optional<BusinessProcess> op = businessProcessRepository.findById(processInstanceId);
         BusinessProcess bp = op.isPresent()?op.get():null;
         return EntityModelUtil.toProcessInstanceModel(bp);

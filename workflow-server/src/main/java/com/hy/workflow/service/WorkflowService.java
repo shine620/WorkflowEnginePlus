@@ -4,8 +4,10 @@ package com.hy.workflow.service;
 import com.hy.workflow.common.base.BaseRequest;
 import com.hy.workflow.common.base.PageBean;
 import com.hy.workflow.common.base.WorkflowException;
+import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.BusinessType;
 import com.hy.workflow.entity.FlowableModel;
+import com.hy.workflow.repository.BusinessProcessRepository;
 import com.hy.workflow.repository.BusinessTypeRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.engine.*;
@@ -43,6 +45,8 @@ public class WorkflowService {
     @Autowired
     protected BusinessTypeRepository businessTypeRepository;
 
+    @Autowired
+    private BusinessProcessRepository businessProcessRepository;
 
     /**
      * 获取业务类型
@@ -147,6 +151,19 @@ public class WorkflowService {
     public List<BusinessType> getAllBusinessType() {
         return businessTypeRepository.findAll();
     }
+
+
+    /**
+     * 查找流程业务关联数据
+     *
+     * @author:  zhaoyao
+     * @param:  businessId 业务ID
+     * @param:  businessType 业务类型
+     */
+    public List<BusinessProcess> findBusinessProcess(String businessId,String businessType) {
+        return  businessProcessRepository.findAllByBusinessIdAndBusinessType(businessId,businessType);
+    }
+
 
 
 }

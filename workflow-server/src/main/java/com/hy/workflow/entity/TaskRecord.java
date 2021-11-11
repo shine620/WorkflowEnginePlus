@@ -70,7 +70,7 @@ public class TaskRecord implements Serializable{
     private String parentExecutionId;
 
     //子流程部门(子流程任务时存在该值)
-    private String suProcessDepartmentId;
+    private String subProcessDepartmentId;
 
     //是否被取消的任务(驳回的任务)
     private Boolean cancelled;
@@ -240,12 +240,12 @@ public class TaskRecord implements Serializable{
         this.processDefinitionId = processDefinitionId;
     }
 
-    public String getSuProcessDepartmentId() {
-        return suProcessDepartmentId;
+    public String getSubProcessDepartmentId() {
+        return subProcessDepartmentId;
     }
 
-    public void setSuProcessDepartmentId(String suProcessDepartmentId) {
-        this.suProcessDepartmentId = suProcessDepartmentId;
+    public void setSubProcessDepartmentId(String subProcessDepartmentId) {
+        this.subProcessDepartmentId = subProcessDepartmentId;
     }
 
     public Boolean getCancelled() {

@@ -1,8 +1,10 @@
 package com.hy.workflow.model;
 
+import com.hy.workflow.common.base.BaseRequest;
+
 import java.util.Date;
 
-public class ProcessInstanceModel {
+public class ProcessInstanceModel extends BaseRequest {
 
     private String processInstanceId;
 

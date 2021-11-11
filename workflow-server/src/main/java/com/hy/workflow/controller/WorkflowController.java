@@ -2,11 +2,13 @@ package com.hy.workflow.controller;
 
 import com.hy.workflow.common.base.BaseRequest;
 import com.hy.workflow.common.base.PageBean;
+import com.hy.workflow.entity.BusinessProcess;
 import com.hy.workflow.entity.BusinessType;
 import com.hy.workflow.entity.FlowableModel;
 import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.FlowElementModel;
 import com.hy.workflow.model.ModelRequest;
+import com.hy.workflow.model.ProcessInstanceModel;
 import com.hy.workflow.service.WorkflowService;
 import io.swagger.annotations.*;
 import org.flowable.bpmn.model.*;
@@ -96,6 +98,7 @@ public class WorkflowController {
         return flowElementList;
     }
 
+
     @ApiOperation(value = "获取业务类型列表", tags = { "Workflows" })
     @PostMapping("/workflows/findBusinessTypes")
     public PageBean<BusinessType> findBusinessTypes(@ApiParam @RequestParam(defaultValue = "1") Integer startPage,
@@ -142,6 +145,13 @@ public class WorkflowController {
         response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 
+
+    @ApiOperation(value = "查找流程业务关联数据", tags = { "Workflows" })
+    @GetMapping(value = "/workflows/findBusinessProcess", produces = "application/json")
+    public List<BusinessProcess> findBusinessProcess(@ApiParam(name = "businessId",value = "业务ID") @RequestParam String businessId,
+                                              @ApiParam(name = "businessType",value = "业务类型") @RequestParam String businessType) {
+        return workflowService.findBusinessProcess(businessId,businessType);
+    }
 
 
 }

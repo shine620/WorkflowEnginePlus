@@ -160,7 +160,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                             taskRecord.setAssignee(assignee);
                             taskRecord.setCandidateUser(StringUtils.join(candidateUser,","));
                             taskRecord.setCandidateGroup(StringUtils.join(candidateGroup,","));
-                            taskRecord.setSuProcessDepartmentId((String)map.get("suProcessDepartmentId"));
+                            taskRecord.setSubProcessDepartmentId((String)map.get("subProcessDepartmentId"));
                             it.remove();
                             break;
                         }

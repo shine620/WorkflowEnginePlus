@@ -170,7 +170,7 @@ public class WorkflowUtil {
      * @param variables 流程变量
      */
     public static void completeTaskBySelectNode(List<String> selectOutNode, FlowNode currentNode, TaskService taskService, Task task, Map variables){
-        synchronized (task.getProcessDefinitionId()) {
+        synchronized (WorkflowUtil.class) { //TODO 应该使用流程定义对象
             List<SequenceFlow> outLines = currentNode.getOutgoingFlows();
             //剪断当前节点未选择的下一分支流向
             List<SequenceFlow> removedNodes = new ArrayList<>();

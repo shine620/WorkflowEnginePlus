@@ -152,9 +152,10 @@ public class ProcessInstanceController {
 
     @ApiOperation(value = "获取流程实例列表分页接口", notes="内部查询BusinessProcess数据", tags = { "Process Instances" })
     @PostMapping(value = "/process-instances/instancePageList", produces = "application/json")
-    public PageBean<ProcessInstanceModel> instanceList(@RequestBody ProcessInstanceModel model,
-               @ApiParam @RequestParam(defaultValue = "1") Integer startPage, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
-        PageRequest pageRequest = PageRequest.of(startPage-1, pageSize, Sort.by(Sort.Order.desc("startTime")));
+    public PageBean<ProcessInstanceModel> instancePageList(@RequestBody ProcessInstanceModel model/*,
+               @ApiParam @RequestParam(defaultValue = "1") Integer startPage, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize*/) {
+        //PageRequest pageRequest = PageRequest.of(startPage-1, pageSize, Sort.by(Sort.Order.desc("startTime")));
+        PageRequest pageRequest = PageBean.getPageRequest(model);
         return processInstanceService.findInstanceList(model,pageRequest);
     }
 
@@ -230,7 +231,7 @@ public class ProcessInstanceController {
         for(HistoricActivityInstance activity : historicActivityInstances){
             Map<String,Object> node = new HashMap<>();
             //相同节点只存一次
-            for(Map<String,Object> nodeMap : doneActivities){
+            /*for(Map<String,Object> nodeMap : doneActivities){
                 if(nodeMap.get("activityId").toString().equals(activity.getActivityId())){
                     node = nodeMap;
                 }
@@ -239,7 +240,7 @@ public class ProcessInstanceController {
                 if(nodeMap.get("activityId").toString().equals(activity.getActivityId())){
                     node = nodeMap;
                 }
-            }
+            }*/
             //调用活动时
             String activityType = activity.getActivityType();
             if(activityType.equals(FlowElementType.CALL_ACTIVITY)){
