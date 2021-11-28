@@ -50,7 +50,7 @@
 
         <!--编辑和删除按钮-->
 		<script type="text/html" id="user-bar">
-            <!-- <a class="pear-btn pear-btn-primary pear-btn-sm" href="processSets.html?processDefinitionId={{d.id}}" title="配置"><i class="layui-icon layui-icon-set-fill"></i></a> -->        <!-- 当前标签页打开 -->
+             <a class="pear-btn pear-btn-primary pear-btn-sm" href="processSets.html?processDefinitionId={{d.id}}" title="配置"><i class="layui-icon layui-icon-set-fill"></i></a>         <!-- 当前标签页打开 -->
             <button class="pear-btn pear-btn-success pear-btn-sm" title="配置" data-id="processSetsTab" data-title="流程配置" data-url="workflow/processSets.html?processDefinitionId={{d.id}}&"+new Date();>
                 <i class="layui-icon layui-icon-set-fill"></i>
             </button>
@@ -85,8 +85,8 @@
 		        let cols = [
 		            [
 		                {type:'checkbox'},
-		                {title: '流程定义名称', field: 'name', align:'left',sort:true},
-						{title: '流程定义ID', field: 'id', align:'left',sort:true},
+		                {title: '流程定义名称', field: 'name', align:'left'/*,sort:true*/},
+						{title: '流程定义ID', field: 'id', align:'left'/*,sort:true*/},
 						{title: '版本号', field: 'version', align:'center'},
 						{title: '状态', field: 'suspended', align:'center',templet:'#procDef-suspended'},
 						{title: '流程部署编号', field: 'deploymentId'},

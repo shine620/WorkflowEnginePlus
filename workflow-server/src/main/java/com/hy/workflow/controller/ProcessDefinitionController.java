@@ -170,6 +170,13 @@ public class ProcessDefinitionController {
     }
 
 
+    @ApiOperation(value = "流程定义配置列表(多条件查询-不分页)", tags = { "Process Definitions" })
+    @PostMapping("/process-definitions/findProcessDefinitionConfigs")
+    public List<ProcessDefinitionConfigModel> findProcessDefinitionConfigs(@RequestBody ProcessDefinitionConfigModel configModel) {
+        return processDefinitionService.findProcessDefinitionConfigList(configModel);
+    }
+
+
     @ApiOperation(value = "删除流程部署", tags = { "Process Definitions" })
     @DeleteMapping("/deployments/{deploymentId}")
     public void deleteDeployment( HttpServletResponse response,
@@ -267,6 +274,13 @@ public class ProcessDefinitionController {
             @ApiParam(name = "flowElementId",value = "任务节点ID") @RequestParam String flowElementId) {
         FlowElementConfigModel eleModel = processDefinitionService.getFlowElementConfig(processDefinitionId,flowElementId);
         return eleModel;
+    }
+
+
+    @ApiOperation(value = "查询业务流程列表", tags = { "Process Definitions" })
+    @PostMapping("/process-definitions/findProcessDefinitions")
+    public List<ProcessDefinitionConfigModel> findProcessDefinitions(@RequestBody Map params) {
+        return  processDefinitionService.findProcessDefinitions(params);
     }
 
 

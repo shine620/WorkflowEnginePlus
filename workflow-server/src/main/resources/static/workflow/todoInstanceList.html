@@ -84,12 +84,12 @@
 		        let cols = [
 		            [
 						{type:'checkbox'},
-		                {title: 'ID', field: 'processInstanceId', align:'left',sort:true,width:80},
+		                {title: 'ID', field: 'processInstanceId', align:'left',/*sort:true,*/width:80},
 		                {title: '名称', field: 'processInstanceName', align:'left'},
 		                {title: '发起人', field: 'startUserId', align:'left',sort:true,width:100},
-		                {title: '发起时间', field: 'startTime', align:'left',templet:"#instance-startTime",sort:true},
-						{title: '流程实例KEY', field: 'businessKey', align:'left',sort:true},
-						{title: '流程定义ID', field: 'processDefinitionId', align:'left',sort:true},
+		                {title: '发起时间', field: 'startTime', align:'left',templet:"#instance-startTime"/*,sort:true*/},
+						{title: '流程实例KEY', field: 'businessKey', align:'left'/*,sort:true*/},
+						{title: '流程定义ID', field: 'processDefinitionId', align:'left'/*,sort:true*/},
 						{title: '挂起状态', field: 'suspended', align:'left',templet:"#instance-suspended",width:85},
 						{title: '业务名称', field: 'businessName', align:'left'},
 		                {title: '操作', toolbar: '#instance-bar', align:'center', width:150}
@@ -103,7 +103,7 @@
 		            cols: cols ,
 		            skin: 'line',
 					toolbar: '#todoInstance-toolbar',
-					where:{ended: false},
+					where:{ended: false,"sortMap":{"startTime":"desc"}},
                     limits: [5,10, 20, 30, 40, 50],
 					method:'post',
 					contentType: 'application/json',

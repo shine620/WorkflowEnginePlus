@@ -87,7 +87,7 @@ public class ProcessInstanceService {
         ProcessInstanceBuilder processInstanceBuilder = runtimeService.createProcessInstanceBuilder()
                 .processDefinitionId(processDefinition.getId())
                 .businessKey(startRequest.getBusinessType()+";"+startRequest.getBusinessId())
-                .name( startRequest.getBusinessName()==null?"":startRequest.getBusinessName()  +"-" +processDefinition.getName() )
+                .name( StringUtils.isBlank(startRequest.getBusinessName())?processDefinition.getName():startRequest.getBusinessName())
                 .variables(startRequest.getVariables());
 
         ProcessInstance instance = processInstanceBuilder.start();
@@ -118,6 +118,8 @@ public class ProcessInstanceService {
 
         Task firstTask = taskService.createTaskQuery().processInstanceId(instance.getId()).singleResult();
         taskService.setAssignee(firstTask.getId(),startRequest.getUserId());
+        //生成审批意见
+        if(StringUtils.isNotBlank(startRequest.getOpinion()))taskService.addComment(firstTask.getId(), instance.getId(), startRequest.getOpinion());
 
         //第一个节点要自动审批(承办人发起环节)
         WorkflowUtil.completeTaskBySelectNode(selectOutNode,firstNode,taskService,firstTask,variables);
@@ -246,7 +248,7 @@ public class ProcessInstanceService {
 
 
     //动态查询方法
-    private List<BusinessProcess> findByConditions(ProcessInstanceModel model) {
+    public List<BusinessProcess> findByConditions(ProcessInstanceModel model) {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<BusinessProcess> query = criteriaBuilder.createQuery(BusinessProcess.class);
         //Root 定义查询的From子句中能出现的类型
@@ -262,7 +264,7 @@ public class ProcessInstanceService {
 
 
     //动态查询方法(分页)
-    private Page<BusinessProcess> findByConditions(ProcessInstanceModel model, PageRequest pageRequest ) {
+    public Page<BusinessProcess> findByConditions(ProcessInstanceModel model, PageRequest pageRequest ) {
         Specification<BusinessProcess> specification = (Specification<BusinessProcess>) (root, criteriaQuery, criteriaBuilder) -> {
             //设置查询条件
             Predicate[] predicates= generatePredicates(model,root,criteriaBuilder);
@@ -295,6 +297,9 @@ public class ProcessInstanceService {
         }
         if (StringUtils.isNotBlank(model.getBusinessId())) {
             predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("businessId"),  model.getBusinessId()) )  );
+        }
+        if (StringUtils.isNotBlank(model.getBusinessType())) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("businessType"),  model.getBusinessType()) )  );
         }
         if (StringUtils.isNotBlank(model.getProcessInstanceId())) {
             predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("processInstanceId"),  model.getProcessInstanceId()) )  );

@@ -96,10 +96,11 @@ public class FlowableTaskService {
         Task task = taskService.createTaskQuery().taskId(approveRequest.getTaskId()).singleResult();
         if(task==null) throw new WorkflowException("该任务不存在：taskId="+approveRequest.getTaskId());
 
-        ApproveType approveType = approveRequest.getApproveType();
         taskService.addComment(approveRequest.getTaskId(), approveRequest.getProcessInstanceId(), approveRequest.getOpinion());//生成审批意见
 
-         /** 审批通过 */
+        ApproveType approveType = approveRequest.getApproveType();
+
+        /** 审批通过 */
         if(ApproveType.APPROVE.equals(approveType)){
 
             //设置下一环节处理信息
@@ -573,13 +574,15 @@ public class FlowableTaskService {
      * 根据部门ID获取该部门子流程审批节点
      *
      * @author  zhaoyao
-     * @param departmentId 部门ID
+     * @param departmentIds 部门ID
      * @return List<FlowElementModel>
      */
-    public List<FlowElementModel> getSubProcessByDeptId(String departmentId) {
+    public List<FlowElementModel> getSubProcess(String departmentIds,String businessType) {
         List<FlowElementModel> nodeList = new ArrayList<>();
         ProcessDefinitionConfigModel model = new ProcessDefinitionConfigModel();
-        model.setDepartmentId(departmentId);
+        model.setDepartmentId(departmentIds);
+        model.setBusinessType(businessType);
+        model.setCallable(true);
         //获取该单位所有的流程定义配置
         List<ProcessDefinitionConfigModel> modelConfigList = processDefinitionService.findProcessDefinitionConfigLaterstList(model);
         modelConfigList.forEach( modelConfig -> {
@@ -598,7 +601,7 @@ public class FlowableTaskService {
             node.setConfig(configModel);
             node.setModelKey(processDefinition.getKey());
             node.setModelName(processDefinition.getName());
-            node.setDepartmentId(departmentId);
+            node.setDepartmentId(modelConfig.getDepartmentId());
             nodeList.add(node);
         });
         return nodeList;
@@ -1025,7 +1028,7 @@ public class FlowableTaskService {
         List<TaskModel> taskList = new ArrayList<>();
         HistoricProcessInstance hisInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
         if(hisInstance==null) return taskList;
-        List<HistoricTaskInstance> approvedList = historyService.createHistoricTaskInstanceQuery().processInstanceId(processInstanceId).orderByHistoricTaskInstanceEndTime().desc().list();
+        List<HistoricTaskInstance> approvedList = historyService.createHistoricTaskInstanceQuery().processInstanceId(processInstanceId).orderByHistoricTaskInstanceStartTime().desc().list();
         for(HistoricTaskInstance task : approvedList){
             TaskModel model = new TaskModel();
             model.setTaskId(task.getId());

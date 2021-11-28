@@ -333,20 +333,24 @@ public class ProcessDefinitionService {
             predicatesList.add( criteriaBuilder.or(arr) );
         }
         if (StringUtils.isNotBlank(model.getUnitId())) {
-            Predicate[] arr = new Predicate[4];
-            arr[0] = criteriaBuilder.equal( root.get("unitId"),  model.getUnitId()) ;
-            arr[1]=  criteriaBuilder.like( root.get("unitId"), "%," + model.getUnitId()+",%");
-            arr[2] = criteriaBuilder.like( root.get("unitId"), model.getUnitId()+",%");
-            arr[3] = criteriaBuilder.like( root.get("unitId"), "%," + model.getUnitId());
-            predicatesList.add( criteriaBuilder.or(arr) );
+            List<Predicate> predicates = new ArrayList<>();
+            for(String unitId : model.getUnitId().split(",")){
+                predicates.add(criteriaBuilder.equal( root.get("unitId"),  unitId));
+                predicates.add(criteriaBuilder.like( root.get("unitId"), "%," + unitId+",%"));
+                predicates.add(criteriaBuilder.like( root.get("unitId"), unitId+",%"));
+                predicates.add(criteriaBuilder.like( root.get("unitId"), "%," + unitId));
+            }
+            predicatesList.add( criteriaBuilder.or(predicates.toArray(new Predicate[predicates.size()] )) );
         }
         if (StringUtils.isNotBlank(model.getDepartmentId())) {
-            Predicate[] arr = new Predicate[4];
-            arr[0] = criteriaBuilder.equal( root.get("departmentId"),  model.getDepartmentId()) ;
-            arr[1]=  criteriaBuilder.like( root.get("departmentId"), "%," + model.getDepartmentId()+",%");
-            arr[2] = criteriaBuilder.like( root.get("departmentId"), model.getDepartmentId()+",%");
-            arr[3] = criteriaBuilder.like( root.get("departmentId"), "%," + model.getDepartmentId());
-            predicatesList.add( criteriaBuilder.or(arr) );
+            List<Predicate> predicates = new ArrayList<>();
+            for(String deptId : model.getDepartmentId().split(",")){
+                predicates.add(criteriaBuilder.equal( root.get("departmentId"),  deptId));
+                predicates.add(criteriaBuilder.like( root.get("departmentId"), "%," + deptId+",%"));
+                predicates.add(criteriaBuilder.like( root.get("departmentId"), deptId+",%"));
+                predicates.add(criteriaBuilder.like( root.get("departmentId"), "%," + deptId));
+            }
+            predicatesList.add( criteriaBuilder.or(predicates.toArray(new Predicate[predicates.size()] )) );
         }
         if (StringUtils.isNotBlank(model.getCreateUser())) {
             predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("createUser"),  model.getCreateUser()) )  );
@@ -358,11 +362,79 @@ public class ProcessDefinitionService {
         if (model.getSuspended() != null) {
             predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("suspended"),  model.getSuspended()) )  );
         }
+        if (model.getCallable() != null) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("callable"),  model.getCallable()) )  );
+        }
+        if (model.getDefaultProcess() != null) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("defaultProcess"),  model.getDefaultProcess()) )  );
+        }
 
         return predicatesList.toArray(new Predicate[predicatesList.size()]);
     }
 
 
+    public List<ProcessDefinitionConfigModel> findProcessDefinitions(Map params) {
+
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ProcessDefinitionConfigModel> criteriaQuery = criteriaBuilder.createQuery(ProcessDefinitionConfigModel.class);
+        Root<ProcessDefinitionConfig> root = criteriaQuery.from(ProcessDefinitionConfig.class);
+        //注意这里的字段设置顺序要与ProcessDefinitionConfigModel构造方法一致
+        criteriaQuery.multiselect(root.get("processDefinitionId"),root.get("processDefinitionKey"),
+                root.get("processDefinitionName"),criteriaBuilder.max(root.get("version")).alias("version"),root.get("description"),root.get("suspended"),
+                root.get("createUser"),root.get("updateUser"),root.get("createTime"),root.get("updateTime"),
+                root.get("businessType"),root.get("departmentId"),root.get("unitId"),root.get("deploymentId"),
+                root.get("callable"),root.get("defaultProcess"),root.get("rejectParentProcess"),root.get("rejectGatewayBefore"));
+
+        List<Predicate> predicatesList = new ArrayList<>();
+        //定义名称
+        if (params.containsKey("processDefinitionName")) {
+            Predicate predicate = criteriaBuilder.and( criteriaBuilder.like( root.get("processDefinitionName"), "%" + params.get("processDefinitionName") + "%"));
+            predicatesList.add(predicate);
+        }
+        //业务类型
+        if (params.containsKey("businessType")) {
+            Predicate[] arr = new Predicate[4];
+            arr[0] = criteriaBuilder.equal( root.get("businessType"),  params.get("businessType")) ;
+            arr[1]=  criteriaBuilder.like( root.get("businessType"), "%," + params.get("businessType")+",%");
+            arr[2] = criteriaBuilder.like( root.get("businessType"), params.get("businessType")+",%");
+            arr[3] = criteriaBuilder.like( root.get("businessType"), "%," + params.get("businessType"));
+            predicatesList.add( criteriaBuilder.or(arr) );
+        }
+        //部门和单位用OR连接
+        List<Predicate>  orgCondition =  new ArrayList<>();
+        if (params.containsKey("unitId")) {
+            Predicate[] arr = new Predicate[4];
+            arr[0] = criteriaBuilder.equal( root.get("unitId"),  params.get("unitId")) ;
+            arr[1]=  criteriaBuilder.like( root.get("unitId"), "%," + params.get("unitId")+",%");
+            arr[2] = criteriaBuilder.like( root.get("unitId"), params.get("unitId")+",%");
+            arr[3] = criteriaBuilder.like( root.get("unitId"), "%," + params.get("unitId"));
+            orgCondition.add( criteriaBuilder.or(arr) );
+        }
+        if (params.containsKey("departmentId")) {
+            Predicate[] arr = new Predicate[4];
+            arr[0] = criteriaBuilder.equal( root.get("departmentId"),  params.get("departmentId")) ;
+            arr[1]=  criteriaBuilder.like( root.get("departmentId"), "%," + params.get("departmentId")+",%");
+            arr[2] = criteriaBuilder.like( root.get("departmentId"), params.get("departmentId")+",%");
+            arr[3] = criteriaBuilder.like( root.get("departmentId"), "%," + params.get("departmentId"));
+            orgCondition.add( criteriaBuilder.or(arr) );
+        }
+        predicatesList.add(criteriaBuilder.or(orgCondition.toArray(new Predicate[orgCondition.size()])));
+        //默认流程
+        if (params.containsKey("isDefault")) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("defaultProcess"),  params.get("isDefault")) )  );
+        }
+        //是否子流程
+        if (params.containsKey("callable")) {
+            predicatesList.add(  criteriaBuilder.and( criteriaBuilder.equal( root.get("callable"),  params.get("callable")) )  );
+        }
+        Predicate[] predicates=predicatesList.toArray(new Predicate[predicatesList.size()]);
+        Predicate predicate = criteriaBuilder.and( predicates );
+        Order createTimeOrder = criteriaBuilder.desc(root.get("createTime"));
+        criteriaQuery.where(predicate).groupBy(root.get("processDefinitionKey")).orderBy(createTimeOrder);
+        List<ProcessDefinitionConfigModel> configs = entityManager.createQuery(criteriaQuery).getResultList();
+
+        return configs;
+    }
 
 
 }

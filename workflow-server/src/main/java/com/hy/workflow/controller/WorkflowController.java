@@ -9,6 +9,7 @@ import com.hy.workflow.enums.FlowElementType;
 import com.hy.workflow.model.FlowElementModel;
 import com.hy.workflow.model.ModelRequest;
 import com.hy.workflow.model.ProcessInstanceModel;
+import com.hy.workflow.service.ProcessInstanceService;
 import com.hy.workflow.service.WorkflowService;
 import io.swagger.annotations.*;
 import org.flowable.bpmn.model.*;
@@ -41,6 +42,10 @@ public class WorkflowController {
 
     @Autowired
     private RepositoryService repositoryService;
+
+    @Autowired
+    private ProcessInstanceService processInstanceService;
+
 
     @ApiOperation(value = "流程引擎属性列表", tags = { "Workflows" })
     @GetMapping(value = "/management/properties", produces = "application/json")
@@ -149,8 +154,14 @@ public class WorkflowController {
     @ApiOperation(value = "查找流程业务关联数据", tags = { "Workflows" })
     @GetMapping(value = "/workflows/findBusinessProcess", produces = "application/json")
     public List<BusinessProcess> findBusinessProcess(@ApiParam(name = "businessId",value = "业务ID") @RequestParam String businessId,
-                                              @ApiParam(name = "businessType",value = "业务类型") @RequestParam String businessType) {
-        return workflowService.findBusinessProcess(businessId,businessType);
+                                              @ApiParam(name = "businessType",value = "业务类型") @RequestParam String businessType,
+                                              @ApiParam(name = "ended",value = "是否结束") @RequestParam Boolean ended) {
+        ProcessInstanceModel model = new ProcessInstanceModel();
+        model.setBusinessId(businessId);
+        model.setBusinessType(businessType);
+        model.setEnded(ended);
+        List<BusinessProcess> bpList = processInstanceService.findByConditions(model);
+        return bpList;
     }
 
 

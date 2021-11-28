@@ -91,10 +91,10 @@
 		        let cols = [
 		            [
 		                {type:'checkbox'},
-		                {title: '模型名称', field: 'name', align:'left',sort:true},
+		                {title: '模型名称', field: 'name', align:'left'/*,sort:true*/},
 		                {title: '模型key', field: 'key', align:'left'},
 		                {title: '创建人', field: 'createUserName', align:'left',hide:true},
-		                {title: '创建时间', field: 'createTime', align:'left',templet:"#model-createTime",sort:true},
+		                {title: '创建时间', field: 'createTime', align:'left',templet:"#model-createTime"/*,sort:true*/},
 		                {title: '最后修改时间', field: 'lastUpdateTime', align:'left',templet:"#model-lastUpdateTime"},
 		                {title: '操作', toolbar: '#user-bar', align:'center', width:200}
 		            ]
@@ -104,14 +104,15 @@
 		            elem: '#user-table',
 		            url: MODULE_PATH,
 		            page: true ,
+					where:{"sortMap":{"createTime":"desc"}},
 		            cols: cols ,
 		            skin: 'line',
                     limits: [5,10, 20, 30, 40, 50],
 		            toolbar: '#user-toolbar',
-					initSort: {
+					/*initSort: {
 						 field: 'createTime' //排序字段，对应 cols 设定的各字段名
 						 ,type: 'desc' //排序方式  asc: 升序、desc: 降序、null: 默认排序
-					},
+					},*/
                     request: {
                         pageName: 'startPage' //页码的参数名称，默认：page
                         ,limitName: 'pageSize' //每页数据量的参数名，默认：limit

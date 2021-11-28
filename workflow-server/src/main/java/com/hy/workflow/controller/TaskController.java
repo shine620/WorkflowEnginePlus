@@ -21,10 +21,14 @@ import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
+@CrossOrigin
 @RequestMapping("/TaskController")
 @Api(value = "流程任务", tags = "Tasks", description = "流程任务接口")
 public class TaskController {
@@ -161,10 +165,24 @@ public class TaskController {
 
 
     @ApiOperation(value = "根据部门ID获取该部门子流程审批节点",tags = { "Tasks" })
-    @GetMapping(value = "/tasks/getSubProcessByDeptId", produces = "application/json")
-    public List<FlowElementModel>  getSubProcessByDeptId(@ApiParam(name = "departmentId",value = "部门ID") @RequestParam String departmentId) {
-        List<FlowElementModel>  flowList =  flowableTaskService.getSubProcessByDeptId(departmentId);
+    @GetMapping(value = "/tasks/getSubProcess", produces = "application/json")
+    public List<FlowElementModel>  getSubProcess(@ApiParam(name = "departmentIds",value = "部门ID") @RequestParam String departmentIds,
+            @ApiParam(name = "businessType",value = "业务类型") @RequestParam String businessType) {
+        List<FlowElementModel>  flowList =  flowableTaskService.getSubProcess(departmentIds,businessType);
         return flowList;
+    }
+
+
+    @ApiOperation(value = "根据部门ID分组查询子流程审批节点",tags = { "Tasks" })
+    @GetMapping(value = "/tasks/getSubProcessGroupByDeptId", produces = "application/json")
+    public Map<String,List<FlowElementModel>> getSubProcessGroupByDeptId(@ApiParam(name = "departmentIds",value = "部门ID") @RequestParam String departmentIds,
+            @ApiParam(name = "businessType",value = "业务类型") @RequestParam String businessType) {
+        Map result = new HashMap();
+        for(String deptId :departmentIds.split(",")){
+            List<FlowElementModel>  flowList = flowableTaskService.getSubProcess(deptId,businessType);
+            if(flowList.size()>0) result.put(deptId,flowList);
+        }
+        return result;
     }
 
 
@@ -177,8 +195,8 @@ public class TaskController {
 
     @ApiOperation(value = "查询审批历史", tags = { "Tasks" })
     @GetMapping(value = "/tasks/getApprovedHistory", produces = "application/json")
-    public List<TaskModel> getApprovedHistory(@ApiParam(value = "流程实例ID") @RequestParam String porcessInstanceId ) {
-        return flowableTaskService.getApprovedHistory(porcessInstanceId);
+    public List<TaskModel> getApprovedHistory(@ApiParam(value = "流程实例ID") @RequestParam String processInstanceId ) {
+        return flowableTaskService.getApprovedHistory(processInstanceId);
     }
 
 
