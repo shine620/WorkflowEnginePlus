@@ -21,10 +21,7 @@ import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 @RestController
@@ -48,9 +45,11 @@ public class TaskController {
 
     @ApiOperation(value = "查询待办列表", tags = { "Tasks" })
     @GetMapping(value = "/tasks/todoTaskList", produces = "application/json")
-    public PageBean<TaskModel> getTodoTaskList(@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll, @ApiParam(value = "用户ID") @RequestParam String userId,
-             @ApiParam @RequestParam(defaultValue = "1") Integer pageNum, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize) {
-        PageBean<TaskModel> taskPage = flowableTaskService.getTodoTaskList(loadAll,pageNum,pageSize,userId);
+    public PageBean<TaskModel> getTodoTaskList(@ApiParam @RequestParam(defaultValue = "false") Boolean loadAll,
+               @ApiParam @RequestParam(defaultValue = "1") Integer pageNum, @ApiParam @RequestParam(defaultValue = "10") Integer pageSize,
+               @ApiParam(value = "用户ID") @RequestParam String userId,@ApiParam(value = "流程名称") @RequestParam(required = false) String processName
+             ) {
+        PageBean<TaskModel> taskPage = flowableTaskService.getTodoTaskList(loadAll,pageNum,pageSize,userId,processName);
         return  taskPage;
     }
 
@@ -198,6 +197,13 @@ public class TaskController {
     public List<TaskModel> getApprovedHistory(@ApiParam(value = "流程实例ID") @RequestParam String processInstanceId ) {
         return flowableTaskService.getApprovedHistory(processInstanceId);
     }
+
+    @ApiOperation(value = "查询审批意见", tags = { "Tasks" })
+    @GetMapping(value = "/tasks/getComments", produces = "application/json")
+    public List<Map> getComments(@ApiParam(value = "流程实例ID") @RequestParam String processInstanceId ) {
+        return flowableTaskService.getComments(processInstanceId);
+    }
+
 
 
 }

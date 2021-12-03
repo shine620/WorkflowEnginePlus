@@ -18,8 +18,11 @@ public class StartProcessRequest extends ApproveInfo{
     @ApiModelProperty(value="业务名称",required = true, example="房屋租赁合同")
     private String businessName;
 
-    @ApiModelProperty(value="业务URL地址",example="las/viewContract/1000")
-    private String businessUrl;
+    @ApiModelProperty(value="业务数据编辑地址",example="/EditContract?id=1000")
+    private String editUrl;
+
+    @ApiModelProperty(value="业务数据查看地址",example="/ViewContract?id=1000")
+    private String viewUrl;
 
 
     public String getProcessDefinitionId() {
@@ -54,14 +57,20 @@ public class StartProcessRequest extends ApproveInfo{
         this.businessName = businessName;
     }
 
-    public String getBusinessUrl() {
-        return businessUrl;
+    public String getEditUrl() {
+        return editUrl;
     }
 
-    public void setBusinessUrl(String businessUrl) {
-        this.businessUrl = businessUrl;
+    public void setEditUrl(String editUrl) {
+        this.editUrl = editUrl;
     }
 
+    public String getViewUrl() {
+        return viewUrl;
+    }
 
+    public void setViewUrl(String viewUrl) {
+        this.viewUrl = viewUrl;
+    }
 
 }

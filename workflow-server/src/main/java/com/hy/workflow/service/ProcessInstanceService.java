@@ -130,7 +130,8 @@ public class ProcessInstanceService {
         bp.setBusinessId(startRequest.getBusinessId());
         bp.setBusinessType(startRequest.getBusinessType());
         bp.setBusinessName(startRequest.getBusinessName());
-        bp.setBusinessUrl(startRequest.getBusinessUrl());
+        bp.setEditUrl(startRequest.getEditUrl());
+        bp.setViewUrl(startRequest.getViewUrl());
         businessProcessRepository.save(bp);
         ProcessInstanceModel instanceModel = EntityModelUtil.toProcessInstanceModel(bp);
         return instanceModel;

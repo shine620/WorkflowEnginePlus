@@ -4,8 +4,7 @@
 
 		<meta charset="utf-8">
 		<title></title>
-		<link href="../component/layui/css/layui.css" rel="stylesheet" />
-		<link href="../admin/css/pearCommon.css" rel="stylesheet" />
+        <link rel="stylesheet" href="../component/pear/css/pear.css" />
 
 		<style>
 			.layui-table-view {
@@ -20,7 +19,8 @@
 			}
 		</style>
 
-		<script src="../component/layui/layui.js"></script>
+        <script src="../component/layui/layui.js"></script>
+        <script src="../component/pear/pear.js"></script>
 
 		<script type="text/html" id="task-bar">
 			<button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit" title="配置{{d.name}}节点">编辑</button>
@@ -45,7 +45,8 @@
 					success:function(data){
 					    console.info(data);
 						data.defaultProcess==true ? data.defaultProcess="true" : data.defaultProcess="false";
-						data.callable==true ? data.callable="true" : data.callable="false";
+						data.rejectParentProcess==true ? data.rejectParentProcess="true" : data.rejectParentProcess="false";
+                        data.callable==true ? data.callable="true" : data.callable="false";
 						form.val("processConfigForm",data);
 					}
 				});
@@ -96,6 +97,16 @@
 					});
 					return false;
 				});
+
+                //通用设置返回/关闭事件
+                window.back = function(obj){
+                    parent.layui.admin.closeCurrentTab();
+                    if(parent.layui.admin.muiltTab()){
+                        parent.layui.admin.closeCurrentTab();
+                    }else{
+                        parent.layui.admin.changeIframe(13,'流程定义','workflow/procDefinList.html');
+                    }
+                }
 
 				//编辑任务节点取消按钮事件
 				window.cancel = function(obj){
@@ -240,9 +251,9 @@
 					<div class="layui-row">
 						<div class="layui-col-md11">
 							<div class="layui-form-item">
-								<label class="layui-form-label layui-required">单位</label>
+								<label class="layui-form-label">单位</label>
 								<div class="layui-input-block">
-									<input type="text" name="unitId"  lay-verify="required" placeholder="请选择单位" autocomplete="off" class="layui-input">
+									<input type="text" name="unitId"  placeholder="请选择单位" autocomplete="off" class="layui-input"> <!--lay-verify="required"-->
 								</div>
 							</div>
 						</div>
@@ -281,16 +292,16 @@
                     <div class="layui-row">
                         <div class="layui-col-md3">
                             <div class="layui-form-item">
-                                <label class="layui-form-label">允许子流程驳回到主流程</label>
+                                <label class="layui-form-label">驳回主流程</label>
                                 <div class="layui-input-block">
                                     <input type="radio" name="rejectParentProcess" value="true" title="是">
-                                    <input type="radio" name="rejectParentProcess" value="false" title="否">
+                                    <input type="radio" name="rejectParentProcess" value="false" title="否" checked>
                                 </div>
                             </div>
                         </div>
                         <div class="layui-col-md3">
                             <div class="layui-form-item">
-                                <label class="layui-form-label">允许驳回到网关发起前</label>
+                                <label class="layui-form-label">驳回网关前</label>
                                 <div class="layui-input-block">
                                     <input type="radio" name="rejectGatewayBefore" value="true" title="是">
                                     <input type="radio" name="rejectGatewayBefore" value="false" title="否" checked>
@@ -311,6 +322,7 @@
 					<div class="layui-form-item">
 						<div class="layui-input-block">
 							<button class="layui-btn layui-btn-sm" lay-submit lay-filter="processConfigSubmit" style="padding: 0 20px;">保 存</button>
+                            <a class="layui-btn layui-btn-sm" href="javascript:;" style="padding: 0 20px;" onclick="back()">关 闭</a>
 						</div>
 					</div>
 				</form>

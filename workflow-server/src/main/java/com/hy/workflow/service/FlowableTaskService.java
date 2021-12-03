@@ -619,12 +619,13 @@ public class FlowableTaskService {
      * @return PageBean<TaskModel>
      */
     @Transactional(propagation= Propagation.NOT_SUPPORTED)
-    public PageBean<TaskModel> getTodoTaskList(Boolean loadAll, Integer pageNum, Integer pageSize, String userId) {
+    public PageBean<TaskModel> getTodoTaskList(Boolean loadAll, Integer pageNum, Integer pageSize, String userId, String processName) {
         ArrayList<TaskModel> taskList =  new ArrayList();
         TaskQuery taskQuery  = taskService.createTaskQuery().taskCandidateOrAssigned(userId).orderByTaskCreateTime().desc();
+        if(StringUtils.isNotBlank(processName)) taskQuery.processVariableValueLike("businessName","%"+processName+"%");
         Long totalCount = taskQuery.count();
 
-        List<Task> todoTaskList ;
+        List<Task> todoTaskList;
         if(loadAll==true){
             todoTaskList = taskQuery.list();
         }else{
@@ -1053,6 +1054,32 @@ public class FlowableTaskService {
             taskList.add(model);
         }
         return taskList;
+    }
+
+    public List<Map> getComments(String processInstanceId) {
+        List<Map> commentList = new ArrayList<>();
+        HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+        List<Comment> Comments = taskService.getProcessInstanceComments(processInstanceId,"comment");
+        for(Comment comment : Comments){
+            Map opinion = new LinkedHashMap();
+            opinion.put("commentId",comment.getId());
+            opinion.put("message",comment.getFullMessage());
+            opinion.put("time",comment.getTime());
+            String taskId = comment.getTaskId();
+            HistoricTaskInstance task = historyService.createHistoricTaskInstanceQuery().taskId(taskId).singleResult();
+            opinion.put("taskId",task.getId());
+            opinion.put("taskName",task.getName());
+            opinion.put("taskDefinitionKey",task.getTaskDefinitionKey());
+            opinion.put("assignee",task.getAssignee());
+            opinion.put("taskCreateTime",task.getCreateTime());
+            opinion.put("taskEndTime",task.getEndTime());
+            opinion.put("taskClaimTime",task.getClaimTime());
+            opinion.put("processDefinitionId",task.getProcessDefinitionId());
+            opinion.put("processInstanceId",task.getProcessInstanceId());
+            opinion.put("processInstanceName",instance.getName());
+            commentList.add(opinion);
+        }
+        return commentList;
     }
 
 

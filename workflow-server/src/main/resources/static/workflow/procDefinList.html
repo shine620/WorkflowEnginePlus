@@ -3,8 +3,12 @@
 	<head>
 		<meta charset="utf-8">
 		<title></title>
-		<link href="../component/layui/css/layui.css" rel="stylesheet" />
-		<link href="../admin/css/pearCommon.css" rel="stylesheet" />
+		<link rel="stylesheet" href="../component/pear/css/pear.css" />
+		<style>
+			.layui-form-label{
+				width: 100px;
+			}
+		</style>
 	</head>
 	<body>
 		<body class="pear-container">
@@ -50,7 +54,7 @@
 
         <!--编辑和删除按钮-->
 		<script type="text/html" id="user-bar">
-             <a class="pear-btn pear-btn-primary pear-btn-sm" href="processSets.html?processDefinitionId={{d.id}}" title="配置"><i class="layui-icon layui-icon-set-fill"></i></a>         <!-- 当前标签页打开 -->
+             <!--<a class="pear-btn pear-btn-primary pear-btn-sm" href="processSets.html?processDefinitionId={{d.id}}" title="配置"><i class="layui-icon layui-icon-set-fill"></i></a> -->        <!-- 当前标签页打开 -->
             <button class="pear-btn pear-btn-success pear-btn-sm" title="配置" data-id="processSetsTab" data-title="流程配置" data-url="workflow/processSets.html?processDefinitionId={{d.id}}&"+new Date();>
                 <i class="layui-icon layui-icon-set-fill"></i>
             </button>
@@ -70,10 +74,11 @@
         <script type="text/html" id="model-lastUpdateTime">
             {{layui.util.toDateString(d.lastUpdateTime, 'yyyy-MM-dd HH:mm:ss')}}
         </script>-->
-		
+
 		<script src="../component/layui/layui.js"></script>
+		<script src="../component/pear/pear.js"></script>
 		<script>
-		    layui.use(['table','form','jquery','pearTab'],function () {
+		    layui.use(['table','form','jquery'],function () {
 
 		        let table = layui.table;
 		        let form = layui.form;
@@ -92,7 +97,7 @@
 						{title: '流程部署编号', field: 'deploymentId'},
 		                /*{title: '创建时间', field: 'createTime', align:'left',templet:"#model-createTime",sort:true},
 		                {title: '最后修改时间', field: 'lastUpdateTime', align:'left',templet:"#model-lastUpdateTime"},*/
-		                {title: '操作', toolbar: '#user-bar', align:'center',width:150}
+		                {title: '操作', toolbar: '#user-bar', align:'center',width:180}
 		            ]
 		        ]
 
@@ -151,14 +156,20 @@
 		        });
 
                 //具有data-url属性的元素单击后打开新标签页
-                $("body").on("click", "[data-url]", function() {
-                    parent.layui.pearTab.addTabOnlyByElem("content", {
-                        id: $(this).attr("data-id"),
-                        title: $(this).attr("data-title"),
-                        url: $(this).attr("data-url"),
-                        close: true
-                    })
-                });
+				$("body").on("click", "[data-url]", function() {
+					if(parent.layui.admin.muiltTab()){
+						parent.layui.admin.closeTab($(this).attr("data-id"));
+						parent.layui.admin.addTab($(this).attr("data-id"),$(this).attr("data-title"),$(this).attr("data-url"));
+						/*parent.layui.tab.addTabOnlyByElem("content", {
+                            id: $(this).attr("data-id"),
+                            title: $(this).attr("data-title"),
+                            url: $(this).attr("data-url"),
+                            close: true
+                        });*/
+					}else{
+						parent.layui.admin.changeIframe($(this).attr("data-id"),$(this).attr("data-title"),$(this).attr("data-url"));
+					}
+				})
 
                 /*搜索框提交事件*/
 		        form.on('submit(user-query)', function(data){

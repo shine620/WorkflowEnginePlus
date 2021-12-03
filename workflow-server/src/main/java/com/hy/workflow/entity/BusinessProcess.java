@@ -45,7 +45,9 @@ public class BusinessProcess  implements Serializable {
 
     private Date endTime;
 
-    private String businessUrl;
+    private String editUrl;
+
+    private String viewUrl;
 
     private String parentId;
 
@@ -178,12 +180,20 @@ public class BusinessProcess  implements Serializable {
         this.endTime = endTime;
     }
 
-    public String getBusinessUrl() {
-        return businessUrl;
+    public String getEditUrl() {
+        return editUrl;
     }
 
-    public void setBusinessUrl(String businessUrl) {
-        this.businessUrl = businessUrl;
+    public void setEditUrl(String editUrl) {
+        this.editUrl = editUrl;
+    }
+
+    public String getViewUrl() {
+        return viewUrl;
+    }
+
+    public void setViewUrl(String viewUrl) {
+        this.viewUrl = viewUrl;
     }
 
     public String getParentId() {
@@ -193,6 +203,7 @@ public class BusinessProcess  implements Serializable {
     public void setParentId(String parentId) {
         this.parentId = parentId;
     }
+
 }
 
 

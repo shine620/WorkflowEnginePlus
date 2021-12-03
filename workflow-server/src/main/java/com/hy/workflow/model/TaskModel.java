@@ -34,13 +34,13 @@ public class TaskModel {
     @ApiModelProperty(value="所属人",example="xiaoming")
     private String owner;
 
-    @ApiModelProperty(value="创建时间")
+    @ApiModelProperty(value="创建时间",example = "2020-09-20 22:39:22")
     private Date createTime;
 
-    @ApiModelProperty(value="签收时间")
+    @ApiModelProperty(value="签收时间",example = "2020-09-20 22:39:22")
     private Date claimTime;
 
-    @ApiModelProperty(value="结束时间")
+    @ApiModelProperty(value="结束时间",example = "2020-09-20 22:39:22")
     private Date endTime;
 
     @ApiModelProperty(value="持续时长",notes = "创建到结束的时长")

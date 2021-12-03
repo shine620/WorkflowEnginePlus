@@ -153,13 +153,15 @@ public class WorkflowController {
 
     @ApiOperation(value = "查找流程业务关联数据", tags = { "Workflows" })
     @GetMapping(value = "/workflows/findBusinessProcess", produces = "application/json")
-    public List<BusinessProcess> findBusinessProcess(@ApiParam(name = "businessId",value = "业务ID") @RequestParam String businessId,
-                                              @ApiParam(name = "businessType",value = "业务类型") @RequestParam String businessType,
-                                              @ApiParam(name = "ended",value = "是否结束") @RequestParam Boolean ended) {
+    public List<BusinessProcess> findBusinessProcess(@ApiParam(name = "businessId",value = "业务ID") @RequestParam(required = false) String businessId,
+                                              @ApiParam(name = "businessType",value = "业务类型") @RequestParam(required = false) String businessType,
+                                              @ApiParam(name = "ended",value = "是否结束") @RequestParam(required = false) Boolean ended,
+                                              @ApiParam(name = "processInstanceId",value = "流程实例ID") @RequestParam(required = false) String processInstanceId) {
         ProcessInstanceModel model = new ProcessInstanceModel();
         model.setBusinessId(businessId);
         model.setBusinessType(businessType);
         model.setEnded(ended);
+        model.setProcessInstanceId(processInstanceId);
         List<BusinessProcess> bpList = processInstanceService.findByConditions(model);
         return bpList;
     }

@@ -2,14 +2,12 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>首页三</title>
+		<title>数据分析</title>
 		<meta name="renderer" content="webkit">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-		<link rel="stylesheet" href="../../admin/css/pearCommon.css" />
-		<link rel="stylesheet" href="../../component/layui/css/layui.css" media="all">
-		<link rel="stylesheet" href="../../admin/css/pearButton.css" />
-		<link rel="stylesheet" href="../../assets/console2.css" />
+		<link rel="stylesheet" href="../../component/pear/css/pear.css" />
+		<link rel="stylesheet" href="../../admin/css/other/console2.css" />
 	</head>
 	<body class="pear-container">
 		<div class="layui-row layui-col-space10">
@@ -84,25 +82,25 @@
 									<div class="layui-col-md6 layui-col-sm6 layui-col-xs6">
 										<div class="pear-card2">
 											<div class="title">待审评论</div>
-											<div class="count">21</div>
+											<div class="count pear-text">21</div>
 										</div>
 									</div>
 									<div class="layui-col-md6 layui-col-sm6 layui-col-xs6">
 										<div class="pear-card2">
 											<div class="title">待审帖子</div>
-											<div class="count">32</div>
+											<div class="count pear-text">32</div>
 										</div>
 									</div>
 									<div class="layui-col-md6 layui-col-sm6 layui-col-xs6">
 										<div class="pear-card2">
 											<div class="title">待审文章</div>
-											<div class="count">14</div>
+											<div class="count pear-text">14</div>
 										</div>
 									</div>
 									<div class="layui-col-md6 layui-col-sm6 layui-col-xs6">
 										<div class="pear-card2">
 											<div class="title">待审用户</div>
-											<div class="count">63</div>
+											<div class="count pear-text">63</div>
 										</div>
 									</div>
 								</div>
@@ -118,17 +116,11 @@
 							</div>
 						</div>
 						<div class="layui-card">
+							<div class="layui-card-header">
+								使用记录
+							</div>
 							<div class="layui-card-body">
-								<script src='https://gitee.com/Jmysy/Pear-Admin-Layui/widget_preview' async defer></script>
-								<div id="osc-gitee-widget-tag"></div>
-								<style>
-								.osc_pro_color {color: #4183c4 !important;}
-								.osc_panel_color {background-color: #ffffff !important;}
-								.osc_background_color {background-color: #ffffff !important;}
-								.osc_border_color {border-color: #e3e9ed !important;}
-								.osc_desc_color {color: #666666 !important;}
-								.osc_link_color * {color: #9b9b9b !important;}
-								</style>
+								<table id="role-table" lay-filter="role-table"></table>
 							</div>
 						</div>
 					</div>
@@ -136,64 +128,71 @@
 			</div>
 			<div class="layui-col-md4">
 				<div class="layui-card">
-					<div class="layui-card-header">
-						每日推荐
-					</div>
-					<div class="layui-card-body" style="height: 195px;">
-						<div class="layui-carousel" id="test1" lay-filter="test1">
-						  <div carousel-item="">
-						    <div><img style="width: 100%;height: 195px;border-radius: 6px;" src="../../admin/images/day.png" /></div>
-							 <div><img style="width: 100%;height: 195px;border-radius: 6px;" src="../../admin/images/day.png" /></div>
-						  </div>
-						</div> 
-					</div>
-				</div>
-				<div class="layui-card">
 					<div class="layui-card-header">留言板</div>
 					<div class="layui-card-body">
 						<ul class="pear-card-status">
 							<li>
-								<h3>Raccoon Core</h3>
+								<p>要不要作为我的家人，搬来我家。</p>
+								<span>12月25日 19:92</span>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
+							</li>
+							<li>
+								<p>快乐的时候不敢尽兴，频繁警戒自己保持清醒。</p>
+								<span>4月30日 22:43</span>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
+							</li>
+							<li>
 								<p>夏天真的来了，尽管它还有些犹豫。</p>
 								<span>4月30日 22:43</span>
-								<a href="javascript:;" data-id="1" class="layui-btn layui-btn-xs pear-reply">回复</a>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
 							</li>
 							<li>
-								<h3>Small Box</h3>
 								<p>看似不可达到的高度，只要坚持不懈就可能到达。</p>
 								<span>4月30日 22:43</span>
-								<a href="javascript:;" data-id="1" class="layui-btn layui-btn-xs pear-reply">回复</a>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
 							</li>
 							<li>
-								<h3>Pear Admin</h3>
 								<p>当浑浊变成了一种常态，那么清白就成了一种罪过。</p>
 								<span>4月30日 22:43</span>
-								<a href="javascript:;" data-id="1" class="layui-btn layui-btn-xs pear-reply">回复</a>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
 							</li>
 							<li>
-								<h3>Ant Design</h3>
 								<p>那是一种内在的东西，他们到达不了，也无法触及！</p>
 								<span>5月12日 01:25</span>
-								<a href="javascript:;" data-id="1" class="layui-btn layui-btn-xs pear-reply">回复</a>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
 							</li>
 							</li>
 							<li>
-								<h3>Angular</h3>
 								<p>希望是一个好东西,也许是最好的,好东西是不会消亡的！</p>
 								<span>6月11日 15:33</span>
-								<a href="javascript:;" data-id="1" class="layui-btn layui-btn-xs pear-reply">回复</a>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
 							</li>
 							<li>
-								<h3>Bootstrap</h3>
 								<p>一切都在不可避免的走向庸俗。</p>
 								<span>2月09日 13:40</span>
-								<a href="javascript:;" data-id="1" class="layui-btn layui-btn-xs pear-reply">回复</a>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
 							</li>
 							<li>
-								<h3>Element UI</h3>
 								<p>路上没有灯火的时候，就点亮自己的头颅。</p>
 								<span>3月11日 12:30</span>
-								<a href="javascript:;" data-id="1" class="layui-btn layui-btn-xs pear-reply">回复</a>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
+							</li>
+							
+							<li>
+								<p>我们应该不虚度一生，应该能够说：＂我已经做了我能做的事。＂</p>
+								<span>4月30日 22:43</span>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
+							</li>
+							</li>
+							<li>
+								<p>接近，是我对一切的态度，是我对一切态度的距离</p>
+								<span>6月11日 15:33</span>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
+							</li>
+							<li>
+								<p>没有锚的船当然也可以航行，只是紧张充满你的一生。</p>
+								<span>2月09日 13:40</span>
+								<a href="javascript:;" data-id="1" class="pear-btn pear-btn-primary pear-btn-xs pear-reply">回复</a>
 							</li>
 						</ul>
 					</div>
@@ -201,29 +200,59 @@
 			</div>
 		</div>
 		<!--</div>-->
-		<script src="../../component/layui/layui.js" charset="utf-8"></script>
+		<script src="../../component/layui/layui.js"></script>
+		<script src="../../component/pear/pear.js"></script>
 		<script>
-			layui.use(['layer', 'echarts', 'carousel'], function() {
+			layui.use(['layer', 'echarts', 'carousel', 'element', 'table'], function() {
 				var $ = layui.jquery,
 					layer = layui.layer,
 					element = layui.element,
-					pearTab = layui.pearTab,
 					echarts = layui.echarts,
+					table = layui.table,
 					carousel = layui.carousel;
 
+				let cols = [
+					[{
+							type: 'checkbox'
+						},
+						{
+							title: '角色名',
+							field: 'roleName',
+							align: 'center',
+							width: 100
+						},
+						{
+							title: 'Key值',
+							field: 'roleCode',
+							align: 'center'
+						},
+						{
+							title: '描述',
+							field: 'details',
+							align: 'center'
+						},
+						{
+							title: '是否可用',
+							field: 'enable',
+							align: 'center',
+							templet: '#role-enable'
+						}
+					]
+				]
 
-				carousel.render({
-					elem: '#test1',
-					width: '100% ',
-					height: '100%',
-					interval: 5000 //每2秒，自动轮播
-						,
-					arrow: 'always'
+				table.render({
+					elem: '#role-table',
+					url: '../../admin/data/role.json',
+					page: true,
+					cols: cols,
+					skin: 'line'
 				});
+
+
 				var echartsRecords = echarts.init(document.getElementById('echarts-records'), 'walden');
 
 				$("body").on("click", "[data-url]", function() {
-					parent.layui.pearTab.addTabOnlyByElem("content", {
+					parent.layui.tab.addTabOnlyByElem("content", {
 						id: $(this).attr("data-id"),
 						title: $(this).attr("data-title"),
 						url: $(this).attr("data-url"),

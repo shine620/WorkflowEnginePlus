@@ -1,12 +1,8 @@
-/** Buttom 默认*/
 .pear-btn {
 	display: inline-block;
 	line-height: 38px;
 	white-space: nowrap;
 	cursor: pointer;
-	background-color: #fff;
-	border: 1px solid #dcdfe6;
-	color: #606266;
 	text-align: center;
 	box-sizing: border-box;
 	outline: none;
@@ -15,7 +11,9 @@
 	padding: 0 18px;
 	height: 38px;
 	font-size: 14px;
-	border-radius: 4px;
+	background-color: white;
+	border: 1px solid #dcdfe6;
+	border-radius: 2px;
 }
 
 .pear-btn i {
@@ -26,7 +24,6 @@
 	opacity: .8;
 	filter: alpha(opacity=80);
 	color: #409eff;
-	border-color: #c6e2ff;
 	background-color: #ECF5FF;
 }
 
@@ -34,28 +31,27 @@
 .pear-btn-warming,
 .pear-btn-success,
 .pear-btn-primary {
+	height: 37px;
+	line-height: 37px;
 	color: #fff !important
-}
-
-.pear-btn[dashed] {
-	border-style: dashed !important;
 }
 
 /** Button 主题 */
 .pear-btn-primary {
+	border: #2D8CF0;
 	background-color: #2D8CF0 !important;
 }
-
 .pear-btn-danger {
-	background-color: #f56c6c !important
+	border: #f56c6c;
+	background-color: #f56c6c !important;
 }
-
 .pear-btn-warming {
-	background-color: #e6a23c !important
+	border: #f6ad55;
+	background-color: #f6ad55 !important;
 }
-
 .pear-btn-success {
-	background-color: #67c23a !important
+	border: #36b368;
+	background-color: #36b368 !important;
 }
 
 .pear-btn[round] {
@@ -63,31 +59,31 @@
 }
 
 .pear-btn-primary[plain] {
+	border: #409eff !important;
 	color: #409eff !important;
-	background: #ecf5ff !important;
-	border-color: #b3d8ff !important;
+	background: #ecf5ff 10% !important;
 }
 
 .pear-btn-primary[plain]:hover {
 	color: #fff !important;
-	background-color: #2d8cf0 !important
+	background-color: #2d8cf0!important
 }
 
 .pear-btn-success[plain] {
-	color: #67c23a !important;
+	border: #36b368 !important;
+	color: #36b368 !important;
 	background: #f0f9eb !important;
-	border-color: #c2e7b0 !important;
 }
 
 .pear-btn-success[plain]:hover {
 	color: white !important;
-	background-color: #67c23a !important
+	background-color: #36b368 !important
 }
 
 .pear-btn-warming[plain] {
+	border: #e6a23c !important;
 	color: #e6a23c !important;
 	background: #fdf6ec !important;
-	border-color: #f5dab1 !important;
 }
 
 .pear-btn-warming[plain]:hover {
@@ -96,9 +92,9 @@
 }
 
 .pear-btn-danger[plain] {
+	border: #f56c6c !important;
 	color: #f56c6c !important;
 	background: #fef0f0 !important;
-	border-color: #fbc4c4 !important;
 }
 
 .pear-btn-danger[plain]:hover {
@@ -116,7 +112,8 @@
 	float: left;
 	position: relative;
 	border-radius: 0px;
-
+	margin-left: 1px;
+	margin-right: 1px;
 }
 
 .pear-btn-md {
@@ -148,17 +145,24 @@
 
 /** Button Size*/
 .pear-btn-sm {
-	height: 30px;
-	line-height: 30px;
+	height: 32px;
+	line-height: 32px;
 	padding: 0 10px;
 	font-size: 12px;
 }
 
 .pear-btn-xs {
-	height: 22px;
-	line-height: 22px;
-	padding: 0 5px;
+	height: 28px;
+	line-height: 28px;
+	padding: 0 8px;
 	font-size: 12px;
+}
+
+.pear-btn-md {
+	height: 34px;
+	line-height: 34px;
+	padding: 0 10px;
+	font-size: 12.5px;
 }
 
 .pear-btn-lg {
