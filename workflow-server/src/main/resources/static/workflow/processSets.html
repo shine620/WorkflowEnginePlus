@@ -212,8 +212,17 @@
                             data.rejectable==true ? data.rejectable="true" : data.rejectable="false";
                             data.sendCopy==true ? data.sendCopy="true" : data.sendCopy="false";
                         }
-                        taskConfigSet(data.assigneeOption);
                         form.val("taskConfigFrom",data);
+                        taskConfigSet(data.assigneeOption);
+                        if(data.assigneeOption==undefined||data.assigneeOption==''||data.assigneeOption==null){
+                            $("input[name='assigneeOption']").prop('checked', false);
+                            $("input[name='multiUser']").prop('checked', false);
+                            $("input[name='orgScope']").prop('checked', false);
+                            $("input[name='autoSelect']").prop('checked', false);
+                            $("input[name='fixed']").prop('checked', false);
+                            layui.form.render();
+                        }
+
                     }
                 });
 
