@@ -17,6 +17,9 @@
 				height: 28px !important;
 				line-height: 28px !important;
 			}
+            .layui-card-header{
+                cursor: pointer;
+            }
 		</style>
 
         <script src="../component/layui/layui.js"></script>
@@ -136,6 +139,12 @@
                     }
                 });
 
+                (function(){
+                    //点击导航栏时进行展开收缩
+                    $(".layui-card-header").click(function(){
+                        $(this).next(".layui-card-body").toggle();
+                    });
+                })();
 
             /* ====================任务节点列表====================== */
 
