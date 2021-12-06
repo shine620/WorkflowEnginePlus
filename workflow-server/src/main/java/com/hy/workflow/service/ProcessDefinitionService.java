@@ -190,7 +190,7 @@ public class ProcessDefinitionService {
         //新增
         if(flowElementConfig==null){
             FlowElementConfig feConfig = flowElementConfigRepository.save(new FlowElementConfig(model));
-            return  EntityModelUtil.toFlowElementConfigMode(feConfig);
+            return  EntityModelUtil.toFlowElementConfigModel(feConfig);
         }
         //修改
         else{
@@ -210,7 +210,7 @@ public class ProcessDefinitionService {
             flowElementConfig.setSendCopy(model.getSendCopy());
             flowElementConfig.setTip(model.getTip());
             flowElementConfigRepository.save(flowElementConfig);
-            return EntityModelUtil.toFlowElementConfigMode(flowElementConfig);
+            return EntityModelUtil.toFlowElementConfigModel(flowElementConfig);
         }
     }
 
@@ -225,7 +225,7 @@ public class ProcessDefinitionService {
      */
     public FlowElementConfigModel getFlowElementConfig(String processDefinitionId,String flowElementId) {
         FlowElementConfig feConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinitionId,flowElementId);
-        return EntityModelUtil.toFlowElementConfigMode(feConfig);
+        return EntityModelUtil.toFlowElementConfigModel(feConfig);
     }
 
 

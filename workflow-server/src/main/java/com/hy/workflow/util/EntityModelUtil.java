@@ -83,7 +83,7 @@ public class EntityModelUtil {
         return null;
     }
 
-    public static FlowElementConfigModel toFlowElementConfigMode(FlowElementConfig feConfig) {
+    public static FlowElementConfigModel toFlowElementConfigModel(FlowElementConfig feConfig) {
         if(feConfig!=null){
             FlowElementConfigModel model = new FlowElementConfigModel();
             BeanUtils.copyProperties(feConfig,model);
@@ -143,7 +143,7 @@ public class EntityModelUtil {
     public static void fillFlowElementConfig(List<FlowElementModel> flowList ,List<FlowElementConfig> configs){
         Map<String, FlowElementConfigModel> configMap = new HashMap<>();
         configs.forEach(flowElementConfig -> {
-            configMap.put( flowElementConfig.getFlowElementId(), EntityModelUtil.toFlowElementConfigMode(flowElementConfig) );
+            configMap.put( flowElementConfig.getFlowElementId(), EntityModelUtil.toFlowElementConfigModel(flowElementConfig) );
         });
         //填充节点配置信息
         flowList.forEach(flowElementModel -> {

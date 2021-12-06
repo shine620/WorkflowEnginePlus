@@ -67,6 +67,8 @@ public class TaskModel {
     @ApiModelProperty(value="审批意见信息")
     private List<Comment> comments;
 
+    @ApiModelProperty(value="任务节点配置")
+    private FlowElementConfigModel taskConfig;
 
     public static class Comment{
 
@@ -253,6 +255,14 @@ public class TaskModel {
 
     public void setComments(List<Comment> comments) {
         this.comments = comments;
+    }
+
+    public FlowElementConfigModel getTaskConfig() {
+        return taskConfig;
+    }
+
+    public void setTaskConfig(FlowElementConfigModel taskConfig) {
+        this.taskConfig = taskConfig;
     }
 
 

@@ -592,7 +592,7 @@ public class FlowableTaskService {
             StartEvent subStartEvent = (StartEvent) subProcess.getInitialFlowElement();
             FlowNode subFirstNode =(FlowNode) subStartEvent.getOutgoingFlows().get(0).getTargetFlowElement();
             FlowElementConfig subFirstNodeConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(processDefinition.getId(),subFirstNode.getId());
-            FlowElementConfigModel configModel = EntityModelUtil.toFlowElementConfigMode(subFirstNodeConfig);
+            FlowElementConfigModel configModel = EntityModelUtil.toFlowElementConfigModel(subFirstNodeConfig);
             //封装任务节点
             FlowElementModel node = new FlowElementModel();
             node.setFlowElementId(subFirstNode.getId());
@@ -744,25 +744,23 @@ public class FlowableTaskService {
      * @return TaskModel
      */
     public TaskModel todoTaskInfo(String taskId) {
-        TaskModel model = null;
+
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-        if(task!=null){
-            model = new TaskModel();
-            model.setTaskId(task.getId());
-            model.setTaskName(task.getName());
-            model.setTaskDefinitionKey(task.getTaskDefinitionKey());
-            model.setProcessInstanceId(task.getProcessInstanceId());
-            model.setProcessDefinitionId(task.getProcessDefinitionId());
-            model.setAssignee(task.getAssignee());
-            model.setOwner(task.getOwner());
-            model.setCreateTime(task.getCreateTime());
-            model.setClaimTime(task.getClaimTime());
-            model.setExecutionId(task.getExecutionId());
-        }
-        //流程实例和业务信息
-        Optional<BusinessProcess> optional = businessProcessRepository.findById(task.getProcessInstanceId());
-        BusinessProcess bp = optional.isPresent()?optional.get():null;
-        model.setProcessInstanceName(bp.getProcessInstanceName());
+        if(task==null) return null;
+        TaskModel model = new TaskModel();
+        model.setTaskId(task.getId());
+        model.setTaskName(task.getName());
+        model.setTaskDefinitionKey(task.getTaskDefinitionKey());
+        model.setProcessInstanceId(task.getProcessInstanceId());
+        model.setProcessDefinitionId(task.getProcessDefinitionId());
+        model.setAssignee(task.getAssignee());
+        model.setOwner(task.getOwner());
+        model.setCreateTime(task.getCreateTime());
+        model.setClaimTime(task.getClaimTime());
+        model.setExecutionId(task.getExecutionId());
+        ProcessInstance instance = runtimeService.createProcessInstanceQuery().processInstanceId(task.getProcessInstanceId()).singleResult();
+        model.setProcessInstanceName(instance.getName());
+
         //候选用户及候选组信息
         List<String> candidateUsers = new ArrayList<>();
         List<String> candidateGroups =  new ArrayList<>();
@@ -776,6 +774,8 @@ public class FlowableTaskService {
                 }
             }
         }
+        model.setCandidateUsers(candidateUsers);
+        model.setCandidateGroups(candidateGroups);
 
         Map<String,Object> variables = runtimeService.getVariables(task.getExecutionId());
         if(variables.get("nrOfInstances")!=null){
@@ -783,8 +783,10 @@ public class FlowableTaskService {
             model.setNrOfCompletedInstances((Integer) variables.get("nrOfCompletedInstances"));
         }
 
-        model.setCandidateUsers(candidateUsers);
-        model.setCandidateGroups(candidateGroups);
+        //任务节点配置信息
+        FlowElementConfig taskConfig = flowElementConfigRepository.findByProcessDefinitionIdAndFlowElementId(task.getProcessDefinitionId(),task.getTaskDefinitionKey());
+        model.setTaskConfig(EntityModelUtil.toFlowElementConfigModel(taskConfig));
+
         return model;
     }
 
