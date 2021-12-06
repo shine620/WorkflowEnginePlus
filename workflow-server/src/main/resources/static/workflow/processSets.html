@@ -32,29 +32,34 @@
 			console.info(layui.url());
 			console.info(decodeURIComponent(layui.url().search.processDefinitionId));
 
-			//配置表单
-			layui.use(['form','jquery'], function(){
-				let form = layui.form;
-				let $ = layui.jquery;
+			layui.use(['table','jquery','element','treetable','form'], function(){
 
-				//通用设置表单数据回显
-				$.ajax({
-					url:"/ProcessDefinitionController/process-definitions/getProcessConfig/"+processDefinitionId,
-					type:"GET",
-					contentType:"application/json",
-					success:function(data){
-					    console.info(data);
-						data.defaultProcess==true ? data.defaultProcess="true" : data.defaultProcess="false";
-						data.rejectParentProcess==true ? data.rejectParentProcess="true" : data.rejectParentProcess="false";
+                let form = layui.form;
+                let $ = layui.jquery;
+                let table = layui.table;
+                let treetable = layui.treetable;
+
+                /* ====================配置表单====================== */
+
+                //通用设置表单数据回显
+                $.ajax({
+                    url:"/ProcessDefinitionController/process-definitions/getProcessConfig/"+processDefinitionId,
+                    type:"GET",
+                    contentType:"application/json",
+                    success:function(data){
+                        console.info(data);
+                        data.defaultProcess==true ? data.defaultProcess="true" : data.defaultProcess="false";
+                        data.rejectParentProcess==true ? data.rejectParentProcess="true" : data.rejectParentProcess="false";
                         data.callable==true ? data.callable="true" : data.callable="false";
-						form.val("processConfigForm",data);
-					}
-				});
-				//监听流程配置表单提交
-				form.on('submit(processConfigSubmit)', function(data){
-					let formData = JSON.stringify(data.field);
+                        form.val("processConfigForm",data);
+                    }
+                });
+
+                //监听流程配置表单提交
+                form.on('submit(processConfigSubmit)', function(data){
+                    let formData = JSON.stringify(data.field);
                     //layer.msg(formData);
-					let loading = layer.load();
+                    let loading = layer.load();
                     $.ajax({
                         url:"/ProcessDefinitionController/process-definitions/saveProcessConfig",
                         type:"POST",
@@ -62,41 +67,41 @@
                         dataType:'json',
                         data: formData,
                         success:function(data){
-							console.info(data);
-							layer.close(loading);
-							layer.msg('保存成功',{icon:1,time:1000});
+                            console.info(data);
+                            layer.close(loading);
+                            layer.msg('保存成功',{icon:1,time:1000});
                         },
-						error:function(XMLHttpRequest){
-							layer.close(loading);
-							layer.msg("保存失败",{icon:2,time:1000});
-						}
+                        error:function(XMLHttpRequest){
+                            layer.close(loading);
+                            layer.msg("保存失败",{icon:2,time:1000});
+                        }
                     });
-					return false;
-				});
+                    return false;
+                });
 
-				//监听任务配置表单提交
-				form.on('submit(taskConfigSubmit)', function(data){
-					let formData = JSON.stringify(data.field);
-					console.info(formData);
-					let loading = layer.load();
-					$.ajax({
-						url:"/ProcessDefinitionController/process-definitions/saveElementConfig",
-						type:"POST",
-						contentType:"application/json",
-						dataType:'json',
-						data: formData,
-						success:function(data){
-							console.info(data);
-							layer.close(loading);
-							layer.msg('保存成功',{icon:1,time:1000});
-						},
-						error:function(XMLHttpRequest){
-							layer.close(loading);
-							layer.msg("保存失败",{icon:2,time:1000});
-						}
-					});
-					return false;
-				});
+                //监听任务配置表单提交
+                form.on('submit(taskConfigSubmit)', function(data){
+                    let formData = JSON.stringify(data.field);
+                    console.info(formData);
+                    let loading = layer.load();
+                    $.ajax({
+                        url:"/ProcessDefinitionController/process-definitions/saveElementConfig",
+                        type:"POST",
+                        contentType:"application/json",
+                        dataType:'json',
+                        data: formData,
+                        success:function(data){
+                            console.info(data);
+                            layer.close(loading);
+                            layer.msg('保存成功',{icon:1,time:1000});
+                        },
+                        error:function(XMLHttpRequest){
+                            layer.close(loading);
+                            layer.msg("保存失败",{icon:2,time:1000});
+                        }
+                    });
+                    return false;
+                });
 
                 //通用设置返回/关闭事件
                 window.back = function(obj){
@@ -108,107 +113,175 @@
                     }
                 }
 
-				//编辑任务节点取消按钮事件
-				window.cancel = function(obj){
-					$("#taskList").show();
-					$("#taskConfigFrom").hide();
-					$("#taskConfigFrom input[name='flowElementId']").val("");
-				}
+                //编辑任务节点取消按钮事件
+                window.cancel = function(obj){
+                    $("#taskList").show();
+                    $("#taskConfigFrom").hide();
+                    $("#taskConfigFrom input[name='flowElementId']").val("");
+                }
 
-			});
+                //分配方式点击事件
+                form.on('radio(selectOption)', function(data){
+                    var assigneeOption = data.value;
+                    taskConfigSet(assigneeOption);
+                });
 
-
-			//任务节点列表
-			layui.use(['table','jquery','element','treetable','form'], function(){
-
-				let $ = layui.jquery;
-				let table = layui.table;
-				let treetable = layui.treetable;
-				let form = layui.form;
-
-				$("#taskConfigFrom").hide();
-
-				let cols = [
-					[
-						{title: '环节名称', field: 'flowElementName', align:'left'},
-						{title: '环节编号', field: 'flowElementId', align:'left'},
-						{title: '操作', toolbar: '#task-bar', align:'center',width:80}
-					]
-				];
-				treetable.render({
-					elem: '#task-table',
-					url: "/WorkflowController/workflows/"+processDefinitionId,
-					cols: cols ,
-					skin: 'line',
-					page: false,
-					treeColIndex: 0,
-					treeSpid: '0',
-					treeIdName: 'flowElementId',
-					treePidName: 'parentFlowElementId',
-					treeDefaultClose: true
-				});
-
-				window.edit = function(obj){
-					let flowElementId = obj.data['id'];
-					$("#taskList").hide();
-					$("#taskConfigFrom").show();
-					$("#taskConfigFrom input[name='processDefinitionId']").val(processDefinitionId);
-					$("#taskConfigFrom input[name='flowElementId']").val(flowElementId);
-					//通用设置表单数据回显
-					$.ajax({
-						url:"/ProcessDefinitionController/process-definitions/getElementConfig?processDefinitionId="+processDefinitionId+"&flowElementId="+flowElementId,
-						type:"GET",
-						contentType:"application/json",
-						success:function(data){
-							console.info(data);
-							if(data==null||data==""){
-								//无配置时设置默认值
-								data={
-                                    multiUser:"false",
-                                    fixed:"false",
-                                    //assigneeOption:"",
-                                    userValue:"",
-									orgScope:"START_DEPARTMENT",
-                                    roleValue:"",
-                                    positionValue:"",
-                                    orgValue:"",
-                                    autoSelect:"false",
-									tip:"",
-									editForm:"false",
-									attachEditable:"false",
-									requireOpinion:"false",
-									showApproveRecord:"false",
-									rejectable:"false",
-									sendCopy:"false"
-								};
-							}else{
-                                data.multiUser==true ? data.multiUser="true" : data.multiUser="false";
-                                data.fixed==true ? data.fixed="true" : data.fixed="false";
-                                data.autoSelect==true ? data.autoSelect="true" : data.autoSelect="false";
-								data.editForm==true ? data.editForm="true" : data.editForm="false";
-								data.attachEditable==true ? data.attachEditable="true" : data.attachEditable="false";
-								data.requireOpinion==true ? data.requireOpinion="true" : data.requireOpinion="false";
-								data.showApproveRecord==true ? data.showApproveRecord="true" : data.showApproveRecord="false";
-								data.rejectable==true ? data.rejectable="true" : data.rejectable="false";
-								data.sendCopy==true ? data.sendCopy="true" : data.sendCopy="false";
-							}
-							form.val("taskConfigFrom",data);
-						}
-					});
-
-				}
-
-				//任务节点列表绑定编辑事件
-				table.on('tool(task-table)', function(obj){
-					if(obj.event === 'edit'){
-						window.edit(obj);
-					}
-				});
-
-			});
+                //分配方式点击事件
+                form.on('radio(selectOrgScope)', function(data){
+                    var orgScope = data.value;
+                    if("GIVEN_ORG"==orgScope){
+                        $("#orgValueDiv").show();
+                    }else{
+                        $("#orgValueDiv").hide();
+                    }
+                });
 
 
-		</script>
+            /* ====================任务节点列表====================== */
+
+            $("#taskConfigFrom").hide();
+
+            let cols = [
+                [
+                    {title: '环节名称', field: 'flowElementName', align:'left'},
+                    {title: '环节编号', field: 'flowElementId', align:'left'},
+                    {title: '操作', toolbar: '#task-bar', align:'center',width:80}
+                ]
+            ];
+            treetable.render({
+                elem: '#task-table',
+                url: "/WorkflowController/workflows/"+processDefinitionId,
+                cols: cols ,
+                skin: 'line',
+                page: false,
+                treeColIndex: 0,
+                treeSpid: '0',
+                treeIdName: 'flowElementId',
+                treePidName: 'parentFlowElementId',
+                treeDefaultClose: true
+            });
+
+            window.edit = function(obj){
+                let flowElementId = obj.data['id'];
+                $("#taskList").hide();
+                $("#taskConfigFrom").show();
+                $("#taskConfigFrom input[name='processDefinitionId']").val(processDefinitionId);
+                $("#taskConfigFrom input[name='flowElementId']").val(flowElementId);
+                //任务设置表单数据回显
+                $.ajax({
+                    url:"/ProcessDefinitionController/process-definitions/getElementConfig?processDefinitionId="+processDefinitionId+"&flowElementId="+flowElementId,
+                    type:"GET",
+                    contentType:"application/json",
+                    success:function(data){
+                        console.info(data);
+                        if(data==null||data==""){
+                            //无配置时设置默认值
+                            data={
+                                //multiUser:"false",
+                               // fixed:"false",
+                                //assigneeOption:"",
+                                userValue:"",
+                                //orgScope:"START_DEPARTMENT",
+                                roleValue:"",
+                                positionValue:"",
+                                orgValue:"",
+                                //autoSelect:"false",
+                                tip:"",
+                                editForm:"false",
+                                requireOpinion:"false",
+                                showApproveRecord:"false",
+                                rejectable:"false",
+                                sendCopy:"false"
+                            };
+                        }else{
+                            data.multiUser==true ? data.multiUser="true" : data.multiUser="false";
+                            data.fixed==true ? data.fixed="true" : data.fixed="false";
+                            data.autoSelect==true ? data.autoSelect="true" : data.autoSelect="false";
+                            data.editForm==true ? data.editForm="true" : data.editForm="false";
+                            data.requireOpinion==true ? data.requireOpinion="true" : data.requireOpinion="false";
+                            data.showApproveRecord==true ? data.showApproveRecord="true" : data.showApproveRecord="false";
+                            data.rejectable==true ? data.rejectable="true" : data.rejectable="false";
+                            data.sendCopy==true ? data.sendCopy="true" : data.sendCopy="false";
+                        }
+                        taskConfigSet(data.assigneeOption);
+                        form.val("taskConfigFrom",data);
+                    }
+                });
+
+            }
+
+            //任务节点列表绑定编辑事件
+            table.on('tool(task-table)', function(obj){
+                if(obj.event === 'edit'){
+                    window.edit(obj);
+                }
+            });
+
+            window.taskConfigSet = function(assigneeOption){
+                //分配方式
+                if(assigneeOption=='USER'){
+                    $("#multiUserDiv").show();
+                    $("#fixedDiv").show();
+                    $("#userValueDiv").show();
+                    $("#orgScopeDiv").hide();
+                    $("#orgValueDiv").hide();
+                    $("#roleValueDiv").hide();
+                    $("#positionValueDiv").hide();
+                    $("#autoSelectDiv").hide();
+                }
+                else if(assigneeOption=='ORG'){
+                    $("#orgScopeDiv").show();
+                    $("#orgValueDiv").show();
+                    $("#positionValueDiv").hide();
+                    $("#fixedDiv").hide();
+                    $("#roleValueDiv").hide();
+                    $("#multiUserDiv").hide();
+                    $("#userValueDiv").hide();
+                    $("#autoSelectDiv").hide();
+                }
+                else if(assigneeOption=='ROLE'){
+                    $("#orgScopeDiv").show();
+                    $("#orgValueDiv").show();
+                    $("#roleValueDiv").show();
+                    $("#autoSelectDiv").show();
+                    $("#positionValueDiv").hide();
+                    $("#fixedDiv").hide();
+                    $("#multiUserDiv").hide();
+                    $("#userValueDiv").hide();
+                }
+                else if(assigneeOption=='POSITION'){
+                    $("#orgScopeDiv").show();
+                    $("#orgValueDiv").show();
+                    $("#positionValueDiv").show();
+                    $("#fixedDiv").show();
+                    $("#roleValueDiv").hide();
+                    $("#multiUserDiv").hide();
+                    $("#userValueDiv").hide();
+                    $("#autoSelectDiv").hide();
+                }else{
+                    $("#orgScopeDiv").hide();
+                    $("#orgValueDiv").hide();
+                    $("#positionValueDiv").hide();
+                    $("#fixedDiv").hide();
+                    $("#roleValueDiv").hide();
+                    $("#multiUserDiv").hide();
+                    $("#userValueDiv").hide();
+                    $("#autoSelectDiv").hide();
+                }
+                //机构范围
+                var data = form.val("taskConfigFrom");
+                if("GIVEN_ORG"==data.orgScope&&assigneeOption!='USER'){
+                    $("#orgValueDiv").show();
+                }else{
+                    $("#orgValueDiv").hide();
+                }
+            }
+
+        });
+
+
+
+</script>
 
 	</head>
 
@@ -275,7 +348,7 @@
 								<label class="layui-form-label">默认流程</label>
 								<div class="layui-input-block">
 									<input type="radio" name="defaultProcess" value="true" title="是">
-									<input type="radio" name="defaultProcess" value="false" title="否">
+									<input type="radio" name="defaultProcess" value="false" title="否" checked>
 								</div>
 							</div>
 						</div>
@@ -363,26 +436,37 @@
 										<div class="layui-form-item">
 											<label class="layui-form-label">分配方式</label>
 											<div class="layui-input-block">
-												<input type="radio" name="assigneeOption" value="USER" title="人员">
-												<input type="radio" name="assigneeOption" value="ORG" title="机构">
-												<input type="radio" name="assigneeOption" value="ROLE" title="角色">
-												<input type="radio" name="assigneeOption" value="POSITION" title="职位">
+												<input type="radio" name="assigneeOption" value="USER" title="人员" lay-filter="selectOption">
+												<input type="radio" name="assigneeOption" value="ORG" title="机构" lay-filter="selectOption">
+												<input type="radio" name="assigneeOption" value="ROLE" title="角色" lay-filter="selectOption">
+												<input type="radio" name="assigneeOption" value="POSITION" title="岗位" lay-filter="selectOption">
 											</div>
 										</div>
 									</div>
 								</div>
-                                <div class="layui-row">
+                                <div class="layui-row" id="multiUserDiv">
                                     <div class="layui-col-md11">
                                         <div class="layui-form-item">
                                             <label class="layui-form-label">是否多人</label>
                                             <div class="layui-input-block">
-                                                <input type="radio" name="multiUser" value="true" title="是" checked>
+                                                <input type="radio" name="multiUser" value="true" title="是">
                                                 <input type="radio" name="multiUser" value="false" title="否">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-row">
+                                <div class="layui-row" id="fixedDiv">
+                                    <div class="layui-col-md11">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">是否固定</label>
+                                            <div class="layui-input-block">
+                                                <input type="radio" name="fixed" value="true" title="是">
+                                                <input type="radio" name="fixed" value="false" title="否">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-row" id="userValueDiv">
                                     <div class="layui-col-md11">
                                         <div class="layui-form-item">
                                             <label class="layui-form-label">选择用户</label>
@@ -393,19 +477,19 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-row">
+                                <div class="layui-row" id="orgScopeDiv">
                                     <div class="layui-col-md11">
                                         <div class="layui-form-item">
                                             <label class="layui-form-label">机构范围</label>
                                             <div class="layui-input-block">
-                                                <input type="radio" name="orgScope" value="START_DEPARTMENT" title="发起人所在部门" checked>
-                                                <input type="radio" name="orgScope" value="START_UNIT" title="发起人所在公司">
-                                                <input type="radio" name="orgScope" value="GIVEN_ORG" title="指定机构">
+                                                <input type="radio" name="orgScope" value="START_DEPARTMENT" title="发起人所在部门" lay-filter="selectOrgScope">
+                                                <input type="radio" name="orgScope" value="START_UNIT" title="发起人所在公司" lay-filter="selectOrgScope">
+                                                <input type="radio" name="orgScope" value="GIVEN_ORG" title="指定机构" lay-filter="selectOrgScope">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-row">
+                                <div class="layui-row"  id="orgValueDiv">
                                     <div class="layui-col-md11">
                                         <div class="layui-form-item">
                                             <label class="layui-form-label">选择机构</label>
@@ -415,7 +499,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-row">
+                                <div class="layui-row"  id="roleValueDiv">
                                     <div class="layui-col-md11">
                                         <div class="layui-form-item">
                                             <label class="layui-form-label">选择角色</label>
@@ -425,7 +509,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-row">
+                                <div class="layui-row"   id="positionValueDiv">
                                     <div class="layui-col-md11">
                                         <div class="layui-form-item">
                                             <label class="layui-form-label">选择岗位</label>
@@ -435,28 +519,18 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-row">
+                                <div class="layui-row"   id="autoSelectDiv">
                                     <div class="layui-col-md11">
                                         <div class="layui-form-item">
                                             <label class="layui-form-label">自动带出</label>
                                             <div class="layui-input-block">
-                                                <input type="radio" name="autoSelect" value="true" title="是" checked>
+                                                <input type="radio" name="autoSelect" value="true" title="是">
                                                 <input type="radio" name="autoSelect" value="false" title="否">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-row" style="margin-bottom: 20px;">
-                                    <div class="layui-col-md11">
-                                        <div class="layui-form-item">
-                                            <label class="layui-form-label">是否固定</label>
-                                            <div class="layui-input-block">
-                                                <input type="radio" name="fixed" value="true" title="是" checked>
-                                                <input type="radio" name="fixed" value="false" title="否">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+
 							</div>
 
 							<!--审批设置-->
@@ -517,21 +591,19 @@
                                     </div>
                                 </div>
 							</div>
+
 						</div>
 					</div>
-
 					<div class="layui-form-item">
 						<div class="layui-input-block">
 							<button class="layui-btn layui-btn-sm" lay-submit lay-filter="taskConfigSubmit" style="padding: 0 20px;">保 存</button>
-							<a class="layui-btn layui-btn-sm" href="javascript:;" style="padding: 0 20px;" onclick="cancel()">取 消</a>
+							<a class="layui-btn layui-btn-sm" href="javascript:;" style="padding: 0 20px;" onclick="cancel()">返 回</a>
 						</div>
 					</div>
-
 				</form>
 
 			</div>
 		</div>
-
 
 
 	</body>
