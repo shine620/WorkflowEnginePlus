@@ -203,26 +203,24 @@
                                 sendCopy:"false"
                             };
                         }else{
-                            data.multiUser==true ? data.multiUser="true" : data.multiUser="false";
-                            data.fixed==true ? data.fixed="true" : data.fixed="false";
-                            data.autoSelect==true ? data.autoSelect="true" : data.autoSelect="false";
-                            data.editForm==true ? data.editForm="true" : data.editForm="false";
-                            data.requireOpinion==true ? data.requireOpinion="true" : data.requireOpinion="false";
-                            data.showApproveRecord==true ? data.showApproveRecord="true" : data.showApproveRecord="false";
-                            data.rejectable==true ? data.rejectable="true" : data.rejectable="false";
-                            data.sendCopy==true ? data.sendCopy="true" : data.sendCopy="false";
+                            if(data.multiUser!=null) data.multiUser==true ? data.multiUser="true" : data.multiUser="false";
+                            if(data.fixed!=null) data.fixed==true ? data.fixed="true" : data.fixed="false";
+                            if(data.autoSelect!=null) data.autoSelect==true ? data.autoSelect="true" : data.autoSelect="false";
+                            if(data.editForm!=null) data.editForm==true ? data.editForm="true" : data.editForm="false";
+                            if(data.requireOpinion!=null) data.requireOpinion==true ? data.requireOpinion="true" : data.requireOpinion="false";
+                            if(data.showApproveRecord!=null) data.showApproveRecord==true ? data.showApproveRecord="true" : data.showApproveRecord="false";
+                            if(data.rejectable!=null) data.rejectable==true ? data.rejectable="true" : data.rejectable="false";
+                            if(data.sendCopy!=null) data.sendCopy==true ? data.sendCopy="true" : data.sendCopy="false";
                         }
                         form.val("taskConfigFrom",data);
                         taskConfigSet(data.assigneeOption);
-                        if(data.assigneeOption==undefined||data.assigneeOption==''||data.assigneeOption==null){
-                            $("input[name='assigneeOption']").prop('checked', false);
-                            $("input[name='multiUser']").prop('checked', false);
-                            $("input[name='orgScope']").prop('checked', false);
-                            $("input[name='autoSelect']").prop('checked', false);
-                            $("input[name='fixed']").prop('checked', false);
-                            layui.form.render();
-                        }
-
+                        console.info("handle:"+data);
+                        if(isEmpty(data.assigneeOption)) $("input[name='assigneeOption']").prop('checked', false);
+                        if(isEmpty(data.multiUser)) $("input[name='multiUser']").prop('checked', false);
+                        if(isEmpty(data.orgScope)) $("input[name='orgScope']").prop('checked', false);
+                        if(isEmpty(data.autoSelect)) $("input[name='autoSelect']").prop('checked', false);
+                        if(isEmpty(data.fixed)) $("input[name='fixed']").prop('checked', false);
+                        layui.form.render();
                     }
                 });
 
@@ -293,6 +291,13 @@
                 }else{
                     $("#orgValueDiv").hide();
                 }
+            }
+
+            window.isEmpty=function (val){
+                if(val == undefined || val == null || val == ""){
+                    return true;
+                }
+                return false;
             }
 
         });
