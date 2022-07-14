@@ -44,13 +44,13 @@ public class RejectRecord implements Serializable {
     //驳回环节名称
     private String sourceElementName;
 
-    //被驳回环节ID
+    //目标环节ID
     private String targetElementId;
 
-    //被驳回环节名称
+    //目标环节名称
     private String targetElementName;
 
-    //被驳回环节的流程实例ID
+    //驳回到主流程的实例ID
     private String targetProcessInstanceId;
 
 

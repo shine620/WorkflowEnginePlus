@@ -121,7 +121,7 @@ public class ProcessListener extends AbstractFlowableEngineEventListener {
                 String assignee = (String)taskKeyVariable.get("assignee");
                 List<String> candidateUser = (List)taskKeyVariable.get("candidateUser");
                 List<String> candidateGroup = (List)taskKeyVariable.get("candidateGroup");
-                //if(assignee!=null) taskEntity.setAssignee(assignee); 此种方式如果是驳回后重新提交的节点，一般记录中会缺失审批人信息
+                //if(assignee!=null) taskEntity.setAssignee(assignee); 此种方式如果是驳回后重新提交的节点，审批记录中会缺失审批人信息
                 TaskService taskService = SpringContextUtil.getBeanByClass(TaskService.class);
                 if(assignee!=null) taskService.setAssignee(taskEntity.getId(),assignee);
                 if(candidateUser!=null) taskEntity.addCandidateUsers(candidateUser);

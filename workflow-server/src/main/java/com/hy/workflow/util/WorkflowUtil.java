@@ -31,26 +31,20 @@ public class WorkflowUtil {
      * 获取子流程中的第一个审批节点
      *
      * @author  zhaoyao
-     * @param subProcess 子流程对象
-     * @param validate 是否正确性校验
-     * @return List<FlowElementModel>
+     * @param subProcess 子流程元素
+     * @return UserTask
      */
-    public static UserTask getSubProcessFirstTask(SubProcess subProcess, boolean validate){
+    public static UserTask getSubProcessFirstTask(SubProcess subProcess){
         StartEvent startEvent = null;
         UserTask userTask = null;
         for( FlowElement flowElement : subProcess.getFlowElements()){
             if(flowElement instanceof StartEvent){
                 startEvent = (StartEvent) flowElement;
                 List<SequenceFlow> sf = startEvent.getOutgoingFlows();
-                if(validate && sf.size()>1) throw new WorkflowException("子流程开始节点存在两条输出线！");
                 FlowElement firstNode = sf.get(0).getTargetFlowElement();
                 if(firstNode instanceof UserTask) userTask = (UserTask) firstNode;
                 break;
             }
-        }
-        if( validate && startEvent == null ) throw new WorkflowException("子流程中无开始节点 flowElementId："+subProcess.getId());
-        if( validate && userTask == null ){
-            throw new WorkflowException("子流程第一个审批节点不是用户任务节点 flowElementId："+subProcess.getId());
         }
         return userTask;
     }
@@ -86,7 +80,7 @@ public class WorkflowUtil {
      * @author  zhaoyao
      * @param variables 接受返回变量的集合
      * @param approveInfo 审批请求数据
-     * @return List<FlowElementModel>
+     * @return Map<String,Object>
      */
     public static Map<String,Object>  setNextTaskInfoVariables(Map<String,Object> variables, ApproveInfo approveInfo ){
 

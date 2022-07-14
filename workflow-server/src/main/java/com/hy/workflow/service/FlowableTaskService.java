@@ -472,7 +472,7 @@ public class FlowableTaskService {
             //子流程
             else if(targetNode instanceof SubProcess){
                 SubProcess subProcess = (SubProcess)targetNode;
-                UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess,true);
+                UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess);
                 if(userTask!=null){
                     flow.setFlowElementId(userTask.getId());
                     flow.setFlowElementName(userTask.getName());
@@ -487,7 +487,7 @@ public class FlowableTaskService {
             }
             //其他类型节点
             else{
-                throw new WorkflowException("第二节点只能为用户任务节点或者子流程！");
+                throw new WorkflowException("流程第二个节点只能为用户任务节点或者子流程！");
             }
             flowList.add(flow);
             flowIdList.add(flow.getFlowElementId());
@@ -723,10 +723,8 @@ public class FlowableTaskService {
 
         //设置流程实例名称
         taskList.forEach(taskModel -> {
-            businessList.forEach(businessProcess -> {
-                BusinessProcess bp = bsMap.get(taskModel.getProcessInstanceId());
-                taskModel.setProcessInstanceName(bp.getProcessInstanceName());
-            });
+            BusinessProcess bp = bsMap.get(taskModel.getProcessInstanceId());
+            taskModel.setProcessInstanceName(bp.getProcessInstanceName());
         });
 
         PageBean taskPage = new PageBean(pageNum,pageSize,totalCount);

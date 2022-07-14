@@ -262,7 +262,7 @@ public class ProcessDefinitionController {
     @PostMapping(value = "/process-definitions/saveElementConfig", produces = "application/json")
     @ResponseBody
     public FlowElementConfigModel saveElementConfig(@RequestBody FlowElementConfigModel model) {
-        FlowElementConfigModel eleModel = processDefinitionService.saveElementConfig(model);;
+        FlowElementConfigModel eleModel = processDefinitionService.saveElementConfig(model);
         return eleModel;
     }
 
@@ -277,7 +277,7 @@ public class ProcessDefinitionController {
     }
 
 
-    @ApiOperation(value = "查询业务流程列表", tags = { "Process Definitions" })
+    @ApiOperation(value = "根据业务类型查询流程定义列表", tags = { "Process Definitions" })
     @PostMapping("/process-definitions/findProcessDefinitions")
     public List<ProcessDefinitionConfigModel> findProcessDefinitions(@RequestBody Map params) {
         return  processDefinitionService.findProcessDefinitions(params);

@@ -77,7 +77,7 @@ public class FindNextActivityCmd implements Command<List<FlowNode>> {
         }
         else if(targetFlow instanceof SubProcess){  //子流程查找其第一个节点
             SubProcess subProcess = (SubProcess)targetFlow;
-            UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess,true);
+            UserTask userTask = WorkflowUtil.getSubProcessFirstTask(subProcess);
             activityList.add( userTask );
         }
         else if(targetFlow instanceof CallActivity){
