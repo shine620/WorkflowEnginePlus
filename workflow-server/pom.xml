@@ -11,6 +11,10 @@
     <artifactId>workflow-server</artifactId>
     <packaging>war</packaging>
 
+    <properties>
+        <flowable.version>6.5.0</flowable.version>
+    </properties>
+
 
     <dependencies>
         <dependency>
@@ -22,12 +26,12 @@
         <dependency>
             <groupId>org.flowable</groupId>
             <artifactId>flowable-spring-boot-starter</artifactId>
-            <version>6.5.0</version>
+            <version>${flowable.version}</version>
         </dependency>
         <dependency>
             <groupId>org.flowable</groupId>
             <artifactId>flowable-spring-boot-starter-process-rest</artifactId>
-            <version>6.5.0</version>
+            <version>${flowable.version}</version>
             <exclusions>
                <!-- jsr250-api可能与javax.annotation-api产生冲突-->
                 <exclusion>
@@ -39,12 +43,12 @@
         <dependency>
             <groupId>org.flowable</groupId>
             <artifactId>flowable-ui-modeler-rest</artifactId>
-            <version>6.5.0</version>
+            <version>${flowable.version}</version>
         </dependency>
         <dependency>
             <groupId>org.flowable</groupId>
             <artifactId>flowable-ui-modeler-logic</artifactId>
-            <version>6.5.0</version>
+            <version>${flowable.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>
@@ -55,7 +59,7 @@
         <dependency>
             <groupId>org.flowable</groupId>
             <artifactId>flowable-ui-modeler-conf</artifactId>
-            <version>6.5.0</version>
+            <version>${flowable.version}</version>
         </dependency>
 
         <!--Thymeleaf-->
